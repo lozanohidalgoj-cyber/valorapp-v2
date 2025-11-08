@@ -1,11 +1,21 @@
 /* ============================================
+   🎨 Tailwind CSS Base Styles
+   ============================================ */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ============================================
    🎨 ValorApp_v2 - Variables de Diseño
    ============================================ */
 
 :root {
   /* Colores corporativos */
   --color-primary: #0000D0;        /* Azul corporativo */
+  --color-primary-light: #3333E0;  /* Azul más claro */
+  --color-primary-dark: #0000A0;   /* Azul más oscuro */
   --color-secondary: #FF3184;      /* Rosa vibrante */
+  --color-secondary-dark: #E0106A; /* Rosa más oscuro */
   
   /* Tonos neutros */
   --color-white: #FFFFFF;
@@ -22,9 +32,10 @@
   --spacing-lg: 1.5rem;
   --spacing-xl: 2rem;
   --spacing-2xl: 3rem;
+  --spacing-3xl: 4rem;
   
   /* Tipografía */
-  font-family: 'Inter', system-ui, -apple-system, Avenir, Helvetica, Arial, sans-serif;
+  font-family: 'Poppins', 'Inter', system-ui, -apple-system, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.6;
   font-weight: 400;
   
@@ -49,8 +60,8 @@ body {
   margin: 0;
   min-width: 320px;
   min-height: 100vh;
-  background-color: var(--color-light-gray);
-  color: var(--color-text-primary);
+  background: linear-gradient(135deg, #0000D0 0%, #3333E0 100%);
+  color: var(--color-white);
 }
 
 /* ============================================

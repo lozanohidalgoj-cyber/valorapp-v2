@@ -1,7 +1,7 @@
 /**
- * 🎯 Componente Principal - Botón
- * 
- * Componente de botón reutilizable con variantes y estados.
+ * 🎯 Componente Button
+ *
+ * Botón reutilizable con variantes y estilos corporativos.
  */
 
 import type { ReactNode, ButtonHTMLAttributes } from 'react';
@@ -10,11 +10,11 @@ import './Button.css';
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   /** Contenido del botón */
   children: ReactNode;
-  /** Variante del botón */
+  /** Variante de estilo */
   variant?: 'primary' | 'secondary' | 'outline';
   /** Tamaño del botón */
   size?: 'small' | 'medium' | 'large';
-  /** Botón de ancho completo */
+  /** Ancho completo */
   fullWidth?: boolean;
 }
 
@@ -34,8 +34,10 @@ export const Button = ({
     `btn--${variant}`,
     `btn--${size}`,
     fullWidth ? 'btn--full-width' : '',
-    className
-  ].filter(Boolean).join(' ');
+    className,
+  ]
+    .filter(Boolean)
+    .join(' ');
 
   return (
     <button className={classNames} {...props}>

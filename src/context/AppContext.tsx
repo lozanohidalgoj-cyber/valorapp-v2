@@ -1,38 +1,16 @@
 /**
- * 🌐 Contexto Global de la Aplicación
- * 
- * Contexto React para gestionar el estado global de ValorApp_v2
- * incluyendo datos de consumo, anomalías y configuración.
+ * 🌐 Proveedor del Contexto Global - AppProvider
+ *
+ * Gestiona el estado global de la aplicación usando React Context.
+ * Centraliza el estado de consumos, anomalías y operaciones globales.
  */
 
-import { createContext, useContext, useState } from 'react';
+import { useState } from 'react';
 import type { ReactNode } from 'react';
+import { AppContext, type AppContextType } from './AppContextDefinition';
 import type { EstadoApp, ConsumoEnergetico, Anomalia } from '../types';
 
-// ============================================
-// 📦 Definición del Contexto
-// ============================================
-
-interface AppContextType extends EstadoApp {
-  /** Carga datos de consumo en el estado global */
-  cargarConsumos: (consumos: ConsumoEnergetico[]) => void;
-  /** Establece las anomalías detectadas */
-  establecerAnomalias: (anomalias: Anomalia[]) => void;
-  /** Cambia el periodo seleccionado */
-  seleccionarPeriodo: (periodo: string | null) => void;
-  /** Establece el estado de procesamiento */
-  establecerProcesando: (procesando: boolean) => void;
-  /** Establece un mensaje de error */
-  establecerError: (error: string | null) => void;
-  /** Limpia todos los datos */
-  limpiarDatos: () => void;
-}
-
-const AppContext = createContext<AppContextType | undefined>(undefined);
-
-// ============================================
-// 🎯 Estado Inicial
-// ============================================
+export type { AppContextType } from './AppContextDefinition';
 
 const estadoInicial: EstadoApp = {
   consumos: [],
@@ -40,55 +18,54 @@ const estadoInicial: EstadoApp = {
   periodoSeleccionado: null,
   datosCargados: false,
   procesando: false,
-  error: null
+  error: null,
 };
-
-// ============================================
-// 🔧 Provider del Contexto
-// ============================================
 
 interface AppProviderProps {
   children: ReactNode;
 }
 
+/**
+ * Proveedor del contexto global de la aplicación
+ */
 export const AppProvider = ({ children }: AppProviderProps) => {
   const [estado, setEstado] = useState<EstadoApp>(estadoInicial);
 
   const cargarConsumos = (consumos: ConsumoEnergetico[]) => {
-    setEstado(prev => ({
+    setEstado((prev) => ({
       ...prev,
       consumos,
       datosCargados: consumos.length > 0,
-      error: null
+      error: null,
     }));
   };
 
   const establecerAnomalias = (anomalias: Anomalia[]) => {
-    setEstado(prev => ({
+    setEstado((prev) => ({
       ...prev,
-      anomalias
+      anomalias,
     }));
   };
 
   const seleccionarPeriodo = (periodo: string | null) => {
-    setEstado(prev => ({
+    setEstado((prev) => ({
       ...prev,
-      periodoSeleccionado: periodo
+      periodoSeleccionado: periodo,
     }));
   };
 
   const establecerProcesando = (procesando: boolean) => {
-    setEstado(prev => ({
+    setEstado((prev) => ({
       ...prev,
-      procesando
+      procesando,
     }));
   };
 
   const establecerError = (error: string | null) => {
-    setEstado(prev => ({
+    setEstado((prev) => ({
       ...prev,
       error,
-      procesando: false
+      procesando: false,
     }));
   };
 
@@ -103,27 +80,8 @@ export const AppProvider = ({ children }: AppProviderProps) => {
     seleccionarPeriodo,
     establecerProcesando,
     establecerError,
-    limpiarDatos
+    limpiarDatos,
   };
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
-};
-
-// ============================================
-// 🪝 Hook Personalizado
-// ============================================
-
-/**
- * Hook para acceder al contexto de la aplicación
- * @returns Contexto de la aplicación
- * @throws Error si se usa fuera del AppProvider
- */
-export const useAppContext = (): AppContextType => {
-  const context = useContext(AppContext);
-  
-  if (context === undefined) {
-    throw new Error('useAppContext debe usarse dentro de un AppProvider');
-  }
-  
-  return context;
 };

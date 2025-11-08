@@ -139,7 +139,7 @@ export interface PuntoGrafico {
   /** Color (opcional) */
   color?: string;
   /** Metadatos adicionales */
-  metadata?: Record<string, any>;
+  metadata?: Record<string, unknown>;
 }
 
 /**

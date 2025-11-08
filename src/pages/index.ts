@@ -1,0 +1,6 @@
+/**
+ * 📦 Exportación de Páginas
+ */
+
+export { Home } from './Home';
+export { Averia } from './Averia';
