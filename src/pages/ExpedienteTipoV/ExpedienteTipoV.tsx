@@ -187,14 +187,37 @@ export const ExpedienteTipoV = () => {
 
   return (
     <div className="expediente-container">
+      {/* Encabezado */}
+      <div className="expediente-header-section">
+        <h1 className="expediente-header-title">Análisis de Expediente Tipo V</h1>
+        <p className="expediente-header-subtitle">
+          Importa los archivos necesarios para continuar con el análisis
+        </p>
+      </div>
+
       <div className="expediente-inner">
         <AlertMessages error={displayError} success={successMessage} />
 
-        <FileUploadSection
-          loaded={derivacionLoaded}
-          onFileChange={handleFileChange}
-          onClearData={handleLimpiarDatosGuardados}
-        />
+        {!derivacionLoaded && !mostrandoAnalisis && (
+          <div className="expediente-main-content">
+            <FileUploadSection
+              loaded={derivacionLoaded}
+              onFileChange={handleFileChange}
+              onClearData={handleLimpiarDatosGuardados}
+            />
+            <button onClick={() => navigate('/saldo-atr')} className="expediente-saldo-atr-btn">
+              Saldo ATR
+            </button>
+          </div>
+        )}
+
+        {derivacionLoaded && !mostrandoAnalisis && (
+          <FileUploadSection
+            loaded={derivacionLoaded}
+            onFileChange={handleFileChange}
+            onClearData={handleLimpiarDatosGuardados}
+          />
+        )}
 
         {derivacionLoaded && !mostrandoAnalisis && (
           <div className="expediente-data-card">
