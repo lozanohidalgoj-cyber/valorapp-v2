@@ -187,13 +187,24 @@ export const ExpedienteTipoV = () => {
 
   return (
     <div className="expediente-container">
-      {/* Encabezado */}
-      <div className="expediente-header-section">
-        <h1 className="expediente-header-title">Análisis de Expediente Tipo V</h1>
-        <p className="expediente-header-subtitle">
-          Importa los archivos necesarios para continuar con el análisis
-        </p>
-      </div>
+      {/* Encabezado: Cambia según si hay datos cargados */}
+      {!derivacionLoaded ? (
+        <div className="expediente-header-section">
+          <h1 className="expediente-header-title">Análisis de Expediente Tipo V</h1>
+          <p className="expediente-header-subtitle">
+            Importa los archivos necesarios para continuar con el análisis
+          </p>
+        </div>
+      ) : (
+        <AnalysisHeader
+          analisisHabilitado={analisisConsumoHabilitado}
+          mostrandoAnalisis={mostrandoAnalisis}
+          onAnalizar={handleAnalisisConsumo}
+          onToggleVista={() => setMostrandoAnalisis(!mostrandoAnalisis)}
+          onLimpiarDatos={handleLimpiarDatosGuardados}
+          totalRegistros={derivacionData.length}
+        />
+      )}
 
       <div className="expediente-inner">
         <AlertMessages error={displayError} success={successMessage} />
@@ -212,26 +223,9 @@ export const ExpedienteTipoV = () => {
         )}
 
         {derivacionLoaded && !mostrandoAnalisis && (
-          <FileUploadSection
-            loaded={derivacionLoaded}
-            onFileChange={handleFileChange}
-            onClearData={handleLimpiarDatosGuardados}
-          />
-        )}
-
-        {derivacionLoaded && !mostrandoAnalisis && (
           <div className="expediente-data-card">
             <DataTable data={derivacionData} columns={derivacionColumns} />
           </div>
-        )}
-
-        {derivacionLoaded && (
-          <AnalysisHeader
-            analisisHabilitado={analisisConsumoHabilitado}
-            mostrandoAnalisis={mostrandoAnalisis}
-            onAnalizar={handleAnalisisConsumo}
-            onToggleVista={() => setMostrandoAnalisis(!mostrandoAnalisis)}
-          />
         )}
 
         {mostrandoAnalisis && resultadoAnalisis && (

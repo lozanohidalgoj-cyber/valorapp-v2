@@ -56,12 +56,28 @@ export const SaldoATR = () => {
     }
   };
 
+  const handleExportar = () => {
+    // Funcionalidad de exportación pendiente
+    alert('Función de exportación pendiente de implementar');
+  };
+
+  const handleLimpiarDatos = () => {
+    if (globalThis.confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
+      setRows(baseRows);
+    }
+  };
+
   // Combinar errores
   const displayError = loadError || importError;
 
   return (
     <div className="saldoatr-container">
-      <SaldoATRHeader onVolver={handleVolver} />
+      <SaldoATRHeader
+        onVolver={handleVolver}
+        totalRegistros={rows.length}
+        onExportar={handleExportar}
+        onLimpiarDatos={handleLimpiarDatos}
+      />
 
       <AlertMessages error={displayError} success={success} />
 

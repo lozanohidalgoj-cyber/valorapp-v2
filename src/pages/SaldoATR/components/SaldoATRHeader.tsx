@@ -1,23 +1,82 @@
 /**
- * Header de SaldoATR con navegación
+ * Header de SaldoATR con navegación y diseño unificado
+ * Muestra título, botón de retorno y contador de registros opcional
  * Memoizado para evitar re-renders innecesarios
  */
 
 import { memo } from 'react';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Download, Trash2 } from 'lucide-react';
 
+/**
+ * Props del componente SaldoATRHeader
+ */
 interface SaldoATRHeaderProps {
+  /** Callback para volver a la pantalla anterior */
   onVolver: () => void;
+  /** Total de registros cargados (opcional) */
+  totalRegistros?: number;
+  /** Callback para exportar datos (opcional) */
+  onExportar?: () => void;
+  /** Callback para limpiar datos (opcional) */
+  onLimpiarDatos?: () => void;
 }
 
-const SaldoATRHeaderComponent = ({ onVolver }: SaldoATRHeaderProps) => {
+/**
+ * Componente de encabezado para la interfaz SaldoATR
+ * Incluye navegación y información de registros
+ */
+const SaldoATRHeaderComponent = ({
+  onVolver,
+  totalRegistros,
+  onExportar,
+  onLimpiarDatos,
+}: SaldoATRHeaderProps) => {
+  // Si no hay registros, mostrar solo header simple
+  if (!totalRegistros || totalRegistros === 0) {
+    return (
+      <div className="saldoatr-header-unified">
+        <button className="saldoatr-back-btn-unified" onClick={onVolver}>
+          <ArrowLeft size={18} /> Volver
+        </button>
+        <div className="saldoatr-title-section">
+          <h1 className="saldoatr-title-unified">Interfaz Saldo ATR</h1>
+        </div>
+      </div>
+    );
+  }
+
+  // Header con botones de acción cuando hay datos
   return (
-    <div className="saldoatr-header">
-      <button className="saldoatr-back" onClick={onVolver}>
+    <div className="saldoatr-header-inline">
+      <button className="saldoatr-back-btn-unified" onClick={onVolver}>
         <ArrowLeft size={18} /> Volver
       </button>
-      <h1>Interfaz Saldo ATR</h1>
-      <div />
+      <div className="saldoatr-title-inline">
+        <h1 className="saldoatr-title">Interfaz Saldo ATR</h1>
+        <p>{totalRegistros} registros cargados</p>
+      </div>
+      <div className="saldoatr-header-actions">
+        {onExportar && (
+          <button
+            onClick={onExportar}
+            className="saldoatr-export-btn-header"
+            title="Exportar datos a Excel"
+          >
+            <Download size={20} />
+            Exportar Excel
+          </button>
+        )}
+        {onLimpiarDatos && (
+          <button
+            onClick={onLimpiarDatos}
+            className="saldoatr-limpiar-btn-header"
+            title="Limpiar todos los datos"
+          >
+            <Trash2 size={18} />
+            Limpiar Datos
+          </button>
+        )}
+      </div>
     </div>
   );
 };
