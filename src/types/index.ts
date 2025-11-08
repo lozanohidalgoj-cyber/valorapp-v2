@@ -87,7 +87,63 @@ export interface Anomalia {
 }
 
 // ============================================
-// 📈 Tipos para Análisis y Estadísticas
+// � Tipos para Derivación Individual (Entrada de Datos)
+// ============================================
+
+/**
+ * Registro completo de derivación individual (estructura del CSV)
+ */
+export interface DerivacionData {
+  'Número Fiscal de Factura': string;
+  'Código de Empresa Distribuidora': string;
+  'Código de contrato externo - interfaz': string;
+  'Secuencial de factura': string;
+  'Tipo de factura': string;
+  'Estado de la factura': string;
+  'Fecha desde': string;
+  'Fecha hasta': string;
+  'Importe Factura': string | number;
+  'Fuente de la factura': string;
+  'Tipo de Fuente': string;
+  'Descripción Tipo de fuente': string;
+  'Tipo de Fuente Anterior': string;
+  'Descripción Tipo de fuente Anterior': string;
+  'Tipo de punto de medida': string;
+  'Consumo P1/punta': string | number;
+  'Consumo P2/llano': string | number;
+  'Consumo P3/valle': string | number;
+  'Consumo P4/supervalle': string | number;
+  'Consumo P5': string | number;
+  'Consumo P6': string | number;
+  'Consumo Reactiva1': string | number;
+  'Consumo Reactiva2': string | number;
+  'Consumo Reactiva3': string | number;
+  'Consumo Reactiva4': string | number;
+  'Consumo Reactiva5': string | number;
+  'Consumo Reactiva6': string | number;
+  'Consumo cargo-abono P1/punta': string | number;
+  'Consumo cargo-abono P2/llano': string | number;
+  'Consumo cargo-abono P3/valle': string | number;
+  'Consumo cargo/abono P4': string | number;
+  'Consumo cargo/abono P5': string | number;
+  'Consumo cargo/abono P6': string | number;
+  'Consumo pérdidas P1/punta': string | number;
+  'Consumo pérdidas P2/llano': string | number;
+  'Consumo pérdidas P3/valle': string | number;
+  'Consumo pérdidas P4': string | number;
+  'Consumo pérdidas P5': string | number;
+  'Consumo pérdidas P6': string | number;
+  'Maxímetro P1/Punta': string | number;
+  'Maxímetro P2/Llano': string | number;
+  'Maxímetro P3/Valle': string | number;
+  'Maxímetro P4': string | number;
+  'Maxímetro P5': string | number;
+  'Maxímetro P6': string | number;
+  'Origen': string;
+}
+
+// ============================================
+// �📈 Tipos para Análisis y Estadísticas
 // ============================================
 
 /**
@@ -106,6 +162,73 @@ export interface EstadisticasConsumo {
   maximo: number;
   /** Total de registros analizados */
   totalRegistros: number;
+}
+
+/**
+ * Datos anuales para Vista por Años
+ */
+export interface ConsumoAnual {
+  /** Año */
+  año: number;
+  /** Suma total del consumo activo (P1+P2+P3) en kWh */
+  sumaConsumoActiva: number;
+  /** Máximo de maxímetro registrado en el año */
+  maxMaximetro: number;
+  /** Número de periodos (facturas) en el año */
+  periodosFacturados: number;
+  /** Suma total de días facturados */
+  sumaDias: number;
+  /** Promedio de consumo por día */
+  promedioConsumoPorDia: number;
+}
+
+/**
+ * Datos mensuales para Comparativa Mensual
+ */
+export interface ConsumoMensual {
+  /** Año */
+  año: number;
+  /** Mes (1-12) */
+  mes: number;
+  /** Periodo en formato "YYYY-MM" */
+  periodo: string;
+  /** Consumo total del mes (P1+P2+P3) */
+  consumoTotal: number;
+  /** Consumo promedio diario */
+  consumoPromedioDiario: number;
+  /** Número de días del periodo */
+  dias: number;
+  /** Variación porcentual respecto al mes anterior */
+  variacionPorcentual: number | null;
+  /** Es anomalía (variación > 40%) */
+  esAnomalia: boolean;
+  /** Tipo de variación */
+  tipoVariacion: 'aumento' | 'descenso' | 'estable' | null;
+}
+
+/**
+ * Resultado completo del análisis de consumo
+ */
+export interface ResultadoAnalisis {
+  /** Vista por años */
+  vistaAnual: ConsumoAnual[];
+  /** Comparativa mensual */
+  comparativaMensual: ConsumoMensual[];
+  /** Periodo total analizado */
+  periodoTotal: {
+    fechaInicio: string;
+    fechaFin: string;
+    totalAños: number;
+    totalMeses: number;
+  };
+  /** Resumen ejecutivo */
+  resumen: {
+    consumoTotalGeneral: number;
+    promedioAnual: number;
+    maxMaximetroGeneral: number;
+    totalFacturas: number;
+    anomaliasDetectadas: number;
+  };
 }
 
 /**

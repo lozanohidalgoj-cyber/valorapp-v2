@@ -1,0 +1,547 @@
+--------------------------------------------------------------------------------
+>>> Archivo: Hoja1.cls
+--------------------------------------------------------------------------------
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "Hoja1"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Module1.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Module1"
+Sub Exportar_Todos_Los_Modulos()
+    Dim comp As Object
+    Dim ruta As String
+    Dim carpeta As String
+    
+    ' Carpeta donde se guardarán los archivos exportados
+    carpeta = "C:\ExportarVBA\" ' ?? Cambia esta ruta si quieres otra ubicación
+    ruta = carpeta
+    
+    ' Crear la carpeta si no existe
+    If Dir(ruta, vbDirectory) = "" Then MkDir ruta
+    
+    ' Recorre todos los componentes (módulos, clases, formularios)
+    For Each comp In ThisWorkbook.VBProject.VBComponents
+        Select Case comp.Type
+            Case 1  ' Módulo estándar (.bas)
+                comp.Export ruta & comp.Name & ".bas"
+            Case 2  ' Clase (.cls)
+                comp.Export ruta & comp.Name & ".cls"
+            Case 3  ' UserForm (.frm)
+                comp.Export ruta & comp.Name & ".frm"
+            Case Else  ' ThisWorkbook o Hojas
+                comp.Export ruta & comp.Name & ".cls"
+        End Select
+    Next comp
+    
+    MsgBox " Todos los módulos han sido exportados a: " & ruta, vbInformation, "Exportación completada"
+End Sub
+
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo1.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo1"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo10.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo10"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo11.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo11"
+Sub ComplementarInformacion()
+    ' Definir las rutas de los archivos
+    Dim rutaArchivo1 As String
+    Dim rutaArchivo2 As String
+    
+    rutaArchivo1 = "Ruta_del_Archivo1.xlsx" ' Actualiza con la ruta correcta del primer archivo
+    rutaArchivo2 = "Ruta_del_Archivo2.xlsx" ' Actualiza con la ruta correcta del segundo archivo
+    
+    ' Abrir los archivos
+    Workbooks.Open rutaArchivo1
+    Workbooks.Open rutaArchivo2
+    
+    ' Complementar la información del segundo archivo en el primero
+    Dim wb1 As Workbook
+    Dim wb2 As Workbook
+    Dim ws1 As Worksheet
+    Dim ws2 As Worksheet
+    Dim lastRow As Long
+    Dim i As Long
+    
+    Set wb1 = ActiveWorkbook ' Archivo1
+    Set wb2 = Workbooks(2)   ' Archivo2
+    
+    Set ws1 = wb1.Sheets(1)  ' Hoja 1 del Archivo1
+    Set ws2 = wb2.Sheets(1)  ' Hoja 1 del Archivo2
+    
+    lastRow = ws1.Cells(ws1.Rows.Count, "A").End(xlUp).Row
+    
+    For i = 2 To lastRow ' Comienza desde la segunda fila (suponiendo que la primera fila son encabezados)
+        Dim buscarValor As Variant
+        buscarValor = ws1.Cells(i, "A").Value
+        
+        Dim complementarValor As Variant
+        complementarValor = Application.VLookup(buscarValor, ws2.Range("A:B"), 2, False)
+        
+        If Not IsError(complementarValor) Then ' Comprueba si se encontró un valor coincidente
+            ws1.Cells(i, "B").Value = complementarValor ' Complementa el valor en la columna B del Archivo1
+        End If
+    Next i
+    
+    ' Cerrar y guardar los archivos
+    wb1.Close SaveChanges:=True
+    wb2.Close SaveChanges:=False
+    
+    MsgBox "La información se ha complementado correctamente."
+End Sub
+
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo2.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo2"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo3.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo3"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo4.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo4"
+Sub Copia_y_abre_hoja_análisis3()
+Attribute Copia_y_abre_hoja_análisis3.VB_Description = "Copia y abre hoja análisis para ejecturar la macro."
+Attribute Copia_y_abre_hoja_análisis3.VB_ProcData.VB_Invoke_Func = "t\n14"
+'
+' Copia_y_abre_hoja_análisis3 Macro
+' Copia y abre hoja análisis para ejecturar la macro.
+'
+' Acceso directo: CTRL+y
+'
+    Cells.Select
+    Selection.Copy
+    ChDir "C:\AD_Expedientes"
+    Workbooks.Open Filename:="C:\AD_Expedientes\Análisis de Expedientes.xlsm"
+    Range("A1").Select
+    ActiveSheet.Paste
+    ActiveSheet.Shapes.Range(Array("Rounded Rectangle 10")).Select
+    Selection.Delete
+    ActiveSheet.Range("$F$1:$F$137").AutoFilter Field:=1, Criteria1:=Array( _
+        "ANULADORA(ES PARA FACTURA DE ABONO DE FACTURA TIPO A)", _
+        "ANULADORA (ES PARA LA FACTURA DE ABONO SUSTITUIDA TIPO S)", "FRAUDE", "A", "S", _
+        "SUSTITUIDA"), Operator:=xlFilterValues
+    Application.CutCopyMode = False
+    Selection.ClearContents
+    Sheets("Comentario").Select
+    ActiveWindow.SmallScroll Down:=15
+    Rows("50:50").Select
+    Selection.Copy
+    ActiveWindow.SmallScroll Down:=-69
+    Sheets("Entrada datos").Select
+    Range("A1").Select
+    ActiveSheet.Paste
+    Application.CutCopyMode = False
+    Selection.AutoFilter
+    ActiveWorkbook.Worksheets("Entrada datos").AutoFilter.Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("Entrada datos").AutoFilter.Sort.SortFields.Add Key _
+        :=Range("G1"), SortOn:=xlSortOnValues, Order:=xlDescending, DataOption:= _
+        xlSortNormal
+    Cells.Select
+    ActiveWorkbook.Worksheets("Entrada datos").Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("Entrada datos").Sort.SortFields.Add Key:=Range( _
+        "G2:G200"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    With ActiveWorkbook.Worksheets("Entrada datos").Sort
+        .SetRange Range("A1:AS200")
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With
+    Sheets("Vista por años").Select
+    ActiveWorkbook.RefreshAll
+End Sub
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo5.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo5"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo6.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo6"
+Sub Abre_Informe_DGE()
+Attribute Abre_Informe_DGE.VB_ProcData.VB_Invoke_Func = "s\n14"
+'
+' Abre_Informe_DGE Macro
+'
+
+'
+    Cells.Select
+    Selection.Copy
+    ChDir "C:\AD Expedientes"
+    Workbooks.Open Filename:="C:\AD Expedientes\Informe DGE - Definitivo (Prueba).xlsm"
+    Range("A1").Select
+    ActiveSheet.Paste
+    Cells.Select
+    Selection.AutoFilter
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 6
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 13
+    ActiveWindow.ScrollColumn = 14
+    ActiveWindow.ScrollColumn = 15
+    ActiveSheet.Range("$A$1:$AR$95").AutoFilter Field:=27, Criteria1:= _
+        "#¡VALOR!"
+    Cells.Select
+    Selection.ClearContents
+    ActiveSheet.Range("$A$1:$AR$95").AutoFilter Field:=27
+    ActiveWindow.ScrollColumn = 14
+    ActiveWindow.ScrollColumn = 13
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 6
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 1
+    ActiveWindow.SmallScroll Down:=-12
+    Cells.Select
+    Selection.AutoFilter
+    ActiveSheet.Range("$A$1:$AR$99").AutoFilter Field:=19, Criteria1:="-"
+    Rows("3:200").Select
+    Selection.ClearContents
+    ActiveSheet.Range("$A$1:$AR$200").AutoFilter Field:=19
+    ActiveWindow.SmallScroll Down:=-6
+    Range("A1").Select
+End Sub
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo7.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo7"
+Sub Abre_Informe()
+Attribute Abre_Informe.VB_ProcData.VB_Invoke_Func = "j\n14"
+'
+' Abre_Informe Macro
+'
+
+'
+    Cells.Select
+    Selection.Copy
+    ChDir "C:\AD Expedientes"
+    Workbooks.Open Filename:= _
+        "C:\AD Expedientes\Informe DGE - Definitivo (Prueba).xlsm"
+    Cells.Select
+    ActiveSheet.Paste
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 6
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 13
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 1
+    Application.CutCopyMode = False
+    Selection.AutoFilter
+    Selection.AutoFilter
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 6
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 13
+    ActiveWindow.ScrollColumn = 14
+    ActiveSheet.Range("$A$1:$AR$200").AutoFilter Field:=27, Criteria1:= _
+        "#¡VALOR!"
+    Cells.Select
+    Range("N1").Activate
+    Selection.ClearContents
+    ActiveWindow.ScrollColumn = 13
+    ActiveWindow.ScrollColumn = 12
+    ActiveWindow.ScrollColumn = 11
+    ActiveWindow.ScrollColumn = 10
+    ActiveWindow.ScrollColumn = 9
+    ActiveWindow.ScrollColumn = 8
+    ActiveWindow.ScrollColumn = 7
+    ActiveWindow.ScrollColumn = 6
+    ActiveWindow.ScrollColumn = 5
+    ActiveWindow.ScrollColumn = 4
+    ActiveWindow.ScrollColumn = 3
+    ActiveWindow.ScrollColumn = 2
+    ActiveWindow.ScrollColumn = 1
+    Sheets("Vista por años").Select
+    ActiveWindow.ScrollRow = 24
+    ActiveWindow.ScrollRow = 25
+    ActiveWindow.ScrollRow = 26
+    ActiveWindow.ScrollRow = 27
+    ActiveWindow.ScrollRow = 30
+    ActiveWindow.ScrollRow = 31
+    ActiveWindow.ScrollRow = 32
+    ActiveWindow.ScrollRow = 33
+    ActiveWindow.ScrollRow = 34
+    ActiveWindow.ScrollRow = 35
+    ActiveWindow.ScrollRow = 37
+    ActiveWindow.ScrollRow = 38
+    ActiveWindow.ScrollRow = 39
+    ActiveWindow.ScrollRow = 40
+    ActiveWindow.ScrollRow = 45
+    ActiveWindow.ScrollRow = 46
+    ActiveWindow.ScrollRow = 58
+    ActiveWindow.ScrollRow = 60
+    ActiveWindow.ScrollRow = 62
+    ActiveWindow.ScrollRow = 77
+    ActiveWindow.ScrollRow = 79
+    ActiveWindow.ScrollRow = 80
+    ActiveWindow.ScrollRow = 91
+    ActiveWindow.ScrollRow = 92
+    ActiveWindow.ScrollRow = 93
+    ActiveWindow.ScrollRow = 105
+    ActiveWindow.ScrollRow = 107
+    ActiveWindow.ScrollRow = 108
+    ActiveWindow.ScrollRow = 119
+    ActiveWindow.ScrollRow = 120
+    ActiveWindow.ScrollRow = 121
+    ActiveWindow.ScrollRow = 127
+    ActiveWindow.ScrollRow = 128
+    ActiveWindow.ScrollRow = 129
+    ActiveWindow.ScrollRow = 140
+    ActiveWindow.ScrollRow = 141
+    ActiveWindow.ScrollRow = 142
+    ActiveWindow.ScrollRow = 154
+    ActiveWindow.ScrollRow = 155
+    ActiveWindow.ScrollRow = 156
+    ActiveWindow.ScrollRow = 166
+    ActiveWindow.ScrollRow = 167
+    ActiveWindow.ScrollRow = 168
+    ActiveWindow.ScrollRow = 173
+    ActiveWindow.ScrollRow = 174
+    ActiveWindow.ScrollRow = 175
+    ActiveWindow.ScrollRow = 181
+    ActiveWindow.ScrollRow = 182
+    ActiveWindow.ScrollRow = 183
+    ActiveWindow.ScrollRow = 189
+    ActiveWindow.ScrollRow = 190
+    ActiveWindow.ScrollRow = 191
+    ActiveWindow.ScrollRow = 196
+    ActiveWindow.ScrollRow = 197
+    ActiveWindow.ScrollRow = 198
+    ActiveWindow.ScrollRow = 203
+    ActiveWindow.ScrollRow = 204
+    ActiveWindow.ScrollRow = 205
+    ActiveWindow.ScrollRow = 213
+    ActiveWindow.ScrollRow = 214
+    ActiveWindow.ScrollRow = 215
+    ActiveWindow.ScrollRow = 225
+    ActiveWindow.ScrollRow = 226
+    ActiveWindow.ScrollRow = 227
+    ActiveWindow.ScrollRow = 239
+    ActiveWindow.ScrollRow = 241
+    ActiveWindow.ScrollRow = 242
+    ActiveWindow.ScrollRow = 249
+    ActiveWindow.ScrollRow = 250
+    ActiveWindow.ScrollRow = 251
+    ActiveWindow.ScrollRow = 252
+    ActiveWindow.ScrollRow = 253
+    ActiveWindow.ScrollRow = 254
+    ActiveWindow.ScrollRow = 259
+    ActiveWindow.ScrollRow = 261
+    ActiveWindow.ScrollRow = 262
+    ActiveWindow.ScrollRow = 266
+    ActiveWindow.ScrollRow = 267
+    ActiveWindow.ScrollRow = 268
+    ActiveWindow.ScrollRow = 271
+    ActiveWindow.ScrollRow = 272
+    ActiveWindow.ScrollRow = 273
+    ActiveWindow.ScrollRow = 275
+    ActiveWindow.ScrollRow = 276
+    ActiveWindow.ScrollRow = 277
+    ActiveWindow.ScrollRow = 281
+    ActiveWindow.ScrollRow = 282
+    ActiveWindow.ScrollRow = 283
+    ActiveWindow.ScrollRow = 285
+    ActiveWindow.ScrollRow = 286
+    ActiveWindow.ScrollRow = 287
+    ActiveWindow.ScrollRow = 290
+    ActiveWindow.ScrollRow = 291
+    ActiveWindow.ScrollRow = 292
+    ActiveWindow.ScrollRow = 293
+    ActiveWindow.ScrollRow = 294
+    ActiveWindow.ScrollRow = 295
+    ActiveWindow.ScrollRow = 297
+    ActiveWindow.ScrollRow = 298
+    ActiveWindow.ScrollRow = 299
+    ActiveWindow.ScrollRow = 300
+    Rows("300:300").Select
+    Selection.Copy
+    Sheets("Entrada datos").Select
+    ActiveWindow.SmallScroll Down:=-12
+    Range("A1").Select
+    ActiveSheet.Paste
+    Sheets("Vista por años").Select
+    ActiveWindow.SmallScroll Down:=-309
+    Sheets("Entrada datos").Select
+    Cells.Select
+    Application.CutCopyMode = False
+    Selection.AutoFilter
+    ActiveWorkbook.Worksheets("Entrada datos").AutoFilter.Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("Entrada datos").AutoFilter.Sort.SortFields.Add Key _
+        :=Range("L1:L200"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption _
+        :=xlSortTextAsNumbers
+    With ActiveWorkbook.Worksheets("Entrada datos").AutoFilter.Sort
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+            Cells.Select
+    Selection.AutoFilter
+    ActiveSheet.Range("$A$1:$AR$200").AutoFilter Field:=19, Criteria1:="-"
+    Rows("3:200").Select
+    Selection.ClearContents
+    ActiveSheet.Range("$A$1:$AR$200").AutoFilter Field:=19
+    ActiveWindow.SmallScroll Down:=-6
+    End With
+    Sheets("Vista por años").Select
+    ActiveWorkbook.RefreshAll
+End Sub
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo8.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo8"
+Sub Copia_y_abre_hoja_Análisis()
+Attribute Copia_y_abre_hoja_Análisis.VB_Description = "Copia datos de la tabla extraida del SCE, abre hoja análisis, los pega, filtra las refacturaciones, elimina facturas sustituidas, actualiza y va a la pestaña Resumen Anual. "
+Attribute Copia_y_abre_hoja_Análisis.VB_ProcData.VB_Invoke_Func = " \n14"
+'
+' Macro2 Macro
+' Prova 2
+'
+
+'
+    Cells.Select
+    Selection.Copy
+    Workbooks.Open Filename:= _
+    "C:\AD Expedientes\Análisis de Expedientes.xlsm"
+    ActiveSheet.Paste
+    ActiveSheet.Range("$F$1:$F$200").AutoFilter Field:=1, Criteria1:="S"
+    Application.CutCopyMode = False
+    Selection.ClearContents
+    ActiveSheet.Range("$E$1:$E$200").AutoFilter Field:=1, Criteria1:="FRAUDE"
+    Application.CutCopyMode = False
+    Selection.ClearContents
+    Sheets("Vista por años").Select
+    ActiveWorkbook.RefreshAll
+    Sheets("Entrada datos").Select
+    ActiveSheet.Shapes.Range(Array("Rounded Rectangle 10")).Select
+    Selection.Delete
+    Rows("2:200").Select
+    ActiveWorkbook.Worksheets("Entrada datos").Sort.SortFields.Clear
+    ActiveWorkbook.Worksheets("Entrada datos").Sort.SortFields.Add Key:=Range( _
+        "G3:G151"), SortOn:=xlSortOnValues, Order:=xlAscending, DataOption:= _
+        xlSortNormal
+    With ActiveWorkbook.Worksheets("Entrada datos").Sort
+        .SetRange Range("A2:AS151")
+        .Header = xlYes
+        .MatchCase = False
+        .Orientation = xlTopToBottom
+        .SortMethod = xlPinYin
+        .Apply
+    End With
+    Sheets("Vista por años").Select
+End Sub
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: Módulo9.bas
+--------------------------------------------------------------------------------
+Attribute VB_Name = "Módulo9"
+
+
+
+--------------------------------------------------------------------------------
+>>> Archivo: ThisWorkbook.cls
+--------------------------------------------------------------------------------
+VERSION 1.0 CLASS
+BEGIN
+  MultiUse = -1  'True
+END
+Attribute VB_Name = "ThisWorkbook"
+Attribute VB_GlobalNameSpace = False
+Attribute VB_Creatable = False
+Attribute VB_PredeclaredId = True
+Attribute VB_Exposed = True
+
+
+
