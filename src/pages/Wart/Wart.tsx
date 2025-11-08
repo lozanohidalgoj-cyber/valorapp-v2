@@ -38,7 +38,7 @@ export const Wart = () => {
 
   const handleContinuar = () => {
     if (ambosChequeos) {
-      // TODO: Implementar navegación al siguiente paso
+      navigate('/expediente-tipo-v');
     }
   };
 
