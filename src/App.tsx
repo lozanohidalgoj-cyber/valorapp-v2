@@ -7,7 +7,7 @@
 
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AppProvider } from './context';
-import { Home, Averia } from './pages';
+import { Home, Averia, Wart } from './pages';
 import './App.css';
 
 /**
@@ -20,6 +20,7 @@ function App() {
         <Routes>
           <Route path="/" element={<Home />} />
           <Route path="/averia" element={<Averia />} />
+          <Route path="/wart" element={<Wart />} />
         </Routes>
       </Router>
     </AppProvider>

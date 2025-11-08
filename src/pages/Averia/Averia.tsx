@@ -15,7 +15,11 @@ export const Averia = () => {
   };
 
   const handleTipoAveriaClick = (tipo: string) => {
-    alert(`Proceso de valoración de ${tipo} próximamente`);
+    if (tipo === 'WART') {
+      navigate('/wart');
+    } else {
+      alert(`Proceso de valoración de ${tipo} próximamente`);
+    }
   };
 
   return (
