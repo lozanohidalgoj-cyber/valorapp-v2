@@ -6,7 +6,7 @@
  * - Verde: Consumos máximos
  */
 
-import { useMemo, useEffect, useRef, useState } from 'react';
+import { memo, useMemo, useEffect, useRef, useState } from 'react';
 import type { ConsumoMensual } from '../../types';
 import { formatearNumero, calcularColorHeatMap } from '../../utils';
 import './HeatMapConsumo.css';
@@ -15,7 +15,7 @@ interface HeatMapConsumoProps {
   datos: ConsumoMensual[];
 }
 
-export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
+const HeatMapConsumoComponent = ({ datos }: HeatMapConsumoProps) => {
   // Escalado automático para encajar en el viewport sin scroll vertical
   const containerRef = useRef<HTMLDivElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
@@ -26,15 +26,15 @@ export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
     const updateScale = () => {
       if (!containerRef.current || !matrixRef.current) return;
       const cRect = containerRef.current.getBoundingClientRect();
-  const availableHeight = window.innerHeight - cRect.top - 12; // margen inferior de seguridad
-  const availableWidth = cRect.width - 12; // pequeño margen lateral
+      const availableHeight = window.innerHeight - cRect.top - 12; // margen inferior de seguridad
+      const availableWidth = cRect.width - 12; // pequeño margen lateral
       const contentHeight = matrixRef.current.scrollHeight;
       const contentWidth = matrixRef.current.scrollWidth;
-    const heightScale = availableHeight / contentHeight;
-    const widthScale = availableWidth / contentWidth;
-    // Se toma el menor de ambos para evitar desbordes. Se habilita ligero upscale hasta 1.15.
-    const baseScale = Math.min(heightScale, widthScale);
-    const newScale = Math.min(1.15, Math.max(0.8, baseScale));
+      const heightScale = availableHeight / contentHeight;
+      const widthScale = availableWidth / contentWidth;
+      // Se toma el menor de ambos para evitar desbordes. Se habilita ligero upscale hasta 1.15.
+      const baseScale = Math.min(heightScale, widthScale);
+      const newScale = Math.min(1.15, Math.max(0.8, baseScale));
       setScale(newScale);
       setScaledHeight(Math.ceil(contentHeight * newScale));
     };
@@ -53,24 +53,40 @@ export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
   const { minConsumo, maxConsumo, promedioConsumo } = useMemo(() => {
     if (datos.length === 0) return { minConsumo: 0, maxConsumo: 0, promedioConsumo: 0 };
 
-    const consumos = datos.map(d => d.consumoTotal);
+    const consumos = datos.map((d) => d.consumoTotal);
     const suma = consumos.reduce((acc, val) => acc + val, 0);
 
     return {
       minConsumo: Math.min(...consumos),
       maxConsumo: Math.max(...consumos),
-      promedioConsumo: suma / consumos.length
+      promedioConsumo: suma / consumos.length,
     };
   }, [datos]);
 
   // Estructuras auxiliares
-  const nombresMeses = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-  const años = useMemo(() => Array.from(new Set(datos.map(d => d.año))).sort((a, b) => a - b), [datos]);
+  const nombresMeses = [
+    'Ene',
+    'Feb',
+    'Mar',
+    'Abr',
+    'May',
+    'Jun',
+    'Jul',
+    'Ago',
+    'Sep',
+    'Oct',
+    'Nov',
+    'Dic',
+  ];
+  const años = useMemo(
+    () => Array.from(new Set(datos.map((d) => d.año))).sort((a, b) => a - b),
+    [datos]
+  );
 
   // Mapa rápido para buscar mes por año y mes
   const mapaPorPeriodo = useMemo(() => {
     const m = new Map<string, ConsumoMensual>();
-    datos.forEach(d => m.set(`${d.año}-${d.mes}`, d));
+    datos.forEach((d) => m.set(`${d.año}-${d.mes}`, d));
     return m;
   }, [datos]);
 
@@ -85,28 +101,67 @@ export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
   return (
     <div className="heatmap-container" ref={containerRef}>
       <div className="heatmap-matrix-wrapper" style={{ height: scaledHeight }}>
-  <div className="matrix-scale" style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}>
+        <div
+          className="matrix-scale"
+          style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
+        >
           <div className="heatmap-matrix heatmap-matrix--integrated" ref={matrixRef}>
             {/* Fila superior integrada: título + chips + leyendas */}
             <div className="matrix-integrated-header" style={{ gridColumn: '1 / span 13' }}>
               <div className="integrated-row">
                 <h3 className="heatmap-title integrated-title">🔥 Mapa de Calor</h3>
                 <div className="integrated-chips">
-                  <div className="heatmap-chip"><span className="chip-label">📊 Promedio</span><span className="chip-value">{formatearNumero(promedioConsumo)} kWh</span></div>
-                  <div className="heatmap-chip"><span className="chip-label">📉 Mínimo</span><span className="chip-value">{formatearNumero(minConsumo)} kWh</span></div>
-                  <div className="heatmap-chip"><span className="chip-label">📈 Máximo</span><span className="chip-value">{formatearNumero(maxConsumo)} kWh</span></div>
-                  <div className="heatmap-chip heatmap-chip--anomalia"><span className="chip-label">⚠️ Anomalías</span><span className="chip-value">{datos.filter(d => d.esAnomalia).length}</span></div>
+                  <div className="heatmap-chip">
+                    <span className="chip-label">📊 Promedio</span>
+                    <span className="chip-value">{formatearNumero(promedioConsumo)} kWh</span>
+                  </div>
+                  <div className="heatmap-chip">
+                    <span className="chip-label">📉 Mínimo</span>
+                    <span className="chip-value">{formatearNumero(minConsumo)} kWh</span>
+                  </div>
+                  <div className="heatmap-chip">
+                    <span className="chip-label">📈 Máximo</span>
+                    <span className="chip-value">{formatearNumero(maxConsumo)} kWh</span>
+                  </div>
+                  <div className="heatmap-chip heatmap-chip--anomalia">
+                    <span className="chip-label">⚠️ Anomalías</span>
+                    <span className="chip-value">{datos.filter((d) => d.esAnomalia).length}</span>
+                  </div>
                 </div>
               </div>
               <div className="integrated-row legend-variacion-inline">
                 <span className="legend-inline-title">📊 Código de Colores - Variación:</span>
                 <div className="legend-inline-items">
-                  <span className="legend-inline-item"><span className="legend-inline-box" style={{ background:'#66bb6a' }}></span>Estable (±5%)</span>
-                  <span className="legend-inline-item"><span className="legend-inline-box" style={{ background:'#ffca28' }}></span>Leve (5-10%)</span>
-                  <span className="legend-inline-item"><span className="legend-inline-box" style={{ background:'#ffa726' }}></span>Moderada (10-20%)</span>
-                  <span className="legend-inline-item"><span className="legend-inline-box" style={{ background:'#ff5722' }}></span>Alta (20-40%)</span>
-                  <span className="legend-inline-item"><span className="legend-inline-box" style={{ background:'#ff1744' }}></span>⚠️ &gt;40%</span>
-                  <span className="legend-inline-item intensity-inline"><span className="legend-inline-bar" style={{ background:'linear-gradient(to right, rgb(255,0,0), rgb(255,255,0), rgb(0,255,0))' }}></span> Intensidad: Bajo → Medio → Alto</span>
+                  <span className="legend-inline-item">
+                    <span className="legend-inline-box" style={{ background: '#66bb6a' }}></span>
+                    Estable (±5%)
+                  </span>
+                  <span className="legend-inline-item">
+                    <span className="legend-inline-box" style={{ background: '#ffca28' }}></span>
+                    Leve (5-10%)
+                  </span>
+                  <span className="legend-inline-item">
+                    <span className="legend-inline-box" style={{ background: '#ffa726' }}></span>
+                    Moderada (10-20%)
+                  </span>
+                  <span className="legend-inline-item">
+                    <span className="legend-inline-box" style={{ background: '#ff5722' }}></span>
+                    Alta (20-40%)
+                  </span>
+                  <span className="legend-inline-item">
+                    <span className="legend-inline-box" style={{ background: '#ff1744' }}></span>⚠️
+                    &gt;40%
+                  </span>
+                  <span className="legend-inline-item intensity-inline">
+                    <span
+                      className="legend-inline-bar"
+                      style={{
+                        background:
+                          'linear-gradient(to right, rgb(255,0,0), rgb(255,255,0), rgb(0,255,0))',
+                      }}
+                    ></span>{' '}
+                    Intensidad: Bajo → Medio → Alto
+                  </span>
                 </div>
               </div>
             </div>
@@ -114,18 +169,24 @@ export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
             <div className="matrix-corner"></div>
             {/* Encabezados de meses */}
             {nombresMeses.map((m, idx) => (
-              <div key={`h-${idx}`} className="matrix-header-month">{m}</div>
+              <div key={`h-${idx}`} className="matrix-header-month">
+                {m}
+              </div>
             ))}
             {/* Filas por año */}
             {años.map((año) => (
               <>
-                <div key={`yl-${año}`} className="matrix-year-label">{año}</div>
+                <div key={`yl-${año}`} className="matrix-year-label">
+                  {año}
+                </div>
                 {Array.from({ length: 12 }, (_, i) => {
                   const mes = i + 1;
                   const dato = mapaPorPeriodo.get(`${año}-${mes}`);
                   if (!dato) {
                     return (
-                      <div key={`c-${año}-${mes}`} className="matrix-cell matrix-empty">-</div>
+                      <div key={`c-${año}-${mes}`} className="matrix-cell matrix-empty">
+                        -
+                      </div>
                     );
                   }
                   const color = calcularColorHeatMap(dato.consumoTotal, minConsumo, maxConsumo);
@@ -150,3 +211,9 @@ export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
     </div>
   );
 };
+
+/**
+ * Componente memoizado para evitar re-renders innecesarios
+ * Solo se actualiza cuando los datos cambian
+ */
+export const HeatMapConsumo = memo(HeatMapConsumoComponent);

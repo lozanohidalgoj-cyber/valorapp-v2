@@ -7,6 +7,7 @@ ValorApp_v2 es una aplicación React+TypeScript+Vite para **análisis de consumo
 ## 🏗️ Arquitectura y Flujo de Datos
 
 ### Estructura de Directorios (Obligatoria)
+
 ```
 src/
 ├── types/          → Definiciones TypeScript centralizadas
@@ -21,6 +22,7 @@ src/
 ```
 
 ### Flujo de Datos Principal
+
 1. **Importación**: `importService.ts` lee CSV/JSON → valida → retorna `ConsumoEnergetico[]`
 2. **Procesamiento**: `dataService.ts` agrupa por periodo → limpia → calcula estadísticas
 3. **Detección**: `anomaliaService.ts` analiza tendencias → detecta anomalías → marca primera ocurrencia
@@ -30,18 +32,22 @@ src/
 ## 🎨 Sistema de Diseño (CRÍTICO)
 
 ### Colores Corporativos (NO modificar)
+
 ```css
---color-primary: #0000D0     /* Azul - botones, encabezados, énfasis */
---color-secondary: #FF3184   /* Rosa - acentos, hover, interactivos */
+--color-primary: #0000d0 /* Azul - botones, encabezados, énfasis */ --color-secondary: #ff3184
+  /* Rosa - acentos, hover, interactivos */;
 ```
+
 **Regla**: Usa `var(--color-primary)` y `var(--color-secondary)` en todos los estilos. Nunca hardcodear colores.
 
 ### Convenciones de Componentes
+
 - **Componentes visuales**: Carpeta propia con `Component.tsx` + `Component.css`
 - **Props**: Siempre usar interfaces TypeScript con JSDoc
 - **Exportación**: Usar barrel exports (`index.ts` en cada carpeta)
 
 Ejemplo real del proyecto:
+
 ```tsx
 // src/components/Button/Button.tsx
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -53,7 +59,9 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 ## 🔧 Patrones de Código Específicos
 
 ### 1. Tipos Centralizados
+
 Todos los tipos están en `src/types/index.ts`. **NUNCA** declarar interfaces inline fuera de este archivo.
+
 ```typescript
 // ✅ CORRECTO - usar tipos del archivo centralizado
 import type { ConsumoEnergetico, Anomalia } from '../types';
@@ -63,7 +71,9 @@ interface MyConsumo { ... }
 ```
 
 ### 2. Servicios son Funciones Puras
+
 Los servicios en `src/services/` exportan funciones puras sin estado:
+
 ```typescript
 // Ejemplo real de anomaliaService.ts
 export const detectarAnomalias = (consumosPorPeriodo: ConsumoPeriodo[]): Anomalia[] => {
@@ -72,6 +82,7 @@ export const detectarAnomalias = (consumosPorPeriodo: ConsumoPeriodo[]): Anomali
 ```
 
 ### 3. Hooks Personalizados Encapsulan Lógica
+
 ```typescript
 // src/hooks/useProcesarDatos.ts
 export const useProcesarDatos = () => {
@@ -83,6 +94,7 @@ export const useProcesarDatos = () => {
 ```
 
 ### 4. Context para Estado Global (NO Redux)
+
 ```typescript
 // Acceso al estado global siempre vía hook
 const { consumos, anomalias, cargarConsumos } = useAppContext();
@@ -91,13 +103,16 @@ const { consumos, anomalias, cargarConsumos } = useAppContext();
 ## 📊 Lógica de Negocio Clave
 
 ### Detección de Anomalías (anomaliaService.ts)
+
 **Umbrales configurados** (líneas 15-21):
+
 - Descenso mínimo: 15%
 - Descenso abrupto: 30%
 - Consumo cero: ≤5 kWh
 - Pico anómalo: > promedio + 2×desviación estándar
 
 **Tipos de anomalías detectadas**:
+
 1. `descenso_abrupto` - caída >30% periodo-a-periodo
 2. `descenso_gradual` - caída 15-30%
 3. `consumo_cero` - lectura ≤5 kWh
@@ -105,6 +120,7 @@ const { consumos, anomalias, cargarConsumos } = useAppContext();
 5. `pico_anomalo` - consumo excesivamente alto
 
 ### Agrupación por Periodo (dataService.ts)
+
 - Usa `obtenerPeriodo()` de utils para convertir fechas a "YYYY-MM"
 - Calcula `consumoTotal` y `consumoPromedio` por mes
 - Ordena cronológicamente antes de retornar
@@ -121,6 +137,7 @@ npm run lint     # ESLint con reglas TypeScript
 ## 📝 Convenciones de Código
 
 ### Comentarios JSDoc Obligatorios
+
 ```typescript
 /**
  * Detecta anomalías en una serie de consumos por periodo
@@ -133,10 +150,12 @@ export const detectarAnomalias = (consumosPorPeriodo: ConsumoPeriodo[]): Anomali
 ```
 
 ### Nombres en Español
+
 - Variables/funciones/tipos: español descriptivo (`consumosPorPeriodo`, `detectarAnomalias`)
 - Excepción: términos técnicos en inglés (`useMemo`, `useCallback`)
 
 ### Importaciones de Tipos
+
 ```typescript
 // ✅ CORRECTO - import type separado
 import type { ReactNode } from 'react';
@@ -149,7 +168,9 @@ import { createContext, ReactNode } from 'react';
 ## 🔍 Debugging y Validación
 
 ### Validación de Datos Importados
+
 `importService.ts` valida automáticamente:
+
 - Fechas válidas (ISO 8601)
 - Consumo numérico válido
 - Número de contador presente
@@ -157,7 +178,9 @@ import { createContext, ReactNode } from 'react';
 Retorna `ResultadoImportacion` con `exito`, `errores[]`, `advertencias[]`.
 
 ### Limpieza de Datos
+
 `dataService.ts` elimina:
+
 - Registros sin campos requeridos
 - Fechas inválidas
 - Consumos NaN/undefined
@@ -192,7 +215,9 @@ Retorna `ResultadoImportacion` con `exito`, `errores[]`, `advertencias[]`.
 ## 📐 Detalles de Arquitectura y Decisiones de Diseño
 
 ### Por qué NO Backend/Base de Datos
+
 **Decisión arquitectónica**: Los datos provienen de **macros de Excel** que generan CSV/JSON. El procesamiento es puntual y no requiere persistencia. Mantener todo client-side:
+
 - ✅ Simplifica deployment (solo archivos estáticos)
 - ✅ Elimina necesidad de servidor/infraestructura
 - ✅ Procesamiento instantáneo sin latencia de red
@@ -222,13 +247,13 @@ const archivo = event.target.files[0];
 
 // 2. Hook lee y parsea el archivo
 const { importarArchivo } = useImportarArchivos();
-const datos = await importarArchivo(archivo); 
+const datos = await importarArchivo(archivo);
 // → importService.importarCSV() → validación → ConsumoEnergetico[]
 
 // 3. Hook procesa datos
 const { procesarConsumos } = useProcesarDatos();
 procesarConsumos(datos);
-// → dataService.limpiarDatos() 
+// → dataService.limpiarDatos()
 // → dataService.eliminarDuplicados()
 // → dataService.agruparPorPeriodo() → ConsumoPeriodo[]
 
@@ -296,16 +321,19 @@ export { MiVista } from './MiVista/MiVista';
 ```typescript
 // Revisar umbrales en src/services/anomaliaService.ts líneas 15-21
 const UMBRALES = {
-  DESCENSO_MINIMO: 15,    // Ajustar si detecta demasiado/poco
-  DESCENSO_ABRUPTO: 30,   // Ajustar sensibilidad
-  CONSUMO_CERO: 5,        // kWh mínimo para considerar "cero"
-  FACTOR_DESVIACION: 2    // Multiplicador σ para picos
+  DESCENSO_MINIMO: 15, // Ajustar si detecta demasiado/poco
+  DESCENSO_ABRUPTO: 30, // Ajustar sensibilidad
+  CONSUMO_CERO: 5, // kWh mínimo para considerar "cero"
+  FACTOR_DESVIACION: 2, // Multiplicador σ para picos
 };
 
 // Ver datos procesados en consola
 console.log('Consumos agrupados:', consumosPorPeriodo);
 console.log('Anomalías:', anomalias);
-console.log('Primera anomalía:', anomalias.find(a => a.esPrimeraOcurrencia));
+console.log(
+  'Primera anomalía:',
+  anomalias.find((a) => a.esPrimeraOcurrencia)
+);
 ```
 
 ---
@@ -313,9 +341,10 @@ console.log('Primera anomalía:', anomalias.find(a => a.esPrimeraOcurrencia));
 ## 🧩 Patrones de Integración entre Componentes
 
 ### Comunicación Padre-Hijo (Props)
+
 ```typescript
 // Padre pasa datos y callbacks
-<TablaConsumos 
+<TablaConsumos
   consumos={consumosPorPeriodo}
   onSeleccionar={handleSeleccion}
 />
@@ -328,6 +357,7 @@ interface TablaConsumosProps {
 ```
 
 ### Comunicación entre Componentes Distantes (Context)
+
 ```typescript
 // Componente A actualiza contexto
 const { cargarConsumos } = useAppContext();
@@ -341,18 +371,19 @@ useEffect(() => {
 ```
 
 ### Composición de Hooks
+
 ```typescript
 // Hook compuesto que orquesta múltiples servicios
 export const useAnalisisCompleto = () => {
   const { consumos } = useAppContext();
   const { consumosPorPeriodo, anomalias } = useProcesarDatos();
   const estadisticas = useMemo(() => calcularEstadisticas(consumos), [consumos]);
-  
+
   return {
     consumosPorPeriodo,
     anomalias,
     estadisticas,
-    primeraAnomalia: anomalias.find(a => a.esPrimeraOcurrencia)
+    primeraAnomalia: anomalias.find((a) => a.esPrimeraOcurrencia),
   };
 };
 ```
@@ -377,13 +408,15 @@ fecha,consumo,numeroContador,cliente,periodo
 ## 🎨 Extender Sistema de Diseño
 
 ### Agregar Nueva Variable CSS
+
 ```css
 /* src/index.css - Agregar en sección :root */
---color-warning: #FF9800;     /* Para alertas nivel medio */
---spacing-3xl: 4rem;          /* Para secciones grandes */
+--color-warning: #ff9800; /* Para alertas nivel medio */
+--spacing-3xl: 4rem; /* Para secciones grandes */
 ```
 
 ### Crear Nuevo Componente Visual
+
 ```bash
 # Estructura obligatoria
 src/components/MiComponente/
@@ -396,6 +429,7 @@ export { MiComponente } from './MiComponente';
 ```
 
 **Ejemplo real - Card Component**:
+
 ```typescript
 // src/components/Card/Card.tsx
 interface CardProps {
@@ -435,8 +469,10 @@ export const Card = ({ children, variant = 'default', elevated = false }: CardPr
 ## 🐛 Debugging y Troubleshooting
 
 ### Error: "useAppContext debe usarse dentro de un AppProvider"
+
 **Causa**: Componente no está envuelto en `<AppProvider>`  
 **Solución**: Verificar que `App.tsx` tenga la estructura:
+
 ```typescript
 <AppProvider>
   <MisComponentes />
@@ -444,7 +480,9 @@ export const Card = ({ children, variant = 'default', elevated = false }: CardPr
 ```
 
 ### Error: Anomalías no se detectan
+
 **Checklist de diagnóstico**:
+
 1. ✅ ¿Los datos tienen formato de fecha válido? (ISO 8601: "2024-01-15")
 2. ✅ ¿Los consumos son numéricos? (no strings)
 3. ✅ ¿Hay al menos 2 periodos? (necesario para comparación)
@@ -458,6 +496,7 @@ console.log('Anomalías:', anomalias.length);
 ```
 
 ### Performance: Re-renders excesivos
+
 **Síntoma**: Aplicación lenta al cargar muchos datos  
 **Solución**: Verificar que estés usando `useMemo` y `useCallback`:
 
@@ -474,16 +513,18 @@ const anomalias = detectarAnomalias(consumosPorPeriodo);
 ## 📦 Dependencias Externas
 
 ### Dependencias Actuales
+
 ```json
 {
-  "react": "^19.1.1",           // Framework UI
-  "react-dom": "^19.1.1",       // Renderizado DOM
-  "typescript": "~5.9.3",       // Type checking
-  "vite": "^7.1.7"              // Bundler + dev server
+  "react": "^19.1.1", // Framework UI
+  "react-dom": "^19.1.1", // Renderizado DOM
+  "typescript": "~5.9.3", // Type checking
+  "vite": "^7.1.7" // Bundler + dev server
 }
 ```
 
 ### Librerías Recomendadas para Futura Integración
+
 ```bash
 # Visualización de gráficos (cuando se necesite)
 npm install recharts              # Gráficos React nativos
@@ -504,11 +545,12 @@ npm install xlsx                  # Leer/escribir Excel
 ## 🔐 Manejo de Errores Estandarizado
 
 ### En Servicios (Funciones Puras)
+
 ```typescript
 // NO lanzar excepciones - retornar objetos con estado
 export const importarCSV = async (contenido: string): Promise<ResultadoImportacion> => {
   const errores: string[] = [];
-  
+
   try {
     // ... procesamiento
     return { exito: true, registrosImportados: n, errores: [], datos };
@@ -520,10 +562,11 @@ export const importarCSV = async (contenido: string): Promise<ResultadoImportaci
 ```
 
 ### En Hooks
+
 ```typescript
 export const useImportarArchivos = () => {
   const [error, setError] = useState<string | null>(null);
-  
+
   const importar = async (archivo: File) => {
     try {
       const resultado = await importarCSV(contenido);
@@ -540,6 +583,7 @@ export const useImportarArchivos = () => {
 ```
 
 ### En Componentes
+
 ```typescript
 const { error, importarArchivo } = useImportarArchivos();
 
@@ -581,3 +625,50 @@ Características planificadas (no implementar hasta que se solicite):
 6. **Temas visuales** - Dark mode manteniendo paleta corporativa
 
 **Nota**: Mantener la arquitectura flexible para estas integraciones futuras.
+
+---
+
+## Reglas de Desarrollo y Mejores Pr�cticas Modernas
+
+### Limpieza y Refactorizaci�n
+
+#### C�digo Duplicado
+
+- **NUNCA** duplicar l�gica. Extraer a utilidades, hooks o servicios.
+- Si un fragmento se repite 2+ veces, refactorizar inmediatamente.
+- Usar barrel exports (index.ts) para centralizar importaciones.
+
+#### Tama�o de Componentes
+
+- **M�ximo 200 l�neas** por componente. Si excede, dividir en subcomponentes.
+- Separar l�gica compleja en hooks personalizados.
+- UI presentation vs. logic containers.
+
+#### Logging y Debugging
+
+- **PROHIBIDO** usar console.log, console.error, console.warn en c�digo de producci�n.
+- Usar el servicio loggerService centralizado para todos los logs.
+- Eliminar todos los debugger statements.
+- Comentarios deben explicar "por qu�", no "qu�" (el c�digo ya lo muestra).
+
+#### Imports
+
+- Ordenar alfab�ticamente: React Externos Internos Tipos Estilos.
+- Usar import type para tipos TypeScript.
+- Preferir imports nombrados sobre default exports.
+- Usar barrel exports para simplificar rutas.
+
+` ypescript
+// CORRECTO
+import { useState, useCallback } from 'react';
+import { format } from 'date-fns';
+import { useAnalisis } from '../../../hooks';
+import type { ConsumoEnergetico } from '../../../types';
+import './Component.css';
+
+// INCORRECTO - imports desordenados
+import './Component.css';
+import type { ConsumoEnergetico } from '../../../types';
+import { format } from 'date-fns';
+import { useAnalisis } from '../../../hooks';
+import { useState, useCallback } from 'react';
