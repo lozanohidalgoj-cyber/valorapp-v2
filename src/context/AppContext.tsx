@@ -5,7 +5,7 @@
  * Centraliza el estado de consumos, anomalías y operaciones globales.
  */
 
-import { useState } from 'react';
+import { useState, useCallback, useMemo } from 'react';
 import type { ReactNode } from 'react';
 import { AppContext, type AppContextType } from './AppContextDefinition';
 import type { EstadoApp, ConsumoEnergetico, Anomalia } from '../types';
@@ -31,57 +31,68 @@ interface AppProviderProps {
 export const AppProvider = ({ children }: AppProviderProps) => {
   const [estado, setEstado] = useState<EstadoApp>(estadoInicial);
 
-  const cargarConsumos = (consumos: ConsumoEnergetico[]) => {
+  const cargarConsumos = useCallback((consumos: ConsumoEnergetico[]) => {
     setEstado((prev) => ({
       ...prev,
       consumos,
       datosCargados: consumos.length > 0,
       error: null,
     }));
-  };
+  }, []);
 
-  const establecerAnomalias = (anomalias: Anomalia[]) => {
+  const establecerAnomalias = useCallback((anomalias: Anomalia[]) => {
     setEstado((prev) => ({
       ...prev,
       anomalias,
     }));
-  };
+  }, []);
 
-  const seleccionarPeriodo = (periodo: string | null) => {
+  const seleccionarPeriodo = useCallback((periodo: string | null) => {
     setEstado((prev) => ({
       ...prev,
       periodoSeleccionado: periodo,
     }));
-  };
+  }, []);
 
-  const establecerProcesando = (procesando: boolean) => {
+  const establecerProcesando = useCallback((procesando: boolean) => {
     setEstado((prev) => ({
       ...prev,
       procesando,
     }));
-  };
+  }, []);
 
-  const establecerError = (error: string | null) => {
+  const establecerError = useCallback((error: string | null) => {
     setEstado((prev) => ({
       ...prev,
       error,
       procesando: false,
     }));
-  };
+  }, []);
 
-  const limpiarDatos = () => {
+  const limpiarDatos = useCallback(() => {
     setEstado(estadoInicial);
-  };
+  }, []);
 
-  const value: AppContextType = {
-    ...estado,
-    cargarConsumos,
-    establecerAnomalias,
-    seleccionarPeriodo,
-    establecerProcesando,
-    establecerError,
-    limpiarDatos,
-  };
+  const value: AppContextType = useMemo(
+    () => ({
+      ...estado,
+      cargarConsumos,
+      establecerAnomalias,
+      seleccionarPeriodo,
+      establecerProcesando,
+      establecerError,
+      limpiarDatos,
+    }),
+    [
+      estado,
+      cargarConsumos,
+      establecerAnomalias,
+      seleccionarPeriodo,
+      establecerProcesando,
+      establecerError,
+      limpiarDatos,
+    ]
+  );
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 };

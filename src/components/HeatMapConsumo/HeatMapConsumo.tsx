@@ -8,50 +8,12 @@
 
 import { useMemo, useEffect, useRef, useState } from 'react';
 import type { ConsumoMensual } from '../../types';
+import { formatearNumero, calcularColorHeatMap } from '../../utils';
 import './HeatMapConsumo.css';
 
 interface HeatMapConsumoProps {
   datos: ConsumoMensual[];
 }
-
-/**
- * Formatea número con separadores de miles
- */
-const formatearNumero = (numero: number, decimales: number = 0): string => {
-  return numero.toLocaleString('es-ES', {
-    minimumFractionDigits: decimales,
-    maximumFractionDigits: decimales
-  });
-};
-
-/**
- * Calcula el color del heat map basado en el valor
- * Rojo (mínimo) → Amarillo (percentil 50) → Verde (máximo)
- */
-const calcularColorHeatMap = (valor: number, min: number, max: number): string => {
-  const rango = max - min;
-  if (rango === 0) return 'rgb(255, 255, 0)';
-  
-  const normalizado = (valor - min) / rango;
-  
-  let r, g, b;
-  
-  if (normalizado <= 0.5) {
-    // Rojo → Amarillo (0 a 0.5)
-    const t = normalizado * 2;
-    r = 255;
-    g = Math.round(255 * t);
-    b = 0;
-  } else {
-    // Amarillo → Verde (0.5 a 1)
-    const t = (normalizado - 0.5) * 2;
-    r = Math.round(255 * (1 - t));
-    g = 255;
-    b = 0;
-  }
-  
-  return `rgb(${r}, ${g}, ${b})`;
-};
 
 export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
   // Escalado automático para encajar en el viewport sin scroll vertical

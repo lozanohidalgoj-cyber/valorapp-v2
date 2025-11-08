@@ -1,12 +1,12 @@
 /**
  * 🎨 Estilos del Análisis de Expediente Tipo V
- * Colores corporativos: #0000D0 (primario), #FF3184 (secundario)
+ * Usa variables CSS del sistema de diseño global
  */
 
 .expediente-container {
   min-height: 100vh;
   height: 100vh;
-  background: #0000D0;
+  background: var(--color-primary);
   padding: 0.5rem;
   position: relative;
   overflow: hidden;
@@ -85,9 +85,9 @@
 
 .expediente-anular-btn-header {
   padding: 0.75rem 1.5rem;
-  background: #FF3184;
-  color: #ffffff;
-  border: 2px solid #FF3184;
+  background: var(--color-secondary);
+  color: var(--color-white);
+  border: 2px solid var(--color-secondary);
   border-radius: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -101,8 +101,8 @@
 
 
 .expediente-anular-btn-header:hover {
-  background: #ff1a6e;
-  border-color: #ff1a6e;
+  background: var(--color-secondary-dark);
+  border-color: var(--color-secondary-dark);
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(255, 49, 132, 0.4);
 }
@@ -113,9 +113,9 @@
 
 .expediente-analisis-btn-header {
   padding: 0.75rem 1.5rem;
-  background: #FF3184;
-  color: #ffffff;
-  border: 2px solid #FF3184;
+  background: var(--color-secondary);
+  color: var(--color-white);
+  border: 2px solid var(--color-secondary);
   border-radius: 0.75rem;
   font-weight: 700;
   cursor: pointer;
@@ -137,8 +137,8 @@
 }
 
 .expediente-analisis-btn-header:hover:not(:disabled) {
-  background: #ff1a6e;
-  border-color: #ff1a6e;
+  background: var(--color-secondary-dark);
+  border-color: var(--color-secondary-dark);
   transform: translateY(-3px) scale(1.05);
   box-shadow: 0 8px 24px rgba(255, 49, 132, 0.6);
   animation: none;
@@ -161,7 +161,7 @@
 .expediente-title {
   font-size: 2rem;
   font-weight: 400;
-  color: #ffffff;
+  color: var(--color-white);
   margin-bottom: 0.5rem;
   letter-spacing: -0.03em;
   text-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
@@ -170,7 +170,7 @@
 
 .expediente-subtitle {
   font-size: 1rem;
-  color: #ffffff;
+  color: var(--color-white);
   font-weight: 400;
   max-width: 600px;
   margin: 0 auto;
@@ -178,7 +178,7 @@
 }
 
 .expediente-card {
-  background: #ffffff;
+  background: var(--color-white);
   backdrop-filter: blur(20px);
   border-radius: 1.5rem;
   box-shadow: 
@@ -215,7 +215,7 @@
   gap: 1rem;
   padding: 3rem 4rem;
   background: rgba(0, 0, 208, 0.05);
-  border: 3px dashed #0000D0;
+  border: 3px dashed var(--color-primary);
   border-radius: 1.25rem;
   cursor: pointer;
   transition: all 0.3s ease;
@@ -225,18 +225,18 @@
 
 .expediente-upload-btn:hover {
   background: rgba(0, 0, 208, 0.1);
-  border-color: #FF3184;
+  border-color: var(--color-secondary);
   transform: translateY(-4px);
   box-shadow: 0 8px 16px rgba(0, 0, 208, 0.2);
 }
 
 .expediente-upload-btn svg {
-  color: #0000D0;
+  color: var(--color-primary);
   transition: all 0.3s ease;
 }
 
 .expediente-upload-btn:hover svg {
-  color: #FF3184;
+  color: var(--color-secondary);
   transform: scale(1.1);
 }
 

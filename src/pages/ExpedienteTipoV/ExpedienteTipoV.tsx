@@ -4,6 +4,7 @@
  */
 
 import { useState, useRef, useEffect } from 'react';
+import type { ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, AlertCircle, CheckCircle, Download } from 'lucide-react';
 import * as XLSX from 'xlsx';
@@ -186,7 +187,7 @@ export const ExpedienteTipoV = () => {
     navigate('/saldo-atr', { state: { autoOpen: true } });
   };
 
-  const handleDerivacionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleDerivacionChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
 
