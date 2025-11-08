@@ -57,7 +57,6 @@ export const ExpedienteTipoV = () => {
     cambiarVista: setVistaActual,
     habilitarAnalisis: setAnalisisConsumoHabilitado,
     resetAnalisis,
-    setMostrandoAnalisis,
   } = useAnalysis();
 
   // Estado local para mensajes
@@ -97,7 +96,6 @@ export const ExpedienteTipoV = () => {
 
     try {
       await loadFile(file);
-      setAnalisisConsumoHabilitado();
       setSuccessMessage(`✅ Archivo "${file.name}" cargado exitosamente`);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -105,6 +103,48 @@ export const ExpedienteTipoV = () => {
         `Error al cargar el archivo: ${err instanceof Error ? err.message : 'Error desconocido'}`
       );
     }
+  };
+
+  const handleAnularFC = () => {
+    const palabrasClaveExcluir = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'];
+
+    let registrosExcluidos = 0;
+
+    const datosFiltrados = derivacionData.filter((row) => {
+      const estadoOriginal = (
+        (row as unknown as Record<string, unknown>)['Estado de la factura'] || ''
+      ).toString();
+      const estadoNormalizado = estadoOriginal.trim().toUpperCase();
+
+      if (palabrasClaveExcluir.some((p) => estadoNormalizado.includes(p))) {
+        registrosExcluidos++;
+        return false;
+      }
+
+      return true;
+    });
+
+    const datosOrdenados = datosFiltrados.sort((a, b) => {
+      const fechaA = new Date((a as unknown as Record<string, unknown>)['Fecha desde'] as string);
+      const fechaB = new Date((b as unknown as Record<string, unknown>)['Fecha desde'] as string);
+      return fechaA.getTime() - fechaB.getTime();
+    });
+
+    setData(datosOrdenados, derivacionColumns);
+    setAnalisisConsumoHabilitado();
+
+    try {
+      const exito = ejecutarAnalisis(datosOrdenados as DerivacionData[], 'mensual');
+      if (exito) {
+        setSuccessMessage(
+          `✅ Filtro aplicado y análisis ejecutado: ${datosOrdenados.length} facturas válidas, ${registrosExcluidos} excluidas`
+        );
+      }
+    } catch {
+      setError('Error al ejecutar el análisis tras el filtrado');
+    }
+
+    setTimeout(() => setSuccessMessage(null), 6000);
   };
 
   const handleAnalisisConsumo = () => {
@@ -198,11 +238,11 @@ export const ExpedienteTipoV = () => {
       ) : (
         <AnalysisHeader
           analisisHabilitado={analisisConsumoHabilitado}
-          mostrandoAnalisis={mostrandoAnalisis}
+          registrosCargados={derivacionData.length}
           onAnalizar={handleAnalisisConsumo}
-          onToggleVista={() => setMostrandoAnalisis(!mostrandoAnalisis)}
-          onLimpiarDatos={handleLimpiarDatosGuardados}
-          totalRegistros={derivacionData.length}
+          onAnularFC={handleAnularFC}
+          onVolver={handleVolver}
+          onLimpiar={handleLimpiarDatosGuardados}
         />
       )}
 
