@@ -5,6 +5,7 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { ArrowRight } from 'lucide-react';
 
 export const Home = () => {
   const navigate = useNavigate();
@@ -15,6 +16,10 @@ export const Home = () => {
 
   const handleFraudeClick = () => {
     alert('Funcionalidad de Fraude próximamente');
+  };
+
+  const handleExpedientesClick = () => {
+    navigate('/expediente-tipo-v');
   };
 
   return (
@@ -28,7 +33,7 @@ export const Home = () => {
           Seleccione el tipo de análisis que desea realizar
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mt-12">
+  <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mt-12">
           <button
             onClick={handleFraudeClick}
             className="group relative w-full sm:w-72 bg-gradient-to-br from-secondary to-secondary-dark 
@@ -57,6 +62,23 @@ export const Home = () => {
             <span className="relative z-10 text-2xl font-bold">Avería</span>
             <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
                           translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+          </button>
+
+        </div>
+        {/* Botón fijo inferior derecho: Análisis de expedientes */}
+        <div className="fixed right-6 bottom-6 z-50">
+          <button
+            onClick={handleExpedientesClick}
+            className="group bg-gradient-to-br from-primary to-primary-dark text-white font-semibold text-base md:text-lg
+                       py-3 px-6 md:py-4 md:px-8 rounded-xl shadow-blue-glow
+                       hover:shadow-blue-glow hover:scale-[1.02]
+                       transform transition-all duration-300 ease-out focus:outline-none focus:ring-4 focus:ring-white/30"
+            title="Análisis de expedientes"
+          >
+            <span className="relative z-10 font-bold inline-flex items-center gap-3">
+              Análisis de expedientes
+              <ArrowRight className="w-6 h-6 transition-transform group-hover:translate-x-1 group-active:translate-x-2" />
+            </span>
           </button>
         </div>
       </div>
