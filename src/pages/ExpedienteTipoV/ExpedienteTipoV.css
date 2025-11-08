@@ -195,6 +195,13 @@
   min-height: 0;
 }
 
+/* Estado inicial de importaciones: centrar vertical y horizontal */
+.expediente-card.expediente-card--import {
+  justify-content: center;
+  align-items: center;
+  gap: 2rem; /* más separación entre botones de importación */
+}
+
 .expediente-upload-section {
   display: flex;
   justify-content: center;
@@ -244,6 +251,23 @@
   font-size: 1rem;
   color: #666666;
   text-align: center;
+}
+
+/* Estilo específico para el botón Saldo ATR */
+#btn-saldo-atr.expediente-upload-btn {
+  background: linear-gradient(135deg, var(--color-secondary) 0%, var(--color-secondary-dark) 100%);
+  border: 3px solid var(--color-primary); /* borde azul redondeado */
+  color: #ffffff;
+}
+
+#btn-saldo-atr.expediente-upload-btn:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 20px rgba(255, 49, 132, 0.3);
+  border-color: var(--color-primary-light);
+}
+
+#btn-saldo-atr .expediente-upload-title {
+  color: #ffffff; /* sobreescribe el negro para este botón */
 }
 
 .expediente-separator {

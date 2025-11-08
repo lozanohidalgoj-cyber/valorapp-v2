@@ -1,0 +1,148 @@
+/* 🎨 Interfaz Saldo ATR - Estilos */
+
+.saldoatr-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-light) 100%);
+  padding: 1rem;
+}
+
+.saldoatr-header {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.saldoatr-header h1 {
+  color: #fff;
+  text-align: center;
+  margin: 0;
+}
+
+.saldoatr-back {
+  justify-self: start;
+  background: var(--color-secondary);
+  border: 2px solid var(--color-secondary);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-radius: 0.5rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+}
+
+.saldoatr-card {
+  background: #ffffff;
+  border-radius: 1rem;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+  padding: 1rem;
+}
+
+.saldoatr-actions {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.saldoatr-import-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: var(--color-primary);
+  color: #fff;
+  border: 2px solid var(--color-primary);
+  border-radius: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-weight: 700;
+}
+
+.saldoatr-import-btn:hover {
+  background: var(--color-secondary);
+  border-color: var(--color-secondary);
+}
+
+.saldoatr-note {
+  color: #374151;
+  font-weight: 600;
+}
+
+.saldoatr-alert {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1rem;
+  border-radius: 0.5rem;
+  margin-bottom: 0.75rem;
+  font-weight: 700;
+}
+
+.saldoatr-alert.error {
+  background: #fff;
+  color: #000;
+  border: 2px solid #F44336;
+}
+
+.saldoatr-alert.success {
+  background: #fff;
+  color: #000;
+  border: 2px solid #4CAF50;
+}
+
+.saldoatr-table-wrapper {
+  overflow: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.5rem;
+}
+
+.saldoatr-table {
+  width: max-content;
+  min-width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: #fff;
+}
+
+.saldoatr-table thead th {
+  position: sticky;
+  top: 0;
+  background: var(--color-primary);
+  color: #fff;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 2px solid var(--color-secondary);
+  min-width: 140px;
+}
+
+.saldoatr-table .col-letter {
+  font-size: 0.75rem;
+  opacity: 0.85;
+}
+
+.saldoatr-table .col-title {
+  font-weight: 700;
+  font-size: 0.9rem;
+}
+
+.saldoatr-table tbody td {
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #e5e7eb;
+  border-right: 1px solid #f3f4f6;
+  color: #111827;
+}
+
+.saldoatr-table tbody tr:nth-child(odd) { background: #fafafa; }
+
+.saldoatr-table td.col-value { color: #111827; }
+.saldoatr-table td.col-force-empty { color: #111827; }
+
+/* Resaltar suavemente los encabezados de columnas que deben quedar vacías */
+.saldoatr-table thead th.th-empty-col {
+  background: var(--color-primary-dark);
+}
+
+.empty-row {
+  text-align: center;
+  padding: 2rem !important;
+  color: #6b7280;
+}

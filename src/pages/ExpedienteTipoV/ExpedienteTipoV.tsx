@@ -178,6 +178,14 @@ export const ExpedienteTipoV = () => {
     derivacionInputRef.current?.click();
   };
 
+  /**
+   * Maneja la acción para abrir módulo Saldo ATR (pendiente de implementación)
+   * Por ahora cuerpo vacío según solicitud
+   */
+  const handleSaldoATRClick = () => {
+    navigate('/saldo-atr', { state: { autoOpen: true } });
+  };
+
   // Importación de Saldo ATR: input eliminado según solicitud
 
   const handleDerivacionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -305,7 +313,7 @@ export const ExpedienteTipoV = () => {
         )}
 
         {!derivacionLoaded ? (
-          <div className="expediente-card">
+          <div className="expediente-card expediente-card--import">
             <div className="expediente-upload-section">
               <button
                 onClick={handleDerivacionClick}
@@ -324,6 +332,15 @@ export const ExpedienteTipoV = () => {
                 onChange={handleDerivacionChange}
                 style={{ display: 'none' }}
               />
+            </div>
+            <div className="expediente-upload-section">
+              <button
+                onClick={handleSaldoATRClick}
+                className="expediente-upload-btn"
+                id="btn-saldo-atr"
+              >
+                <span className="expediente-upload-title">Saldo ATR</span>
+              </button>
             </div>
           </div>
         ) : mostrandoAnalisis && resultadoAnalisis ? (
