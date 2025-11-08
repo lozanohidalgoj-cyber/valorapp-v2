@@ -27,7 +27,6 @@ type VistaAnalisis = 'anual' | 'mensual' | 'listado' | 'grafico';
 
 export const ExpedienteTipoV = () => {
   const navigate = useNavigate();
-  const saldoATRInputRef = useRef<HTMLInputElement>(null);
   const derivacionInputRef = useRef<HTMLInputElement>(null);
   
   const [derivacionData, setDerivacionData] = useState<DerivacionData[]>([]);
@@ -39,9 +38,7 @@ export const ExpedienteTipoV = () => {
   const [resultadoAnalisis, setResultadoAnalisis] = useState<ResultadoAnalisis | null>(null);
   const [mostrandoAnalisis, setMostrandoAnalisis] = useState(false);
   const [vistaActual, setVistaActual] = useState<VistaAnalisis>('anual');
-  // Pantalla completa eliminada por solicitud: estado y lógica removidos
 
-  // 💾 Cargar datos guardados al montar el componente
   useEffect(() => {
     if (hayDatosGuardados()) {
       const datosGuardados = recuperarDerivacionData();
@@ -55,7 +52,6 @@ export const ExpedienteTipoV = () => {
     }
   }, []);
 
-  // 💾 Auto-guardar cuando cambian los datos
   useEffect(() => {
     if (derivacionData.length > 0) {
       guardarDerivacionData(derivacionData);
@@ -67,10 +63,6 @@ export const ExpedienteTipoV = () => {
   };
 
   const handleAnularFC = () => {
-    // Filtro solicitado: excluir solo ANULADAS, ANULADORAS, COMPLEMENTARIAS y SUSTITUIDAS.
-    // No excluir FRAUDE ni los tipos 'A' y 'S' a menos que además contengan las palabras clave.
-    // No aplicar el filtro de P4 "-" en este flujo.
-
     const palabrasClaveExcluir = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'];
 
     let registrosExcluidos = 0;
@@ -88,18 +80,15 @@ export const ExpedienteTipoV = () => {
       return true;
     });
 
-    // Orden cronológico ascendente por 'Fecha desde'
     const datosOrdenados = datosFiltrados.sort((a, b) => {
       const fechaA = new Date(a['Fecha desde']);
       const fechaB = new Date(b['Fecha desde']);
       return fechaA.getTime() - fechaB.getTime();
     });
 
-    // Guardar datos filtrados
     setDerivacionData(datosOrdenados);
     setAnalisisConsumoHabilitado(true);
 
-    // Ejecutar análisis automáticamente con el resto
     try {
       const resultado = analizarConsumoCompleto(datosOrdenados as DerivacionData[]);
       setResultadoAnalisis(resultado);
@@ -111,10 +100,6 @@ export const ExpedienteTipoV = () => {
     }
 
     setTimeout(() => setSuccessMessage(null), 6000);
-  };
-
-  const handleSaldoATRClick = () => {
-    saldoATRInputRef.current?.click();
   };
 
   const handleAnalisisConsumo = () => {
@@ -135,9 +120,7 @@ export const ExpedienteTipoV = () => {
     }
   };
 
-  // Función para volver a datos ya no utilizada tras eliminar botón correspondiente
-
-  // 📥 Funciones de exportación
+  // Exportaciones
   const handleExportarVistaAnual = () => {
     if (!resultadoAnalisis) return;
     try {
@@ -195,12 +178,7 @@ export const ExpedienteTipoV = () => {
     derivacionInputRef.current?.click();
   };
 
-  const handleSaldoATRChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      // Importación de Saldo ATR pendiente de implementación
-    }
-  };
+  // Importación de Saldo ATR: input eliminado según solicitud
 
   const handleDerivacionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -330,28 +308,6 @@ export const ExpedienteTipoV = () => {
           <div className="expediente-card">
             <div className="expediente-upload-section">
               <button
-                onClick={handleSaldoATRClick}
-                className="expediente-upload-btn"
-              >
-                <Upload size={32} />
-                <span className="expediente-upload-title">Saldo ATR</span>
-                <span className="expediente-upload-description">
-                  Haga clic para importar archivo
-                </span>
-              </button>
-              <input
-                ref={saldoATRInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                onChange={handleSaldoATRChange}
-                style={{ display: 'none' }}
-              />
-            </div>
-
-            <div className="expediente-separator"></div>
-
-            <div className="expediente-upload-section">
-              <button
                 onClick={handleDerivacionClick}
                 className="expediente-upload-btn"
               >
@@ -376,7 +332,6 @@ export const ExpedienteTipoV = () => {
               <h2>Análisis de Consumo</h2>
             </div>
 
-            {/* Resumen Ejecutivo */}
             {vistaActual !== 'mensual' && (
             <div className="expediente-analisis-resumen">
               <div className="analisis-resumen-card">
@@ -402,7 +357,6 @@ export const ExpedienteTipoV = () => {
             </div>
             )}
 
-            {/* Pestañas de navegación */}
             {(
             <div className="expediente-tabs">
               <button 
@@ -431,8 +385,6 @@ export const ExpedienteTipoV = () => {
               </button>
             </div>
             )}
-
-            {/* Botones de exportación (movidos al pie) */}
 
             {/* Vista por Años */}
             {vistaActual === 'anual' && (
@@ -464,7 +416,6 @@ export const ExpedienteTipoV = () => {
               </div>
             )}
 
-            {/* Comparativa Mensual - Mapa de Calor */}
             {vistaActual === 'mensual' && (
               <div className="expediente-heatmap-section">
                 <div className="expediente-heatmap-wrapper">
@@ -491,7 +442,6 @@ export const ExpedienteTipoV = () => {
               </div>
             )}
 
-            {/* Listado - Tabla completa de datos originales */}
             {vistaActual === 'listado' && (
               <div className="expediente-table-wrapper">
                 <div className="listado-header">
@@ -524,7 +474,6 @@ export const ExpedienteTipoV = () => {
               </div>
             )}
 
-            {/* Gráfico - Visualización de consumo mensual */}
             {vistaActual === 'grafico' && (
               <div className="expediente-grafico-wrapper">
                 <div className="grafico-header">
@@ -532,7 +481,6 @@ export const ExpedienteTipoV = () => {
                   <p>Gráfico de tendencia con detección de anomalías</p>
                 </div>
                 
-                {/* Gráfico de líneas con canvas */}
                 <div className="grafico-container">
                   <svg width="100%" height="400" className="grafico-svg">
                     <defs>
@@ -610,7 +558,6 @@ export const ExpedienteTipoV = () => {
                   </svg>
                 </div>
                 
-                {/* Estadísticas del gráfico */}
                 <div className="grafico-stats">
                   <div className="stat-card">
                     <span className="stat-label">📊 Máximo</span>
@@ -641,7 +588,6 @@ export const ExpedienteTipoV = () => {
                   </div>
                 </div>
                 
-                {/* Leyenda */}
                 <div className="grafico-leyenda">
                   <div className="leyenda-item">
                     <div className="leyenda-icono" style={{ backgroundColor: '#0000D0' }}></div>
@@ -655,7 +601,6 @@ export const ExpedienteTipoV = () => {
               </div>
             )}
 
-            {/* Botones de exportación al pie */}
             {vistaActual !== 'mensual' && (
               <div className="expediente-export-buttons expediente-export-bottom">
                 {vistaActual === 'anual' && (
@@ -691,7 +636,6 @@ export const ExpedienteTipoV = () => {
               </div>
             )}
 
-            {/* Botón 'Cargar otro archivo' eliminado según solicitud */}
           </div>
         ) : (
           <div className="expediente-data-card">
@@ -718,7 +662,6 @@ export const ExpedienteTipoV = () => {
               </table>
             </div>
 
-            {/* Botón 'Cargar otro archivo' eliminado según solicitud */}
           </div>
         )}
 

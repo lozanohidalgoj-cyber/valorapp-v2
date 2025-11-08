@@ -22,6 +22,7 @@ function App() {
           <Route path="/averia" element={<Averia />} />
           <Route path="/wart" element={<Wart />} />
           <Route path="/expediente-tipo-v" element={<ExpedienteTipoV />} />
+          
         </Routes>
       </Router>
     </AppProvider>

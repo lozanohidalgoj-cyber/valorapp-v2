@@ -321,18 +321,12 @@
   align-items: center;
   gap: 0.75rem;
   font-weight: 600;
-  animation: slideIn 0.3s ease;
+  animation: alertSlideIn 0.3s ease;
 }
 
-@keyframes slideIn {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
+@keyframes alertSlideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 .expediente-alert-success {
@@ -394,10 +388,9 @@
   background: linear-gradient(135deg, #f8f9fa 0%, #ffffff 100%);
   display: flex;
   flex-direction: column;
-  justify-content: center; /* centrar verticalmente el heatmap */
-  align-items: stretch; /* el mapa ocupará todo el ancho disponible */
+  justify-content: center;
+  align-items: stretch;
   width: 100%;
-  /* max-width eliminado para permitir usar todo el ancho visible */
 }
 
 /* Sección integrada para heatmap + botones en vista mensual */
@@ -423,40 +416,7 @@
   justify-content: center;
 }
 
-/* Pantalla completa del heatmap */
-.heatmap-fullscreen {
-  position: relative;
-  margin: 0;
-  padding: 0.35rem 0.35rem 0.6rem;
-  height: calc(100vh - 4.5rem); /* restar altura aproximada de header */
-  max-height: calc(100vh - 4.5rem);
-  background: linear-gradient(135deg,#ffffff,#eef2f6);
-  box-shadow: 0 0 0 2px rgba(0,0,208,0.08), 0 6px 16px rgba(0,0,0,0.15);
-  display: flex;
-  flex-direction: column;
-  align-items: stretch;
-  justify-content: flex-start;
-}
-
-.heatmap-fullscreen-toolbar {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.5rem;
-  margin-bottom: 0.25rem;
-}
-
-.heatmap-fullscreen .heatmap-container { flex:1; }
-
-.heatmap-fullscreen .heatmap-matrix-wrapper { flex:1; display:flex; justify-content:center; }
-.heatmap-fullscreen .heatmap-footer-info { position: sticky; bottom: 0; }
-
-.heatmap-fullscreen .heatmap-title { font-size:0.8rem; }
-
-.heatmap-fullscreen .heatmap-chip { font-size:0.42rem; }
-
-@media (max-width:640px){
-  .heatmap-fullscreen { height: calc(100vh - 5.5rem); max-height: calc(100vh - 5.5rem); }
-}
+/* Pantalla completa eliminada: estilos no utilizados retirados */
 
 .expediente-table {
   width: 100%;
@@ -903,127 +863,9 @@
   border: 1px solid rgba(255, 0, 0, 0.3);
 }
 
-/* Estilos para pestañas */
-.expediente-tabs {
-  display: flex;
-  gap: 0.5rem;
-  margin-bottom: 1.5rem;
-  border-bottom: 2px solid rgba(255, 255, 255, 0.1);
-  padding-bottom: 0.5rem;
-}
+/* Bloque de pestañas antiguo eliminado (se mantiene la versión nueva más abajo) */
 
-.expediente-tab {
-  padding: 0.75rem 1.5rem;
-  background: rgba(255, 255, 255, 0.05);
-  border: 2px solid rgba(255, 255, 255, 0.1);
-  border-radius: 0.5rem 0.5rem 0 0;
-  color: rgba(255, 255, 255, 0.6);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  font-size: 0.95rem;
-}
-
-.expediente-tab:hover {
-  background: rgba(255, 255, 255, 0.1);
-  color: rgba(255, 255, 255, 0.9);
-  border-color: rgba(255, 255, 255, 0.2);
-}
-
-.expediente-tab.active {
-  background: linear-gradient(135deg, #0000D0, #FF3184);
-  color: #ffffff;
-  border-color: #FF3184;
-  box-shadow: 0 4px 12px rgba(255, 49, 132, 0.4);
-}
-
-/* Badges y tendencias */
-.variacion-positiva {
-  color: #4ade80 !important;
-  font-weight: 700;
-}
-
-.variacion-negativa {
-  color: #f87171 !important;
-  font-weight: 700;
-}
-
-.tendencia-aumento {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(74, 222, 128, 0.2);
-  color: #4ade80;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.tendencia-descenso {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(248, 113, 113, 0.2);
-  color: #f87171;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.tendencia-estable {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(251, 191, 36, 0.2);
-  color: #fbbf24;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.badge-anomalia {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(255, 49, 132, 0.3);
-  color: #FF3184;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 700;
-  animation: pulse-anomalia 2s ease-in-out infinite;
-}
-
-@keyframes pulse-anomalia {
-  0%, 100% {
-    box-shadow: 0 0 0 0 rgba(255, 49, 132, 0.7);
-  }
-  50% {
-    box-shadow: 0 0 0 8px rgba(255, 49, 132, 0);
-  }
-}
-
-.badge-normal {
-  display: inline-block;
-  padding: 0.25rem 0.75rem;
-  background: rgba(74, 222, 128, 0.2);
-  color: #4ade80;
-  border-radius: 0.375rem;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.row-anomalia {
-  background: rgba(255, 49, 132, 0.1) !important;
-}
-
-.row-anomalia:hover {
-  background: rgba(255, 49, 132, 0.15) !important;
-}
-
-.anomalia-badge {
-  background: linear-gradient(135deg, #FF3184, #ff1a6e);
-  color: #ffffff;
-  padding: 0.5rem 1rem;
-  border-radius: 0.5rem;
-  font-weight: 700;
-  box-shadow: 0 4px 12px rgba(255, 49, 132, 0.4);
-}
+/* Bloque de badges/tendencias antiguo eliminado (se mantienen estilos nuevos) */
 
 /* ============================================
    📋 VISTA LISTADO
