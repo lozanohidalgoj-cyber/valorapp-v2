@@ -23,7 +23,6 @@ function App() {
           <Route path="/wart" element={<Wart />} />
           <Route path="/expediente-tipo-v" element={<ExpedienteTipoV />} />
           <Route path="/saldo-atr" element={<SaldoATR />} />
-          
         </Routes>
       </Router>
     </AppProvider>

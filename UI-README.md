@@ -45,6 +45,77 @@
 
 ---
 
+### 3. **Interfaz Saldo ATR**
+**Ruta**: `/saldo-atr`
+
+**Descripción**: Interfaz para visualizar y gestionar datos de Saldo ATR con 46 columnas (A-AT). Permite importar archivos CSV con 14 columnas y mapearlos automáticamente a las columnas correspondientes.
+
+**Características**:
+- ✅ Tabla con 46 columnas (A-AT) basada en "Interfaz Saldo ATR.xlsx"
+- ✅ Auto-carga de plantilla base al montar componente
+- ✅ Garantía de mínimo 105 filas visibles
+- ✅ Importación de archivo "Saldo ATR.csv" (14 columnas)
+- ✅ Mapeo automático de datos según especificación
+- ✅ Validación de formato de archivo
+- ✅ Mensajes de error/éxito claros
+- ✅ Diseño responsive con scroll horizontal
+- ✅ Colores corporativos (primario: #0000D0, secundario: #FF3184)
+
+**Mapeo de Columnas (Importación)**:
+
+Desde **Saldo ATR.csv** (14 columnas A-N) hacia **Interfaz Saldo ATR** (46 columnas A-AT):
+
+| CSV Origen | Columna | Contenido | → | Destino | Columna | Contenido |
+|------------|---------|-----------|---|---------|---------|-----------|
+| I | 9 | Código factura | → | A | 1 | Número Fiscal de Factura |
+| B | 2 | Contrato ATR | → | C | 3 | Código de contrato externo |
+| C | 3 | Fecha desde | → | G | 7 | Fecha desde |
+| D | 4 | Fecha hasta | → | H | 8 | Fecha hasta |
+| E | 5 | Consumo total activa | → | I | 9 | Importe Factura |
+| F | 6 | Fuente agregada | → | J | 10 | Fuente de la factura |
+| E | 5 | Consumo total activa | → | P | 16 | Consumo P1/punta |
+
+**Estructura CSV Origen Esperada** (14 columnas A-N):
+1. CUPS
+2. Contrato ATR
+3. Fecha desde
+4. Fecha hasta
+5. Consumo total activa
+6. Fuente agregada
+7. Estado medida
+8. Potencia (KW)
+9. Código factura
+10. Tipo de factura
+11. Estado factura
+12. Número de serie del contador
+13. Fecha de envío a facturar
+14. Autofactura
+
+**Validaciones**:
+- ✅ Solo acepta archivos `.csv`
+- ✅ Verifica que el archivo tenga 14 columnas
+- ✅ Advertencia si los encabezados no coinciden exactamente
+- ✅ Sincronización de filas: actualiza solo las correspondientes al CSV importado
+- ✅ Preserva datos existentes en columnas no mapeadas (B, D-F, K-O, Q-AT)
+
+**Flujo de Uso**:
+1. Usuario navega a `/saldo-atr` (desde ExpedienteTipoV o directamente)
+2. Se carga automáticamente la plantilla base con mínimo 105 filas
+3. Usuario hace clic en "Importar Saldo ATR"
+4. Selecciona archivo CSV con 14 columnas
+5. Sistema valida formato y mapea datos
+6. Tabla se actualiza mostrando datos importados en columnas A, C, G, H, I, J, P
+7. Resto de columnas mantienen valores de la plantilla base
+
+**Archivo de Ejemplo**:
+`public/saldoATR_ejemplo.csv` - Contiene datos de muestra para pruebas
+
+**Componente**: `src/pages/SaldoATR/SaldoATR.tsx`  
+**Estilos**: `src/pages/SaldoATR/SaldoATR.css`  
+**Tipos**: `src/types/index.ts` - `SaldoATRRow`, `SaldoATRColumna`
+
+---
+
 ## 🎨 Sistema de Diseño
 
 ### Colores Corporativos

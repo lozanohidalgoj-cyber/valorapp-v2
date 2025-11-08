@@ -53,8 +53,6 @@ const calcularColorHeatMap = (valor: number, min: number, max: number): string =
   return `rgb(${r}, ${g}, ${b})`;
 };
 
-// La variación se refleja únicamente en color y anomalías, sin celdas auxiliares.
-
 export const HeatMapConsumo = ({ datos }: HeatMapConsumoProps) => {
   // Escalado automático para encajar en el viewport sin scroll vertical
   const containerRef = useRef<HTMLDivElement>(null);

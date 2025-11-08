@@ -1,15 +1,15 @@
 /**
  * Interfaz Saldo ATR
  * Muestra plantilla basada en "Interfaz Saldo ATR.xlsx" (46 columnas A..AT)
- * Permite importar "Saldo ATR.csv" (14 columnas A..N) y completar columnas A,C,G,H,I,J,P
+ * Permite importar "Saldo ATR.csv" (14 columnas A..N) y mapear a columnas A,C,G,H,I,J,P
  */
 
 import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertCircle, CheckCircle, ArrowLeft, Upload } from 'lucide-react';
-import './SaldoATR.css';
 
 import type { SaldoATRRow, SaldoATRColumna } from '../../types';
+import './SaldoATR.css';
 
 // Letras de columna A..AT (46 columnas)
 const COLUMN_LETTERS: readonly SaldoATRColumna[] = [
@@ -20,8 +20,7 @@ const COLUMN_LETTERS: readonly SaldoATRColumna[] = [
   'AK', 'AL', 'AM', 'AN', 'AO', 'AP', 'AQ', 'AR', 'AS', 'AT'
 ] as const;
 
-// Columnas que deben quedar VACÍAS según la nueva instrucción
-// A, C, G, H, I, J y P (manteniendo encabezados, bordes y estilo)
+// Columnas que deben quedar VACÍAS en la plantilla base
 const COLUMNS_TO_EMPTY = new Set<SaldoATRColumna>(['A', 'C', 'G', 'H', 'I', 'J', 'P']);
 
 /**
@@ -85,43 +84,114 @@ const DEFAULT_HEADERS: Partial<Record<string, string>> = {
   AT: 'Origen',
 };
 
+/**
+ * Parsea el CSV "Interfaz Saldo ATR" base (46 columnas A..AT) para cargar la plantilla inicial.
+ */
+function parseInterfazBaseCSV(raw: string): { headers: string[]; rows: SaldoATRRow[] } {
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0 && !l.startsWith('#'));
+  if (lines.length === 0) return { headers: [], rows: [] };
+  
+  const headerLine = lines[0];
+  const headerParts = headerLine.split(';').map((h) => h.trim());
+  
+  if (headerParts.length !== 46) {
+    throw new Error(`Se esperaban 46 columnas en base, se recibieron ${headerParts.length}`);
+  }
+
+  const parsedRows: SaldoATRRow[] = [];
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const parts = line.split(';');
+    while (parts.length < 46) parts.push('');
+    
+    const row = crearFilaVacia();
+    COLUMN_LETTERS.forEach((colLetter, idx) => {
+      if (!COLUMNS_TO_EMPTY.has(colLetter)) {
+        (row as Record<string, string>)[colLetter] = (parts[idx] ?? '').trim();
+      }
+    });
+    parsedRows.push(row);
+  }
+  return { headers: headerParts, rows: parsedRows };
+}
+
+/**
+ * Parsea el CSV "Saldo ATR.csv" (14 columnas A-N) y mapea a las columnas destino.
+ * Mapeo de datos:
+ * - CSV[8] Código factura → Destino A (Número Fiscal de Factura)
+ * - CSV[1] Contrato ATR → Destino C (Código de contrato externo)
+ * - CSV[2] Fecha desde → Destino G (Fecha desde)
+ * - CSV[3] Fecha hasta → Destino H (Fecha hasta)
+ * - CSV[4] Consumo total activa → Destino I (Importe Factura)
+ * - CSV[5] Fuente agregada → Destino J (Fuente de la factura)
+ * - CSV[4] Consumo total activa → Destino P (Consumo P1/punta)
+ */
+function parseSaldoATRImport(raw: string): SaldoATRRow[] {
+  const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
+  if (lines.length === 0) throw new Error('El archivo está vacío');
+  
+  const headerLine = lines[0];
+  const headerParts = headerLine.split(';').map((h) => h.trim().replace(/^"|"$/g, ''));
+  
+  if (headerParts.length !== 14) {
+    throw new Error(`El archivo no coincide con el formato esperado de Saldo ATR.csv. Se esperaban 14 columnas, se recibieron ${headerParts.length}.`);
+  }
+
+  const mappedRows: SaldoATRRow[] = [];
+  
+  for (let i = 1; i < lines.length; i++) {
+    const line = lines[i];
+    const parts = line.split(';').map(p => p.trim().replace(/^"|"$/g, ''));
+    
+    while (parts.length < 14) parts.push('');
+    
+    const row = crearFilaVacia();
+    const rowRecord = row as Record<string, string>;
+    
+    rowRecord['A'] = parts[8] || '';
+    rowRecord['C'] = parts[1] || '';
+    rowRecord['G'] = parts[2] || '';
+    rowRecord['H'] = parts[3] || '';
+    rowRecord['I'] = parts[4] || '';
+    rowRecord['J'] = parts[5] || '';
+    rowRecord['P'] = parts[4] || '';
+    
+    mappedRows.push(row);
+  }
+  
+  return mappedRows;
+}
+
 export const SaldoATR = () => {
   const navigate = useNavigate();
   const location = useLocation() as { state?: { autoOpen?: boolean } };
   const inputRef = useRef<HTMLInputElement>(null);
 
   const [rows, setRows] = useState<SaldoATRRow[]>([]);
-  const [headers, setHeaders] = useState<string[]>(() => COLUMN_LETTERS.map((c) => DEFAULT_HEADERS[c] ?? `Columna ${c}`));
+  const [headers, setHeaders] = useState<string[]>(() => 
+    COLUMN_LETTERS.map((c) => DEFAULT_HEADERS[c] ?? `Columna ${c}`)
+  );
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
 
-  // Auto-abrir selector si venimos con intención de importar
   useEffect(() => {
     if (location.state?.autoOpen) {
       setTimeout(() => inputRef.current?.click(), 0);
     }
   }, [location.state]);
 
-  // Cargar automáticamente la plantilla/base desde public para conservar valores D..AT
   useEffect(() => {
     const cargarBase = async () => {
       try {
         const resp = await fetch('/saldoATR_base.csv', { cache: 'no-store' });
         if (!resp.ok) throw new Error('No se pudo cargar la base de Saldo ATR');
+        
         const text = await resp.text();
-        const { headers: h, rows: r } = parseSaldoATRCSV(text);
-        // Garantizar al menos 105 filas para pruebas/visualización
-        const minRows = 105;
-        const plantilla: SaldoATRRow = r[0] ?? crearFilaVacia();
-        const rowsAseguradas: SaldoATRRow[] = [...r];
-        while (rowsAseguradas.length < minRows) {
-          // clonar para no referenciar el mismo objeto
-          rowsAseguradas.push({ ...plantilla });
-        }
+        const { headers: h, rows: r } = parseInterfazBaseCSV(text);
+        
         setHeaders(h);
-        setRows(rowsAseguradas);
+        setRows(r);
       } catch (e) {
-        // No bloqueante: mostramos una pista, pero la vista sigue operativa
         setError(e instanceof Error ? e.message : 'Error al cargar la base de Saldo ATR');
       }
     };
@@ -130,41 +200,15 @@ export const SaldoATR = () => {
 
   const handleVolver = () => navigate(-1);
 
-  /**
-   * Parsea el CSV "Interfaz Saldo ATR" completo conservando TODAS las columnas.
-   * Solo deja vacías A, C, G, H, I, J y P (COLUMNS_TO_EMPTY).
-   */
-  const parseSaldoATRCSV = (raw: string): { headers: string[]; rows: SaldoATRRow[] } => {
-    const lines = raw.split(/\r?\n/).filter((l) => l.trim().length > 0);
-    if (lines.length === 0) return { headers: [], rows: [] };
-    const headerLine = lines[0];
-    const headerParts = headerLine.split(';').map((h) => h.trim());
-    // Validación mínima: esperamos 46 encabezados (A..AT)
-    if (headerParts.length !== 46) {
-      throw new Error(`Se esperaban 46 columnas, se recibieron ${headerParts.length}`);
-    }
-
-    const parsedRows: SaldoATRRow[] = [];
-    for (let i = 1; i < lines.length; i++) {
-      const line = lines[i];
-      const parts = line.split(';');
-      // Permitir líneas cortas: rellenar con vacío
-      while (parts.length < 46) parts.push('');
-      const row = crearFilaVacia();
-      COLUMN_LETTERS.forEach((colLetter, idx) => {
-        // Si la columna debe quedar vacía, forzamos string vacío
-        if (!COLUMNS_TO_EMPTY.has(colLetter)) {
-          (row as Record<string, string>)[colLetter] = (parts[idx] ?? '').trim();
-        }
-      });
-      parsedRows.push(row);
-    }
-    return { headers: headerParts, rows: parsedRows };
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    
+    if (!file.name.endsWith('.csv')) {
+      setError('Solo se aceptan archivos con extensión .csv');
+      return;
+    }
+    
     setError(null);
     setSuccess(null);
 
@@ -173,15 +217,48 @@ export const SaldoATR = () => {
       try {
         const raw = ev.target?.result as string | null;
         if (!raw) throw new Error('Archivo vacío');
-        const { headers: h, rows: r } = parseSaldoATRCSV(raw);
-        // Actualizamos encabezados con los originales del archivo
-        setHeaders(h);
-        setRows(r);
-        setSuccess('Archivo "Interfaz Saldo ATR" cargado. Columnas A, C, G, H, I, J y P se han dejado vacías.');
+        
+        const importedRows = parseSaldoATRImport(raw);
+        const updatedRows = [...rows];
+        
+        importedRows.forEach((importedRow, idx) => {
+          const importedRecord = importedRow as Record<string, string>;
+          
+          if (idx < updatedRows.length) {
+            const currentRow = updatedRows[idx];
+            const merged = { ...currentRow } as Record<string, string>;
+            
+            ['A', 'C', 'G', 'H', 'I', 'J', 'P'].forEach(col => {
+              merged[col] = importedRecord[col] || '';
+            });
+            
+            updatedRows[idx] = merged as SaldoATRRow;
+          } else {
+            const plantilla = updatedRows[0] || crearFilaVacia();
+            const newRow = { ...plantilla } as Record<string, string>;
+            
+            ['A', 'C', 'G', 'H', 'I', 'J', 'P'].forEach(col => {
+              newRow[col] = importedRecord[col] || '';
+            });
+            
+            updatedRows.push(newRow as SaldoATRRow);
+          }
+        });
+        
+        setRows(updatedRows);
+        setSuccess(`✅ Datos del archivo Saldo ATR cargados correctamente. ${importedRows.length} registros procesados.`);
+        setTimeout(() => setSuccess(null), 5000);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Error al procesar el archivo');
+        setTimeout(() => setError(null), 5000);
       }
     };
+    
+    reader.onerror = () => {
+      setError('Error al leer el archivo');
+      setTimeout(() => setError(null), 5000);
+    };
+    
     reader.readAsText(file, 'UTF-8');
   };
 
@@ -213,14 +290,17 @@ export const SaldoATR = () => {
           <input
             ref={inputRef}
             type="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv"
             onChange={handleFileChange}
             style={{ display: 'none' }}
           />
           <button className="saldoatr-import-btn" onClick={handleAbrirArchivo}>
-            <Upload size={20} /> Importar Saldo ATR.csv
+            <Upload size={20} /> Importar Saldo ATR
           </button>
-          <span className="saldoatr-note">Regla: solo columnas A, C, G, H, I, J y P se muestran vacías; el resto conserva los valores del archivo.</span>
+          <span className="saldoatr-note">
+            Importa el archivo <strong>Saldo ATR.csv</strong> (14 columnas). 
+            Se actualizarán automáticamente las columnas A, C, G, H, I, J y P según el mapeo definido.
+          </span>
         </div>
 
         <div className="saldoatr-table-wrapper">
@@ -255,7 +335,7 @@ export const SaldoATR = () => {
                       const isEmpty = COLUMNS_TO_EMPTY.has(c);
                       return (
                         <td key={c} className={isEmpty ? 'col-force-empty' : 'col-value'}>
-                          {isEmpty ? '' : value}
+                          {value}
                         </td>
                       );
                     })}

@@ -186,8 +186,6 @@ export const ExpedienteTipoV = () => {
     navigate('/saldo-atr', { state: { autoOpen: true } });
   };
 
-  // Importación de Saldo ATR: input eliminado según solicitud
-
   const handleDerivacionChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file) return;
