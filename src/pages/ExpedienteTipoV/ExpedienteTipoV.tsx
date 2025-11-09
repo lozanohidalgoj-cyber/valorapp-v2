@@ -33,6 +33,8 @@ import { useFileLoader, useAnalysis } from './hooks';
 import type { DerivacionData, ConsumoAnual, ConsumoMensual } from '../../types';
 import './ExpedienteTipoV.css';
 
+type VistaModuloExpediente = 'principal' | 'derivacion' | 'analisis';
+
 export const ExpedienteTipoV = () => {
   const navigate = useNavigate();
 
@@ -50,14 +52,16 @@ export const ExpedienteTipoV = () => {
 
   const {
     resultado: resultadoAnalisis,
-    mostrandoAnalisis,
     vistaActual,
     analisisHabilitado: analisisConsumoHabilitado,
     ejecutarAnalisis,
     cambiarVista: setVistaActual,
     habilitarAnalisis: setAnalisisConsumoHabilitado,
     resetAnalisis,
+    setMostrandoAnalisis,
   } = useAnalysis();
+
+  const [modoVista, setModoVista] = useState<VistaModuloExpediente>('principal');
 
   // Estado local para mensajes
   const [error, setError] = useState<string | null>(null);
@@ -68,16 +72,17 @@ export const ExpedienteTipoV = () => {
     if (hayDatosGuardados()) {
       const datosGuardados = recuperarDerivacionData();
       if (datosGuardados && datosGuardados.length > 0) {
+        resetAnalisis();
         setData(datosGuardados, Object.keys(datosGuardados[0] || {}));
         setLoaded(true);
-        setAnalisisConsumoHabilitado();
+        setModoVista('derivacion');
         setSuccessMessage(
           `✅ Se recuperaron ${datosGuardados.length} registros guardados anteriormente`
         );
         setTimeout(() => setSuccessMessage(null), 5000);
       }
     }
-  }, [setData, setLoaded, setAnalisisConsumoHabilitado]);
+  }, [resetAnalisis, setData, setLoaded, setModoVista]);
 
   // Guardar datos cuando cambian
   useEffect(() => {
@@ -95,7 +100,9 @@ export const ExpedienteTipoV = () => {
     setSuccessMessage(null);
 
     try {
+      resetAnalisis();
       await loadFile(file);
+      setModoVista('derivacion');
       setSuccessMessage(`✅ Archivo "${file.name}" cargado exitosamente`);
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch (err) {
@@ -106,42 +113,71 @@ export const ExpedienteTipoV = () => {
   };
 
   const handleAnularFC = () => {
+    if (derivacionData.length === 0) {
+      setError('No hay datos cargados para anular');
+      setTimeout(() => setError(null), 4000);
+      return;
+    }
+
+    setError(null);
+
     const palabrasClaveExcluir = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'];
 
-    let registrosExcluidos = 0;
+    const obtenerIdentificadorFactura = (registro: DerivacionData): string => {
+      const numeroFiscal = (registro['Número Fiscal de Factura'] || '').toString().trim();
+      if (numeroFiscal) {
+        return `Factura ${numeroFiscal}`;
+      }
+
+      const secuencial = (registro['Secuencial de factura'] || '').toString().trim();
+      if (secuencial) {
+        return `Secuencial ${secuencial}`;
+      }
+
+      const contrato = (registro['Código de contrato externo - interfaz'] || '').toString().trim();
+      if (contrato) {
+        return `Contrato ${contrato}`;
+      }
+
+      return 'Registro sin identificador';
+    };
+
+    const facturasExcluidas: string[] = [];
 
     const datosFiltrados = derivacionData.filter((row) => {
-      const estadoOriginal = (
-        (row as unknown as Record<string, unknown>)['Estado de la factura'] || ''
-      ).toString();
+      const estadoOriginal = (row['Estado de la factura'] || '').toString();
       const estadoNormalizado = estadoOriginal.trim().toUpperCase();
 
-      if (palabrasClaveExcluir.some((p) => estadoNormalizado.includes(p))) {
-        registrosExcluidos++;
+      if (palabrasClaveExcluir.some((palabra) => estadoNormalizado.includes(palabra))) {
+        facturasExcluidas.push(obtenerIdentificadorFactura(row));
         return false;
       }
 
       return true;
     });
 
-    const datosOrdenados = datosFiltrados.sort((a, b) => {
-      const fechaA = new Date((a as unknown as Record<string, unknown>)['Fecha desde'] as string);
-      const fechaB = new Date((b as unknown as Record<string, unknown>)['Fecha desde'] as string);
+    const datosOrdenados: DerivacionData[] = [...datosFiltrados].sort((a, b) => {
+      const fechaA = new Date(a['Fecha desde']);
+      const fechaB = new Date(b['Fecha desde']);
       return fechaA.getTime() - fechaB.getTime();
     });
 
     setData(datosOrdenados, derivacionColumns);
+    mostrarDerivacion();
     setAnalisisConsumoHabilitado();
 
-    try {
-      const exito = ejecutarAnalisis(datosOrdenados as DerivacionData[], 'mensual');
-      if (exito) {
-        setSuccessMessage(
-          `✅ Filtro aplicado y análisis ejecutado: ${datosOrdenados.length} facturas válidas, ${registrosExcluidos} excluidas`
-        );
-      }
-    } catch {
-      setError('Error al ejecutar el análisis tras el filtrado');
+    const registrosExcluidos = facturasExcluidas.length;
+
+    if (registrosExcluidos > 0) {
+      const resumenFacturas = facturasExcluidas.slice(0, 5).join(', ');
+      const restante = registrosExcluidos > 5 ? ` y ${registrosExcluidos - 5} más` : '';
+      const detalleFacturas = `${resumenFacturas}${restante}`.trim();
+      const detalleFormateado = detalleFacturas ? `: ${detalleFacturas}` : '';
+      setSuccessMessage(
+        `✅ Se anularon ${registrosExcluidos} factura${registrosExcluidos === 1 ? '' : 's'}${detalleFormateado}`
+      );
+    } else {
+      setSuccessMessage('No se encontraron facturas para anular. El listado se mantiene igual.');
     }
 
     setTimeout(() => setSuccessMessage(null), 6000);
@@ -156,6 +192,7 @@ export const ExpedienteTipoV = () => {
     try {
       const exito = ejecutarAnalisis(derivacionData as DerivacionData[], 'anual');
       if (exito) {
+        setModoVista('analisis');
         setSuccessMessage(
           `Análisis completado: ${resultadoAnalisis?.vistaAnual.length || 0} años procesados`
         );
@@ -166,6 +203,18 @@ export const ExpedienteTipoV = () => {
     } catch {
       setError('Error al realizar el análisis de consumo');
     }
+  };
+
+  const mostrarDerivacion = () => {
+    setMostrandoAnalisis(false);
+    setVistaActual('anual');
+    setModoVista('derivacion');
+  };
+
+  const mostrarVistaPrincipal = () => {
+    setMostrandoAnalisis(false);
+    setVistaActual('anual');
+    setModoVista('principal');
   };
 
   const handleExportarVistaAnual = () => {
@@ -213,12 +262,27 @@ export const ExpedienteTipoV = () => {
       limpiarDatosGuardados();
       resetData();
       resetAnalisis();
+      mostrarVistaPrincipal();
       setSuccessMessage(' Datos eliminados correctamente');
       setTimeout(() => setSuccessMessage(null), 3000);
     }
   };
 
+  const handleIrSaldoAtr = () => {
+    navigate('/saldo-atr');
+  };
+
   const handleVolver = () => {
+    if (modoVista === 'analisis') {
+      mostrarDerivacion();
+      return;
+    }
+
+    if (modoVista === 'derivacion') {
+      mostrarVistaPrincipal();
+      return;
+    }
+
     navigate('/wart');
   };
 
@@ -227,8 +291,8 @@ export const ExpedienteTipoV = () => {
 
   return (
     <div className="expediente-container">
-      {/* Encabezado: Cambia según si hay datos cargados */}
-      {!derivacionLoaded ? (
+      {/* Encabezado principal o barra de acciones según la vista actual */}
+      {modoVista === 'principal' || derivacionData.length === 0 ? (
         <div className="expediente-header-section">
           <h1 className="expediente-header-title">Análisis de Expediente Tipo V</h1>
           <p className="expediente-header-subtitle">
@@ -239,36 +303,47 @@ export const ExpedienteTipoV = () => {
         <AnalysisHeader
           analisisHabilitado={analisisConsumoHabilitado}
           registrosCargados={derivacionData.length}
+          modoVista={modoVista}
           onAnalizar={handleAnalisisConsumo}
           onAnularFC={handleAnularFC}
           onVolver={handleVolver}
           onLimpiar={handleLimpiarDatosGuardados}
+          onIrSaldoAtr={handleIrSaldoAtr}
         />
       )}
 
       <div className="expediente-inner">
         <AlertMessages error={displayError} success={successMessage} />
 
-        {!derivacionLoaded && !mostrandoAnalisis && (
+        {modoVista === 'principal' && (
           <div className="expediente-main-content">
             <FileUploadSection
               loaded={derivacionLoaded}
               onFileChange={handleFileChange}
               onClearData={handleLimpiarDatosGuardados}
             />
-            <button onClick={() => navigate('/saldo-atr')} className="expediente-saldo-atr-btn">
+            <button onClick={handleIrSaldoAtr} className="expediente-saldo-atr-btn">
               Saldo ATR
             </button>
+            {derivacionLoaded && derivacionData.length > 0 && (
+              <button
+                type="button"
+                className="expediente-continuar-derivacion-btn"
+                onClick={mostrarDerivacion}
+              >
+                Ver derivación cargada
+              </button>
+            )}
           </div>
         )}
 
-        {derivacionLoaded && !mostrandoAnalisis && (
+        {modoVista === 'derivacion' && (
           <div className="expediente-data-card">
             <DataTable data={derivacionData} columns={derivacionColumns} />
           </div>
         )}
 
-        {mostrandoAnalisis && resultadoAnalisis && (
+        {modoVista === 'analisis' && resultadoAnalisis && (
           <div className="expediente-analisis-container">
             {vistaActual !== 'mensual' && (
               <div className="expediente-analisis-resumen">
@@ -375,7 +450,7 @@ export const ExpedienteTipoV = () => {
           </div>
         )}
 
-        {!derivacionLoaded && (
+        {modoVista === 'principal' && (
           <div className="expediente-footer">
             <button onClick={handleVolver} className="expediente-back-btn">
               <ArrowLeft size={20} />

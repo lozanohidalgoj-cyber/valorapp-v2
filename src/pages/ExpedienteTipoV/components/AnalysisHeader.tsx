@@ -3,7 +3,7 @@
  * Muestra título, cantidad de registros y botones de acción
  */
 
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
 
 /**
  * Props del componente AnalysisHeader
@@ -13,6 +13,8 @@ interface AnalysisHeaderProps {
   analisisHabilitado: boolean;
   /** Total de registros cargados */
   registrosCargados: number;
+  /** Vista actual del módulo */
+  modoVista: 'principal' | 'derivacion' | 'analisis';
   /** Callback para iniciar análisis */
   onAnalizar: () => void;
   /** Callback para anular facturas complementarias */
@@ -21,6 +23,8 @@ interface AnalysisHeaderProps {
   onVolver: () => void;
   /** Callback para limpiar datos guardados */
   onLimpiar: () => void;
+  /** Callback para abrir el módulo Saldo ATR */
+  onIrSaldoAtr: () => void;
 }
 
 /**
@@ -30,18 +34,28 @@ interface AnalysisHeaderProps {
 export const AnalysisHeader = ({
   analisisHabilitado,
   registrosCargados,
+  modoVista,
   onAnalizar,
   onAnularFC,
   onVolver,
   onLimpiar,
+  onIrSaldoAtr,
 }: AnalysisHeaderProps) => {
+  const textoTooltipVolver = (() => {
+    if (modoVista === 'analisis') {
+      return 'Volver a la derivación individual';
+    }
+
+    if (modoVista === 'derivacion') {
+      return 'Volver al Análisis de Expediente Tipo V';
+    }
+
+    return 'Volver al módulo WART';
+  })();
+
   return (
     <div className="expediente-header-inline">
-      <button
-        onClick={onVolver}
-        className="expediente-back-btn-inline"
-        title="Volver al módulo WART"
-      >
+      <button onClick={onVolver} className="expediente-back-btn-inline" title={textoTooltipVolver}>
         <ArrowLeft size={20} />
         <span>Volver</span>
       </button>
@@ -62,6 +76,13 @@ export const AnalysisHeader = ({
           }
         >
           Análisis de Consumo
+        </button>
+        <button
+          onClick={onIrSaldoAtr}
+          className="expediente-saldo-btn-inline"
+          title="Abrir módulo Saldo ATR"
+        >
+          <ExternalLink size={16} /> Saldo ATR
         </button>
         <button
           onClick={onLimpiar}
