@@ -19,6 +19,12 @@ interface SaldoATRHeaderProps {
   onExportar?: () => void;
   /** Callback para limpiar datos (opcional) */
   onLimpiarDatos?: () => void;
+  /** Callback para anular facturas complementarias */
+  onAnularFC?: () => void;
+  /** Callback para ejecutar el análisis de consumo */
+  onAnalizar?: () => void;
+  /** Controla el estado del botón de análisis */
+  analisisHabilitado?: boolean;
 }
 
 /**
@@ -30,6 +36,9 @@ const SaldoATRHeaderComponent = ({
   totalRegistros,
   onExportar,
   onLimpiarDatos,
+  onAnularFC,
+  onAnalizar,
+  analisisHabilitado = false,
 }: SaldoATRHeaderProps) => {
   // Si no hay registros, mostrar solo header simple
   if (!totalRegistros || totalRegistros === 0) {
@@ -56,6 +65,25 @@ const SaldoATRHeaderComponent = ({
         <p>{totalRegistros} registros cargados</p>
       </div>
       <div className="saldoatr-header-actions">
+        {onAnularFC && (
+          <button onClick={onAnularFC} className="saldoatr-anular-btn-header">
+            Anular FC
+          </button>
+        )}
+        {onAnalizar && (
+          <button
+            onClick={onAnalizar}
+            disabled={!analisisHabilitado}
+            className="saldoatr-analisis-btn-header"
+            title={
+              !analisisHabilitado
+                ? 'Primero debe ejecutar Anular FC'
+                : 'Iniciar análisis de consumo'
+            }
+          >
+            Análisis de Consumo
+          </button>
+        )}
         {onExportar && (
           <button
             onClick={onExportar}

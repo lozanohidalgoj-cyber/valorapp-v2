@@ -2,13 +2,13 @@
 
 .saldoatr-container {
   min-height: 100vh;
-  height: 100vh;
   background: var(--color-primary);
   padding: 0;
   display: flex;
   flex-direction: column;
   position: relative;
-  overflow: hidden;
+  overflow-x: hidden;
+  overflow-y: auto;
 }
 
 .saldoatr-container::before {
@@ -141,6 +141,57 @@
   align-items: center;
 }
 
+.saldoatr-anular-btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.4rem;
+  background: linear-gradient(135deg, var(--color-secondary) 0%, #ff3184 100%);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(255, 49, 132, 0.35);
+}
+
+.saldoatr-anular-btn-header:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 18px rgba(255, 49, 132, 0.45);
+  background: linear-gradient(135deg, #ff579a 0%, var(--color-secondary) 100%);
+}
+
+.saldoatr-analisis-btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.75rem 1.5rem;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #0000a0 100%);
+  color: var(--color-white);
+  border: none;
+  border-radius: 0.75rem;
+  font-weight: 700;
+  font-size: 0.875rem;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  box-shadow: 0 6px 16px rgba(0, 0, 208, 0.35);
+}
+
+.saldoatr-analisis-btn-header:hover:not(:disabled) {
+  transform: translateY(-3px) scale(1.02);
+  box-shadow: 0 10px 20px rgba(0, 0, 208, 0.45);
+  background: linear-gradient(135deg, #0000f0 0%, var(--color-secondary) 100%);
+}
+
+.saldoatr-analisis-btn-header:disabled {
+  background: #9ca3af;
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
 .saldoatr-export-btn-header {
   display: flex;
   align-items: center;
@@ -187,6 +238,137 @@
   box-shadow: 0 6px 16px rgba(239, 68, 68, 0.4);
 }
 
+.saldoatr-analisis-panel {
+  margin: 0;
+  background: rgba(255, 255, 255, 0.95);
+  border-radius: 1.5rem;
+  padding: 2rem;
+  box-shadow:
+    0 20px 45px rgba(0, 0, 0, 0.18),
+    0 8px 18px rgba(0, 0, 0, 0.12);
+  border: 2px solid rgba(0, 0, 0, 0.05);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.saldoatr-analisis-panel h2 {
+  margin: 0 0 1.5rem 0;
+  font-size: 1.75rem;
+  color: var(--color-primary);
+  text-align: center;
+  font-weight: 700;
+}
+
+.saldoatr-analisis-panel__header {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.saldoatr-analisis-panel__header p {
+  margin: 0;
+  color: #4b5563;
+  font-size: 0.95rem;
+}
+
+.saldoatr-analisis-panel__content {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.saldoatr-analisis-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.saldoatr-analisis-card {
+  background: linear-gradient(160deg, rgba(0, 0, 208, 0.08) 0%, rgba(255, 49, 132, 0.1) 100%);
+  border-radius: 1rem;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.saldoatr-analisis-label {
+  font-size: 0.85rem;
+  color: #4b5563;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+}
+
+.saldoatr-analisis-value {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.saldoatr-analisis-value--warning {
+  color: #dc2626;
+}
+
+.saldoatr-analisis-value--range {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.saldoatr-analisis-section {
+  margin-top: 1.5rem;
+}
+
+.saldoatr-analisis-section h3 {
+  margin: 0 0 0.75rem 0;
+  font-size: 1.25rem;
+  color: var(--color-primary);
+}
+
+.saldoatr-analisis-table-wrapper {
+  overflow-x: auto;
+  border: 1px solid #e5e7eb;
+  border-radius: 0.75rem;
+  background: #fff;
+}
+
+.saldoatr-analisis-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.saldoatr-analisis-table th,
+.saldoatr-analisis-table td {
+  padding: 0.75rem 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e5e7eb;
+  font-size: 0.9rem;
+  color: #1f2937;
+}
+
+.saldoatr-analisis-table th {
+  background: rgba(0, 0, 208, 0.08);
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.saldoatr-analisis-table tbody tr:nth-child(odd) {
+  background: rgba(0, 0, 0, 0.015);
+}
+
+.saldoatr-analisis-anomalia {
+  color: #dc2626;
+  font-weight: 700;
+}
+
 /* Mantener compatibilidad con header antiguo */
 .saldoatr-header {
   display: grid;
@@ -214,6 +396,29 @@
   font-weight: 700;
 }
 
+.saldoatr-scroll-area {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2rem;
+  padding: 2rem;
+  overflow: visible;
+  scrollbar-width: thin;
+}
+
+.saldoatr-scroll-area::-webkit-scrollbar {
+  width: 8px;
+}
+
+.saldoatr-scroll-area::-webkit-scrollbar-thumb {
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 8px;
+}
+
+.saldoatr-scroll-area::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.2);
+}
+
 .saldoatr-card {
   background: #ffffff;
   backdrop-filter: blur(20px);
@@ -229,7 +434,7 @@
   flex-direction: column;
   flex: 1;
   min-height: 0;
-  margin: 2rem;
+  margin: 0;
   z-index: 1;
 }
 
