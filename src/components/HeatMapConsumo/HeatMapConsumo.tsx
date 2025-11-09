@@ -254,7 +254,10 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
           style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
         >
           <div className="heatmap-matrix heatmap-matrix--integrated" ref={matrixRef}>
-            <div className="matrix-integrated-header" style={{ gridColumn: '1 / span 13' }}>
+            <div
+              className="matrix-integrated-header"
+              style={{ gridColumn: `1 / span ${años.length + 1}` }}
+            >
               <div className="integrated-row">
                 <h3 className="heatmap-title integrated-title">🔥 {metricaActual.titulo}</h3>
               </div>
@@ -335,63 +338,95 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
               </div>
             </div>
             <div className="matrix-corner"></div>
-            {NOMBRES_MESES_CORTO.map((mes, idx) => (
-              <div key={`h-${idx}`} className="matrix-header-month">
-                {mes}
+            {/* Encabezados de años (horizontal) */}
+            {años.map((año) => (
+              <div key={`h-${año}`} className="matrix-header-year">
+                {año}
               </div>
             ))}
-            {años.map((año) => (
-              <Fragment key={año}>
-                <div className="matrix-year-label">{año}</div>
-                {Array.from({ length: 12 }, (_, i) => {
-                  const mes = i + 1;
-                  const dato = mapaPorPeriodo.get(`${año}-${mes}`);
+            {/* Filas de meses (vertical) */}
+            {Array.from({ length: 12 }, (_, mesIdx) => {
+              const mes = mesIdx + 1;
+              return (
+                <Fragment key={`mes-${mes}`}>
+                  <div className="matrix-month-label">{NOMBRES_MESES_CORTO[mesIdx]}</div>
+                  {años.map((año) => {
+                    const dato = mapaPorPeriodo.get(`${año}-${mes}`);
 
-                  if (!dato || dato.registros === 0) {
+                    if (!dato || dato.registros === 0) {
+                      return (
+                        <div key={`c-${año}-${mes}`} className="matrix-cell matrix-empty">
+                          NA
+                        </div>
+                      );
+                    }
+
+                    const valor = metricaActual.extractor(dato);
+                    const color = calcularColorHeatMap(
+                      valor,
+                      resumenMetricas.minimo,
+                      resumenMetricas.maximo
+                    );
+                    const esAnomalia = metricaActual.motivoClave
+                      ? dato.motivosAnomalia.includes(metricaActual.motivoClave)
+                      : dato.esAnomalia;
+                    const tooltipLineas = [
+                      `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
+                      `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
+                      `${dato.registros} registros`,
+                    ];
+                    if (dato.variacionPorcentual !== null) {
+                      tooltipLineas.push(
+                        `Variación: ${formatearNumero(dato.variacionPorcentual, 2)} %`
+                      );
+                    }
+
                     return (
-                      <div key={`c-${año}-${mes}`} className="matrix-cell matrix-empty">
-                        NA
+                      <div
+                        key={`c-${año}-${mes}`}
+                        className={`matrix-cell matrix-value ${esAnomalia ? 'matrix-anomalia' : ''}`}
+                        style={{ backgroundColor: color }}
+                        title={`${tooltipLineas.join('\n')}${esAnomalia ? '\n⚠️ Anomalía detectada' : ''}`}
+                        onClick={() => handleCellClick(año, mesIdx, dato)}
+                      >
+                        <span className="matrix-consumo">
+                          {formatearNumero(valor, metricaActual.decimales ?? 0)}
+                        </span>
+                        {esAnomalia && <span className="matrix-alert">⚠️</span>}
                       </div>
                     );
-                  }
+                  })}
+                </Fragment>
+              );
+            })}
 
-                  const valor = metricaActual.extractor(dato);
-                  const color = calcularColorHeatMap(
-                    valor,
-                    resumenMetricas.minimo,
-                    resumenMetricas.maximo
-                  );
-                  const esAnomalia = metricaActual.motivoClave
-                    ? dato.motivosAnomalia.includes(metricaActual.motivoClave)
-                    : dato.esAnomalia;
-                  const tooltipLineas = [
-                    `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
-                    `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
-                    `${dato.registros} registros`,
-                  ];
-                  if (dato.variacionPorcentual !== null) {
-                    tooltipLineas.push(
-                      `Variación: ${formatearNumero(dato.variacionPorcentual, 2)} %`
-                    );
-                  }
+            {/* Fila de Total General */}
+            <div className="matrix-total-general-label">📊 Total General</div>
+            {años.map((año) => {
+              const totalAño = Array.from({ length: 12 }).reduce<number>((suma, _, mesIdx) => {
+                const mes = mesIdx + 1;
+                const dato = mapaPorPeriodo.get(`${año}-${mes}`);
+                if (dato && dato.registros > 0) {
+                  return suma + metricaActual.extractor(dato);
+                }
+                return suma;
+              }, 0);
 
-                  return (
-                    <div
-                      key={`c-${año}-${mes}`}
-                      className={`matrix-cell matrix-value ${esAnomalia ? 'matrix-anomalia' : ''}`}
-                      style={{ backgroundColor: color }}
-                      title={`${tooltipLineas.join('\n')}${esAnomalia ? '\n⚠️ Anomalía detectada' : ''}`}
-                      onClick={() => handleCellClick(año, i, dato)}
-                    >
-                      <span className="matrix-consumo">
-                        {formatearNumero(valor, metricaActual.decimales ?? 0)}
-                      </span>
-                      {esAnomalia && <span className="matrix-alert">⚠️</span>}
-                    </div>
-                  );
-                })}
-              </Fragment>
-            ))}
+              return (
+                <div
+                  key={`total-${año}`}
+                  className="matrix-cell matrix-total-general-cell"
+                  title={`Total ${año}: ${formatearNumero(
+                    totalAño,
+                    metricaActual.decimales ?? 0
+                  )} ${metricaActual.unidad}`}
+                >
+                  <span className="matrix-consumo">
+                    {formatearNumero(totalAño, metricaActual.decimales ?? 0)}
+                  </span>
+                </div>
+              );
+            })}
           </div>
         </div>
       </div>

@@ -135,7 +135,7 @@
 }
 .heatmap-matrix {
   display: grid;
-  grid-template-columns: 72px repeat(12, minmax(78px, 1fr));
+  grid-template-columns: auto repeat(auto-fit, minmax(70px, 1fr));
   row-gap: 5px;
   column-gap: 5px;
   align-items: stretch;
@@ -162,6 +162,54 @@
   letter-spacing: 0.6px;
   position: sticky;
   top: 0;
+}
+
+.matrix-header-year {
+  background: linear-gradient(135deg, var(--color-primary), #0011aa);
+  color: #fff;
+  font-size: clamp(0.5rem, 0.9vw, 0.9rem);
+  font-weight: 700;
+  padding: 0.28rem 0;
+  border-radius: 6px;
+  text-align: center;
+  letter-spacing: 0.6px;
+  position: sticky;
+  top: 0;
+}
+
+.matrix-month-label {
+  background: linear-gradient(135deg, #ff3184, #ff5ca0);
+  color: #fff;
+  font-weight: 700;
+  font-size: clamp(0.5rem, 0.9vw, 0.95rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  letter-spacing: 0.6px;
+  padding: 0.22rem 0;
+}
+
+.matrix-total-general-label {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #1a1a1a;
+  font-weight: 800;
+  font-size: clamp(0.5rem, 0.9vw, 0.95rem);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  letter-spacing: 0.6px;
+  padding: 0.22rem 0;
+  text-transform: uppercase;
+}
+
+.matrix-total-general-cell {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  color: #1a1a1a;
+  font-weight: 800;
+  border: 2px solid #ffc700;
+  box-shadow: 0 2px 8px rgba(255, 215, 0, 0.3);
 }
 .matrix-year-label {
   background: linear-gradient(135deg, #ff3184, #ff5ca0);
