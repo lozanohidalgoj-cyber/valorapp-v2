@@ -308,7 +308,6 @@ export const ExpedienteTipoV = () => {
           onAnularFC={handleAnularFC}
           onVolver={handleVolver}
           onLimpiar={handleLimpiarDatosGuardados}
-          onIrSaldoAtr={handleIrSaldoAtr}
         />
       )}
 

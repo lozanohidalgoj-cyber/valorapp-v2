@@ -3,7 +3,7 @@
  * Muestra título, cantidad de registros y botones de acción
  */
 
-import { ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 
 /**
  * Props del componente AnalysisHeader
@@ -23,8 +23,6 @@ interface AnalysisHeaderProps {
   onVolver: () => void;
   /** Callback para limpiar datos guardados */
   onLimpiar: () => void;
-  /** Callback para abrir el módulo Saldo ATR */
-  onIrSaldoAtr: () => void;
 }
 
 /**
@@ -39,7 +37,6 @@ export const AnalysisHeader = ({
   onAnularFC,
   onVolver,
   onLimpiar,
-  onIrSaldoAtr,
 }: AnalysisHeaderProps) => {
   const textoTooltipVolver = (() => {
     if (modoVista === 'analisis') {
@@ -76,13 +73,6 @@ export const AnalysisHeader = ({
           }
         >
           Análisis de Consumo
-        </button>
-        <button
-          onClick={onIrSaldoAtr}
-          className="expediente-saldo-btn-inline"
-          title="Abrir módulo Saldo ATR"
-        >
-          <ExternalLink size={16} /> Saldo ATR
         </button>
         <button
           onClick={onLimpiar}
