@@ -1,6 +1,6 @@
 /**
  * 📊 Servicio de Análisis de Consumo
- * 
+ *
  * Replica la funcionalidad del Excel "Análisis de Expedientes.xlsm"
  * - Vista por años: Agrupación anual con todas las métricas
  * - Comparativa mensual: Evolución mes a mes con detección de anomalías (umbral 40%)
@@ -17,16 +17,16 @@ import {
 
 /**
  * Genera la vista anual con todas las métricas del Excel
- * Calcula: Suma Consumo Activa, Máx Maxímetro, Periodos facturados, 
+ * Calcula: Suma Consumo Activa, Máx Maxímetro, Periodos facturados,
  * Suma de días, Promedio consumo por día
  * @param datos - Array de registros de derivación individual
  * @returns Array de consumos anuales con todas las métricas calculadas
  */
 const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
   const datosPorAño: { [año: number]: DerivacionData[] } = {};
-  
+
   // Agrupar por año
-  datos.forEach(registro => {
+  datos.forEach((registro) => {
     const año = extraerAñoDeFormato(registro['Fecha desde']);
     if (año > 0) {
       if (!datosPorAño[año]) {
@@ -35,14 +35,14 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
       datosPorAño[año].push(registro);
     }
   });
-  
+
   // Calcular métricas por año
   return Object.keys(datosPorAño)
     .map(Number)
     .sort((a, b) => a - b)
-    .map(año => {
+    .map((año) => {
       const registrosAño = datosPorAño[año];
-      
+
       // 1. Suma Consumo Activa (P1 + P2 + P3)
       const sumaConsumoActiva = registrosAño.reduce((suma, registro) => {
         const p1 = convertirNumeroEspañol(registro['Consumo P1/punta']);
@@ -50,7 +50,7 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
         const p3 = convertirNumeroEspañol(registro['Consumo P3/valle']);
         return suma + p1 + p2 + p3;
       }, 0);
-      
+
       // 2. Máx de Maxímetro (mayor valor de todos los periodos)
       const maxMaximetro = registrosAño.reduce((max, registro) => {
         const maxP1 = convertirNumeroEspañol(registro['Maxímetro P1/Punta']);
@@ -62,26 +62,26 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
         const maxActual = Math.max(maxP1, maxP2, maxP3, maxP4, maxP5, maxP6);
         return Math.max(max, maxActual);
       }, 0);
-      
+
       // 3. Periodos facturados (número de facturas)
       const periodosFacturados = registrosAño.length;
-      
+
       // 4. Suma de Días
       const sumaDias = registrosAño.reduce((suma, registro) => {
         const dias = calcularDiasEntreFechas(registro['Fecha desde'], registro['Fecha hasta']);
         return suma + dias;
       }, 0);
-      
+
       // 5. Promedio consumo por día
       const promedioConsumoPorDia = sumaDias > 0 ? sumaConsumoActiva / sumaDias : 0;
-      
+
       return {
         año,
         sumaConsumoActiva,
         maxMaximetro,
         periodosFacturados,
         sumaDias,
-        promedioConsumoPorDia
+        promedioConsumoPorDia,
       };
     });
 };
@@ -92,69 +92,164 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
  * @param datos - Array de registros de derivación individual
  * @returns Array de consumos mensuales con detección de anomalías
  */
-const generarComparativaMensual = (datos: DerivacionData[]): ConsumoMensual[] => {
-  const datosPorMes: { [periodo: string]: DerivacionData[] } = {};
-  
+const generarComparativaMensual = (
+  datos: DerivacionData[]
+): {
+  comparativa: ConsumoMensual[];
+  detalles: Record<string, DerivacionData[]>;
+} => {
+  const datosPorMes: Record<
+    string,
+    {
+      registros: DerivacionData[];
+      sumaConsumoP123: number;
+      sumaConsumoActiva: number;
+      sumaPromedioActiva: number;
+      sumaMaximetro: number;
+      sumaEnergiaReconstruida: number;
+      sumaDias: number;
+      tieneConsumoActiva: boolean;
+      tienePromedioActiva: boolean;
+      tieneEnergiaReconstruida: boolean;
+    }
+  > = {};
+
   // Agrupar por periodo (YYYY-MM)
-  datos.forEach(registro => {
+  datos.forEach((registro) => {
     const año = extraerAñoDeFormato(registro['Fecha desde']);
     const mes = extraerMesDeFormato(registro['Fecha desde']);
     if (año > 0 && mes > 0) {
       const periodo = `${año}-${mes.toString().padStart(2, '0')}`;
       if (!datosPorMes[periodo]) {
-        datosPorMes[periodo] = [];
+        datosPorMes[periodo] = {
+          registros: [],
+          sumaConsumoP123: 0,
+          sumaConsumoActiva: 0,
+          sumaPromedioActiva: 0,
+          sumaMaximetro: 0,
+          sumaEnergiaReconstruida: 0,
+          sumaDias: 0,
+          tieneConsumoActiva: false,
+          tienePromedioActiva: false,
+          tieneEnergiaReconstruida: false,
+        };
       }
-      datosPorMes[periodo].push(registro);
+
+      const entrada = datosPorMes[periodo];
+      entrada.registros.push(registro);
+
+      const consumoP1 = convertirNumeroEspañol(registro['Consumo P1/punta']);
+      const consumoP2 = convertirNumeroEspañol(registro['Consumo P2/llano']);
+      const consumoP3 = convertirNumeroEspañol(registro['Consumo P3/valle']);
+      entrada.sumaConsumoP123 += consumoP1 + consumoP2 + consumoP3;
+
+      const valorConsumoActiva = convertirNumeroEspañol(registro['Consumo Activa']);
+      if (
+        Object.prototype.hasOwnProperty.call(registro, 'Consumo Activa') &&
+        registro['Consumo Activa'] !== '' &&
+        registro['Consumo Activa'] !== null &&
+        registro['Consumo Activa'] !== undefined
+      ) {
+        entrada.sumaConsumoActiva += valorConsumoActiva;
+        entrada.tieneConsumoActiva = true;
+      }
+
+      const valorPromedioActiva = convertirNumeroEspañol(registro['Promedio Activa']);
+      if (
+        Object.prototype.hasOwnProperty.call(registro, 'Promedio Activa') &&
+        registro['Promedio Activa'] !== '' &&
+        registro['Promedio Activa'] !== null &&
+        registro['Promedio Activa'] !== undefined
+      ) {
+        entrada.sumaPromedioActiva += valorPromedioActiva;
+        entrada.tienePromedioActiva = true;
+      }
+
+      const maximetroCampo = convertirNumeroEspañol(registro['Maxímetro']);
+      const maximetroDerivado = Math.max(
+        convertirNumeroEspañol(registro['Maxímetro P1/Punta']),
+        convertirNumeroEspañol(registro['Maxímetro P2/Llano']),
+        convertirNumeroEspañol(registro['Maxímetro P3/Valle']),
+        convertirNumeroEspañol(registro['Maxímetro P4']),
+        convertirNumeroEspañol(registro['Maxímetro P5']),
+        convertirNumeroEspañol(registro['Maxímetro P6'])
+      );
+      entrada.sumaMaximetro += maximetroCampo > 0 ? maximetroCampo : maximetroDerivado;
+
+      const energiaReconstruida = convertirNumeroEspañol(
+        registro['A + B + C'] ?? registro['Energía Total Reconstruida']
+      );
+      const tieneEnergiaReconstruida =
+        (Object.prototype.hasOwnProperty.call(registro, 'A + B + C') &&
+          registro['A + B + C'] !== '' &&
+          registro['A + B + C'] !== null &&
+          registro['A + B + C'] !== undefined) ||
+        (Object.prototype.hasOwnProperty.call(registro, 'Energía Total Reconstruida') &&
+          registro['Energía Total Reconstruida'] !== '' &&
+          registro['Energía Total Reconstruida'] !== null &&
+          registro['Energía Total Reconstruida'] !== undefined);
+
+      if (tieneEnergiaReconstruida) {
+        entrada.sumaEnergiaReconstruida += energiaReconstruida;
+        entrada.tieneEnergiaReconstruida = true;
+      }
+
+      const diasDeclarados = convertirNumeroEspañol(registro['Días']);
+      const diasCalculados = calcularDiasEntreFechas(
+        registro['Fecha desde'],
+        registro['Fecha hasta']
+      );
+      entrada.sumaDias += diasDeclarados > 0 ? diasDeclarados : diasCalculados;
     }
   });
-  
+
   // Ordenar periodos cronológicamente
   const periodosOrdenados = Object.keys(datosPorMes).sort();
-  
+
+  const obtenerMetricas = (agrupado: (typeof datosPorMes)[string]) => {
+    const consumoActivaTotal = agrupado.tieneConsumoActiva
+      ? agrupado.sumaConsumoActiva
+      : agrupado.sumaConsumoP123;
+
+    const promedioActivaTotal = agrupado.tienePromedioActiva
+      ? agrupado.sumaPromedioActiva
+      : consumoActivaTotal;
+
+    const energiaReconstruidaTotal = agrupado.tieneEnergiaReconstruida
+      ? agrupado.sumaEnergiaReconstruida
+      : agrupado.sumaConsumoP123;
+
+    return {
+      consumoActivaTotal,
+      promedioActivaTotal,
+      energiaReconstruidaTotal,
+    };
+  };
+
   // Calcular métricas por mes
   const comparativaMensual: ConsumoMensual[] = periodosOrdenados.map((periodo, index) => {
-    const registrosMes = datosPorMes[periodo];
+    const agrupado = datosPorMes[periodo];
     const [año, mes] = periodo.split('-').map(Number);
-    
-    // Consumo total del mes (P1 + P2 + P3)
-    const consumoTotal = registrosMes.reduce((suma, registro) => {
-      const p1 = convertirNumeroEspañol(registro['Consumo P1/punta']);
-      const p2 = convertirNumeroEspañol(registro['Consumo P2/llano']);
-      const p3 = convertirNumeroEspañol(registro['Consumo P3/valle']);
-      return suma + p1 + p2 + p3;
-    }, 0);
-    
-    // Días del periodo
-    const dias = registrosMes.reduce((suma, registro) => {
-      return suma + calcularDiasEntreFechas(registro['Fecha desde'], registro['Fecha hasta']);
-    }, 0);
-    
-    // Consumo promedio diario
-    const consumoPromedioDiario = dias > 0 ? consumoTotal / dias : 0;
-    
-    // Variación porcentual respecto al mes anterior
+
+    const metricasActuales = obtenerMetricas(agrupado);
+
+    const consumoReferencia = metricasActuales.consumoActivaTotal;
+    const dias = agrupado.sumaDias;
+    const consumoPromedioDiario = dias > 0 ? consumoReferencia / dias : 0;
+
     let variacionPorcentual: number | null = null;
-    let esAnomalia = false;
     let tipoVariacion: 'aumento' | 'descenso' | 'estable' | null = null;
-    
+    const motivosAnomalia: string[] = [];
+
     if (index > 0) {
       const periodoAnterior = periodosOrdenados[index - 1];
-      const consumoAnterior = datosPorMes[periodoAnterior].reduce((suma, registro) => {
-        const p1 = convertirNumeroEspañol(registro['Consumo P1/punta']);
-        const p2 = convertirNumeroEspañol(registro['Consumo P2/llano']);
-        const p3 = convertirNumeroEspañol(registro['Consumo P3/valle']);
-        return suma + p1 + p2 + p3;
-      }, 0);
-      
+      const agregadoAnterior = datosPorMes[periodoAnterior];
+      const metricasAnteriores = obtenerMetricas(agregadoAnterior);
+      const consumoAnterior = metricasAnteriores.consumoActivaTotal;
+
       if (consumoAnterior > 0) {
-        variacionPorcentual = ((consumoTotal - consumoAnterior) / consumoAnterior) * 100;
-        
-        // Detectar anomalía: variación > 40%
-        if (Math.abs(variacionPorcentual) > 40) {
-          esAnomalia = true;
-        }
-        
-        // Tipo de variación
+        variacionPorcentual = ((consumoReferencia - consumoAnterior) / consumoAnterior) * 100;
+
         if (variacionPorcentual > 5) {
           tipoVariacion = 'aumento';
         } else if (variacionPorcentual < -5) {
@@ -162,23 +257,69 @@ const generarComparativaMensual = (datos: DerivacionData[]): ConsumoMensual[] =>
         } else {
           tipoVariacion = 'estable';
         }
+
+        if (Math.abs(variacionPorcentual) >= 40) {
+          motivosAnomalia.push('variacion_consumo_activa');
+        }
+
+        const variacionPromActiva =
+          metricasAnteriores.promedioActivaTotal > 0
+            ? ((metricasActuales.promedioActivaTotal - metricasAnteriores.promedioActivaTotal) /
+                metricasAnteriores.promedioActivaTotal) *
+              100
+            : null;
+        if (variacionPromActiva !== null && Math.abs(variacionPromActiva) >= 40) {
+          motivosAnomalia.push('variacion_promedio_activa');
+        }
+
+        const variacionEnergia =
+          metricasAnteriores.energiaReconstruidaTotal > 0
+            ? ((metricasActuales.energiaReconstruidaTotal -
+                metricasAnteriores.energiaReconstruidaTotal) /
+                metricasAnteriores.energiaReconstruidaTotal) *
+              100
+            : null;
+        if (variacionEnergia !== null && Math.abs(variacionEnergia) >= 40) {
+          motivosAnomalia.push('variacion_energia_reconstruida');
+        }
+
+        const variacionMaximetro =
+          agregadoAnterior.sumaMaximetro > 0
+            ? ((agrupado.sumaMaximetro - agregadoAnterior.sumaMaximetro) /
+                agregadoAnterior.sumaMaximetro) *
+              100
+            : null;
+        if (variacionMaximetro !== null && Math.abs(variacionMaximetro) >= 40) {
+          motivosAnomalia.push('variacion_maximetro');
+        }
       }
     }
-    
+
     return {
       año,
       mes,
       periodo,
-      consumoTotal,
+      consumoTotal: consumoReferencia,
+      consumoActivaTotal: metricasActuales.consumoActivaTotal,
+      promedioActivaTotal: metricasActuales.promedioActivaTotal,
+      maximetroTotal: agrupado.sumaMaximetro,
+      energiaReconstruidaTotal: metricasActuales.energiaReconstruidaTotal,
       consumoPromedioDiario,
       dias,
       variacionPorcentual,
-      esAnomalia,
-      tipoVariacion
+      esAnomalia: motivosAnomalia.length > 0,
+      tipoVariacion,
+      motivosAnomalia,
+      registros: agrupado.registros.length,
     };
   });
-  
-  return comparativaMensual;
+
+  const detallesPorPeriodo: Record<string, DerivacionData[]> = {};
+  periodosOrdenados.forEach((periodo) => {
+    detallesPorPeriodo[periodo] = datosPorMes[periodo].registros;
+  });
+
+  return { comparativa: comparativaMensual, detalles: detallesPorPeriodo };
 };
 
 /**
@@ -190,41 +331,45 @@ const generarComparativaMensual = (datos: DerivacionData[]): ConsumoMensual[] =>
 export const analizarConsumoCompleto = (datos: DerivacionData[]): ResultadoAnalisis => {
   // Generar vista anual
   const vistaAnual = generarVistaAnual(datos);
-  
+
   // Generar comparativa mensual
-  const comparativaMensual = generarComparativaMensual(datos);
-  
+  const { comparativa: comparativaMensual, detalles: detallesPorPeriodo } =
+    generarComparativaMensual(datos);
+
   // Calcular periodo total
-  const fechas = datos.map(d => {
-    const año = extraerAñoDeFormato(d['Fecha desde']);
-    const mes = extraerMesDeFormato(d['Fecha desde']);
-    return { año, mes, fecha: d['Fecha desde'] };
-  }).sort((a, b) => a.año - b.año || a.mes - b.mes);
-  
+  const fechas = datos
+    .map((d) => {
+      const año = extraerAñoDeFormato(d['Fecha desde']);
+      const mes = extraerMesDeFormato(d['Fecha desde']);
+      return { año, mes, fecha: d['Fecha desde'] };
+    })
+    .sort((a, b) => a.año - b.año || a.mes - b.mes);
+
   const periodoTotal = {
     fechaInicio: fechas.length > 0 ? fechas[0].fecha : '',
     fechaFin: fechas.length > 0 ? fechas[fechas.length - 1].fecha : '',
     totalAños: vistaAnual.length,
-    totalMeses: comparativaMensual.length
+    totalMeses: comparativaMensual.length,
   };
-  
+
   // Calcular resumen ejecutivo
   const consumoTotalGeneral = vistaAnual.reduce((suma, año) => suma + año.sumaConsumoActiva, 0);
   const maxMaximetroGeneral = vistaAnual.reduce((max, año) => Math.max(max, año.maxMaximetro), 0);
   const promedioAnual = vistaAnual.length > 0 ? consumoTotalGeneral / vistaAnual.length : 0;
-  const anomaliasDetectadas = comparativaMensual.filter(m => m.esAnomalia).length;
-  
+  const anomaliasDetectadas = comparativaMensual.filter((m) => m.esAnomalia).length;
+
   return {
     vistaAnual,
     comparativaMensual,
+    detallesPorPeriodo,
     periodoTotal,
     resumen: {
       consumoTotalGeneral,
       promedioAnual,
       maxMaximetroGeneral,
       totalFacturas: datos.length,
-      anomaliasDetectadas
-    }
+      anomaliasDetectadas,
+    },
   };
 };
 

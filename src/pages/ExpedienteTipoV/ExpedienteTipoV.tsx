@@ -343,6 +343,7 @@ export const ExpedienteTipoV = () => {
                 <div className="expediente-heatmap-wrapper">
                   <HeatMapConsumo
                     datos={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
+                    detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
                   />
                 </div>
                 <div className="expediente-export-buttons expediente-export-inline">

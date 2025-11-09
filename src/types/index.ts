@@ -1,6 +1,6 @@
 /**
  * 📋 Tipos y Definiciones Globales de ValorApp_v2
- * 
+ *
  * Archivo centralizado de tipos TypeScript para mantener
  * consistencia en toda la aplicación.
  */
@@ -48,12 +48,12 @@ export interface ConsumoPeriodo {
 /**
  * Tipo de anomalía detectada
  */
-export type TipoAnomalia = 
-  | 'descenso_abrupto'    // Descenso repentino > 30%
-  | 'descenso_gradual'    // Descenso progresivo
-  | 'consumo_cero'        // Consumo nulo o casi nulo
-  | 'consumo_negativo'    // Valores negativos (error)
-  | 'pico_anomalo';       // Incremento inusual
+export type TipoAnomalia =
+  | 'descenso_abrupto' // Descenso repentino > 30%
+  | 'descenso_gradual' // Descenso progresivo
+  | 'consumo_cero' // Consumo nulo o casi nulo
+  | 'consumo_negativo' // Valores negativos (error)
+  | 'pico_anomalo'; // Incremento inusual
 
 /**
  * Nivel de severidad de la anomalía
@@ -97,6 +97,7 @@ export interface DerivacionData {
   'Número Fiscal de Factura': string;
   'Código de Empresa Distribuidora': string;
   'Código de contrato externo - interfaz': string;
+  Contrato?: string;
   'Secuencial de factura': string;
   'Tipo de factura': string;
   'Estado de la factura': string;
@@ -139,7 +140,25 @@ export interface DerivacionData {
   'Maxímetro P4': string | number;
   'Maxímetro P5': string | number;
   'Maxímetro P6': string | number;
-  'Origen': string;
+  Maxímetro?: string | number;
+  'Consumo Activa'?: string | number;
+  'Promedio Activa'?: string | number;
+  'Consumo Reactiva'?: string | number;
+  'Promedio Reactiva'?: string | number;
+  'Energía Total Reconstruida'?: string | number;
+  'A + B + C'?: string | number;
+  'AB - A'?: string | number;
+  'AB - C'?: string | number;
+  P1?: string | number;
+  P2?: string | number;
+  P3?: string | number;
+  P4?: string | number;
+  P5?: string | number;
+  P6?: string | number;
+  Días?: string | number;
+  'Consumo promedio ciclo'?: string | number;
+  'Promedio ER'?: string | number;
+  Origen: string;
 }
 
 // ============================================
@@ -192,8 +211,16 @@ export interface ConsumoMensual {
   mes: number;
   /** Periodo en formato "YYYY-MM" */
   periodo: string;
-  /** Consumo total del mes (P1+P2+P3) */
+  /** Consumo total del mes basado en energía activa */
   consumoTotal: number;
+  /** Sumatoria del campo "Consumo Activa" */
+  consumoActivaTotal: number;
+  /** Sumatoria del campo "Promedio Activa" */
+  promedioActivaTotal: number;
+  /** Sumatoria del campo "Maxímetro" */
+  maximetroTotal: number;
+  /** Sumatoria del campo "A + B + C" / Energía reconstruida */
+  energiaReconstruidaTotal: number;
   /** Consumo promedio diario */
   consumoPromedioDiario: number;
   /** Número de días del periodo */
@@ -204,6 +231,10 @@ export interface ConsumoMensual {
   esAnomalia: boolean;
   /** Tipo de variación */
   tipoVariacion: 'aumento' | 'descenso' | 'estable' | null;
+  /** Motivos para clasificar una anomalía */
+  motivosAnomalia: string[];
+  /** Registros aportados al periodo */
+  registros: number;
 }
 
 /**
@@ -214,6 +245,8 @@ export interface ResultadoAnalisis {
   vistaAnual: ConsumoAnual[];
   /** Comparativa mensual */
   comparativaMensual: ConsumoMensual[];
+  /** Registros detallados agrupados por periodo YYYY-MM */
+  detallesPorPeriodo: Record<string, DerivacionData[]>;
   /** Periodo total analizado */
   periodoTotal: {
     fechaInicio: string;
@@ -291,11 +324,52 @@ export interface ConfiguracionGrafico {
  * Letras de columna válidas para Interfaz Saldo ATR (A..AT)
  */
 export type SaldoATRColumna =
-  | 'A' | 'B' | 'C' | 'D' | 'E' | 'F' | 'G' | 'H' | 'I' | 'J'
-  | 'K' | 'L' | 'M' | 'N' | 'O' | 'P' | 'Q' | 'R' | 'S' | 'T'
-  | 'U' | 'V' | 'W' | 'X' | 'Y' | 'Z'
-  | 'AA' | 'AB' | 'AC' | 'AD' | 'AE' | 'AF' | 'AG' | 'AH' | 'AI' | 'AJ'
-  | 'AK' | 'AL' | 'AM' | 'AN' | 'AO' | 'AP' | 'AQ' | 'AR' | 'AS' | 'AT';
+  | 'A'
+  | 'B'
+  | 'C'
+  | 'D'
+  | 'E'
+  | 'F'
+  | 'G'
+  | 'H'
+  | 'I'
+  | 'J'
+  | 'K'
+  | 'L'
+  | 'M'
+  | 'N'
+  | 'O'
+  | 'P'
+  | 'Q'
+  | 'R'
+  | 'S'
+  | 'T'
+  | 'U'
+  | 'V'
+  | 'W'
+  | 'X'
+  | 'Y'
+  | 'Z'
+  | 'AA'
+  | 'AB'
+  | 'AC'
+  | 'AD'
+  | 'AE'
+  | 'AF'
+  | 'AG'
+  | 'AH'
+  | 'AI'
+  | 'AJ'
+  | 'AK'
+  | 'AL'
+  | 'AM'
+  | 'AN'
+  | 'AO'
+  | 'AP'
+  | 'AQ'
+  | 'AR'
+  | 'AS'
+  | 'AT';
 
 /**
  * Fila de datos de la Interfaz Saldo ATR.

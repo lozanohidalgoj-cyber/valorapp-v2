@@ -3,24 +3,26 @@
  */
 
 import { Download } from 'lucide-react';
-import type { ConsumoMensual } from '../../../types';
+import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo } from '../../../components';
 
 interface VistaMensualProps {
   datos: ConsumoMensual[];
+  detallesPorPeriodo: Record<string, DerivacionData[]>;
   onExportarComparativa: () => void;
   onExportarCompleto: () => void;
 }
 
 export const VistaMensual = ({
   datos,
+  detallesPorPeriodo,
   onExportarComparativa,
   onExportarCompleto,
 }: VistaMensualProps) => {
   return (
     <div className="expediente-heatmap-section">
       <div className="expediente-heatmap-wrapper">
-        <HeatMapConsumo datos={datos} />
+        <HeatMapConsumo datos={datos} detallesPorPeriodo={detallesPorPeriodo} />
       </div>
 
       <div className="expediente-export-buttons expediente-export-inline">

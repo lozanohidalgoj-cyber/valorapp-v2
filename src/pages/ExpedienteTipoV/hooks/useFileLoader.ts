@@ -3,8 +3,12 @@
  */
 
 import { useState, useCallback } from 'react';
-import * as XLSX from 'xlsx';
 import type { DerivacionData } from '../../../types';
+import {
+  importarArchivoDerivacion,
+  formatearErroresImportacion,
+  COLUMNAS_PERMITIDAS,
+} from '../../../services/importDerivacionService';
 
 interface UseFileLoaderReturn {
   data: DerivacionData[];
@@ -26,62 +30,54 @@ export const useFileLoader = (): UseFileLoaderReturn => {
   const loadFile = useCallback(async (file: File): Promise<void> => {
     setError(null);
     setLoaded(false);
+    try {
+      const resultado = await importarArchivoDerivacion(file);
 
-    return new Promise((resolve, reject) => {
-      const reader = new FileReader();
-
-      reader.onload = (e) => {
-        try {
-          const fileData = e.target?.result;
-          let jsonData: DerivacionData[] = [];
-
-          if (file.name.endsWith('.csv')) {
-            const csvText = fileData as string;
-            const workbook = XLSX.read(csvText, {
-              type: 'string',
-              raw: true,
-              codepage: 65001,
-            });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            jsonData = XLSX.utils.sheet_to_json(worksheet) as DerivacionData[];
-          } else {
-            const workbook = XLSX.read(fileData, { type: 'binary' });
-            const sheetName = workbook.SheetNames[0];
-            const worksheet = workbook.Sheets[sheetName];
-            jsonData = XLSX.utils.sheet_to_json(worksheet) as DerivacionData[];
-          }
-
-          if (jsonData.length === 0) {
-            setError('El archivo está vacío o no tiene el formato esperado');
-            reject(new Error('Archivo vacío'));
-            return;
-          }
-
-          const fileColumns = Object.keys(jsonData[0]);
-          setColumns(fileColumns);
-          setData(jsonData);
-          setLoaded(true);
-          resolve();
-        } catch (err) {
-          setError('El archivo no tiene el formato esperado');
-          setData([]);
-          setColumns([]);
-          reject(err);
-        }
-      };
-
-      reader.onerror = () => {
-        setError('Error al leer el archivo');
-        reject(new Error('Error de lectura'));
-      };
-
-      if (file.name.endsWith('.csv')) {
-        reader.readAsText(file, 'UTF-8');
-      } else {
-        reader.readAsBinaryString(file);
+      if (!resultado.exito || resultado.datos.length === 0) {
+        const mensajeError =
+          formatearErroresImportacion(resultado.errores) ||
+          'No se pudo importar el archivo seleccionado';
+        setData([]);
+        setColumns([]);
+        setLoaded(false);
+        setError(mensajeError);
+        throw new Error(mensajeError);
       }
-    });
+
+      const columnasPresentes = new Set<string>();
+      resultado.datos.forEach((registro) => {
+        Object.keys(registro).forEach((columna) => {
+          if (columna) {
+            columnasPresentes.add(columna);
+          }
+        });
+      });
+
+      const columnasOrdenadas = (COLUMNAS_PERMITIDAS as readonly string[]).filter((columna) =>
+        columnasPresentes.has(columna)
+      );
+
+      const columnasExtras = Array.from(columnasPresentes).filter(
+        (columna) => !(COLUMNAS_PERMITIDAS as readonly string[]).includes(columna)
+      );
+
+      const columnasFinales = [...columnasOrdenadas, ...columnasExtras.sort()];
+
+      setColumns(columnasFinales);
+      setData(resultado.datos);
+      setLoaded(true);
+
+      if (resultado.advertencias.length > 0) {
+        setError(resultado.advertencias.join('\n'));
+      }
+    } catch (err) {
+      const mensaje = err instanceof Error ? err.message : 'Error desconocido al importar';
+      setError(mensaje);
+      setData([]);
+      setColumns([]);
+      setLoaded(false);
+      throw err instanceof Error ? err : new Error(mensaje);
+    }
   }, []);
 
   const resetData = useCallback(() => {
