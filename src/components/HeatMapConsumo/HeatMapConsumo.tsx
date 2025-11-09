@@ -16,6 +16,10 @@ import {
   extraerMaximetro,
   extraerEnergiaReconstruida,
 } from '../../services/extractorMetricasService';
+import {
+  detectarInicioAnomalia,
+  type ResultadoDeteccionInicio,
+} from '../../services/detectarInicioAnomaliaService';
 import './HeatMapConsumo.css';
 
 interface HeatMapConsumoProps {
@@ -151,6 +155,7 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
   const [scaledHeight, setScaledHeight] = useState<number | undefined>(undefined);
   const [metricaSeleccionada, setMetricaSeleccionada] = useState<HeatmapMetricId>('consumoActiva');
   const [detalleActivo, setDetalleActivo] = useState<DetalleActivo | null>(null);
+  const [resultadoAnomalia, setResultadoAnomalia] = useState<ResultadoDeteccionInicio | null>(null);
 
   useEffect(() => {
     const updateScale = () => {
@@ -177,6 +182,14 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
       ro.disconnect();
       window.removeEventListener('resize', updateScale);
     };
+  }, [datos]);
+
+  // 🔍 Detectar anomalía al cargar datos
+  useEffect(() => {
+    if (datos.length > 0) {
+      const resultado = detectarInicioAnomalia(datos);
+      setResultadoAnomalia(resultado);
+    }
   }, [datos]);
 
   const metricaActual = useMemo(
@@ -308,6 +321,30 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
                   <span className="chip-value">{datos.filter((d) => d.esAnomalia).length}</span>
                 </div>
               </div>
+              {/* 🔍 RESULTADO DE DETECCIÓN DE ANOMALÍA */}
+              {resultadoAnomalia && (
+                <div
+                  className={`anomalia-banner anomalia-banner--${resultadoAnomalia.clasificacion}`}
+                >
+                  <div className="anomalia-header">
+                    {resultadoAnomalia.clasificacion === 'sin_anomalia' && '✅'}
+                    {resultadoAnomalia.clasificacion === 'anomalia_detectada' && '⚠️'}
+                    {resultadoAnomalia.clasificacion === 'periodo_indeterminado' && '❓'}
+                    <span className="anomalia-titulo">{resultadoAnomalia.mensaje}</span>
+                  </div>
+                  <div className="anomalia-detalles">
+                    <p className="anomalia-razon">📍 {resultadoAnomalia.razon}</p>
+                    {resultadoAnomalia.periodoInicio && (
+                      <p className="anomalia-periodo">
+                        <strong>Periodo:</strong> {resultadoAnomalia.periodoLegible}
+                      </p>
+                    )}
+                    <p className="anomalia-confianza">
+                      🎯 Confianza: <strong>{resultadoAnomalia.confianza}%</strong>
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="integrated-row legend-variacion-inline">
                 <span className="legend-inline-title">📊 Código de Colores - Variación:</span>
                 <div className="legend-inline-items">
