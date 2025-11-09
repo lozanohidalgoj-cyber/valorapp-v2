@@ -22,6 +22,7 @@ import {
   ResumenAnalisis,
   TabsVista,
   VistaAnual,
+  VistaAnomalias,
   VistaGrafico,
   VistaListado,
   VistaMensual,
@@ -322,6 +323,33 @@ export const SaldoATR = () => {
     }
   };
 
+  const handleExportarAnomalias = () => {
+    if (!resultadoAnalisis) {
+      setCustomError('No hay anomalías disponibles. Ejecuta el análisis primero.');
+      setTimeout(() => setCustomError(null), 4000);
+      return;
+    }
+
+    const anomalías = resultadoAnalisis.comparativaMensual.filter(
+      (registro) => registro.esAnomalia
+    );
+
+    if (anomalías.length === 0) {
+      setCustomError('No se detectaron anomalías para exportar.');
+      setTimeout(() => setCustomError(null), 4000);
+      return;
+    }
+
+    try {
+      exportarComparativaMensualExcel(anomalías, 'anomalias_saldo_atr.xlsx');
+      setCustomSuccess('Anomalías exportadas correctamente');
+      setTimeout(() => setCustomSuccess(null), 4000);
+    } catch {
+      setCustomError('Error al exportar las anomalías');
+      setTimeout(() => setCustomError(null), 4000);
+    }
+  };
+
   // Combinar errores
   const displayError = loadError || importError || customError;
   const successMessage = customSuccess ?? success;
@@ -392,6 +420,14 @@ export const SaldoATR = () => {
                 <VistaGrafico
                   comparativaMensual={resultadoAnalisis.comparativaMensual}
                   onExportar={handleExportarAnalisisCompleto}
+                />
+              )}
+
+              {vistaActual === 'anomalia' && (
+                <VistaAnomalias
+                  datos={resultadoAnalisis.comparativaMensual}
+                  detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
+                  onExportar={handleExportarAnomalias}
                 />
               )}
             </div>

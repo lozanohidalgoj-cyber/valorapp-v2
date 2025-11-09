@@ -12,3 +12,4 @@ export * from './ResumenAnalisis';
 export * from './TabsVista';
 export * from './VistaAnual';
 export * from './VistaMensual';
+export * from './VistaAnomalias';

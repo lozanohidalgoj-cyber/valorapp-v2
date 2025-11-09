@@ -6,7 +6,7 @@ import { useState, useCallback } from 'react';
 import { analizarConsumoCompleto } from '../../../services/analisisConsumoService';
 import type { DerivacionData, ResultadoAnalisis } from '../../../types';
 
-type VistaAnalisis = 'anual' | 'mensual' | 'listado' | 'grafico';
+type VistaAnalisis = 'anual' | 'mensual' | 'listado' | 'grafico' | 'anomalia';
 
 interface UseAnalysisReturn {
   resultado: ResultadoAnalisis | null;

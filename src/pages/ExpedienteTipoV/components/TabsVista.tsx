@@ -16,6 +16,7 @@ export const TabsVista = ({ vistaActual, onCambiarVista }: TabsVistaProps) => {
     { id: 'mensual', label: 'Comparativa Mensual', icon: '📅' },
     { id: 'listado', label: 'Listado', icon: '📋' },
     { id: 'grafico', label: 'Gráfico', icon: '📈' },
+    { id: 'anomalia', label: 'Anomalía', icon: '⚠️' },
   ];
 
   return (

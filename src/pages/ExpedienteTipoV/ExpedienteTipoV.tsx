@@ -28,6 +28,7 @@ import {
   VistaGrafico,
   VistaAnual,
   DataTable,
+  VistaAnomalias,
 } from './components';
 import { useFileLoader, useAnalysis } from './hooks';
 import type { DerivacionData, ConsumoAnual, ConsumoMensual } from '../../types';
@@ -257,6 +258,28 @@ export const ExpedienteTipoV = () => {
     }
   };
 
+  const handleExportarAnomalias = () => {
+    if (!resultadoAnalisis) return;
+    const anomalías = (resultadoAnalisis.comparativaMensual as ConsumoMensual[]).filter(
+      (registro) => registro.esAnomalia
+    );
+
+    if (anomalías.length === 0) {
+      setError('No hay anomalías para exportar');
+      setTimeout(() => setError(null), 3000);
+      return;
+    }
+
+    try {
+      exportarComparativaMensualExcel(anomalías, 'anomalias_detectadas.xlsx');
+      setSuccessMessage(' Anomalías exportadas correctamente');
+      setTimeout(() => setSuccessMessage(null), 3000);
+    } catch {
+      setError('Error al exportar anomalías');
+      setTimeout(() => setError(null), 3000);
+    }
+  };
+
   const handleLimpiarDatosGuardados = () => {
     if (confirm('¿Está seguro de eliminar todos los datos guardados?')) {
       limpiarDatosGuardados();
@@ -403,6 +426,12 @@ export const ExpedienteTipoV = () => {
               >
                 Gráfico
               </button>
+              <button
+                className={`expediente-tab ${vistaActual === 'anomalia' ? 'active' : ''}`}
+                onClick={() => setVistaActual('anomalia')}
+              >
+                Anomalía
+              </button>
             </div>
 
             {vistaActual === 'anual' && (
@@ -444,6 +473,14 @@ export const ExpedienteTipoV = () => {
               <VistaGrafico
                 comparativaMensual={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
                 onExportar={handleExportarAnalisisCompleto}
+              />
+            )}
+
+            {vistaActual === 'anomalia' && (
+              <VistaAnomalias
+                datos={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
+                detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
+                onExportar={handleExportarAnomalias}
               />
             )}
           </div>
