@@ -10,6 +10,12 @@
 import { memo, useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import type { ConsumoMensual, DerivacionData } from '../../types';
 import { formatearNumero, calcularColorHeatMap } from '../../utils';
+import {
+  extraerConsumoActiva,
+  extraerPromedioActiva,
+  extraerMaximetro,
+  extraerEnergiaReconstruida,
+} from '../../services/extractorMetricasService';
 import './HeatMapConsumo.css';
 
 interface HeatMapConsumoProps {
@@ -38,42 +44,43 @@ interface DetalleActivo {
   metrica: HeatmapMetricConfig;
 }
 
+// ✅ USAR EXTRACTORES VALIDADOS DEL SERVICIO
 const METRICAS: HeatmapMetricConfig[] = [
   {
     id: 'consumoActiva',
     titulo: 'Consumo de E. Activa',
-    descripcion: 'Suma del campo "Consumo Activa" por mes y año',
+    descripcion: 'Suma del consumo activo (P1+P2+P3) en kWh',
     unidad: 'kWh',
     motivoClave: 'variacion_consumo_activa',
     decimales: 0,
-    extractor: (dato) => dato.consumoActivaTotal,
+    extractor: extraerConsumoActiva,
   },
   {
     id: 'promedioActiva',
     titulo: 'Promedio de E. Activa',
-    descripcion: 'Suma del campo "Promedio Activa" por periodo',
-    unidad: 'kWh',
+    descripcion: 'Consumo diario promedio en kWh/día',
+    unidad: 'kWh/día',
     motivoClave: 'variacion_promedio_activa',
     decimales: 2,
-    extractor: (dato) => dato.promedioActivaTotal,
+    extractor: extraerPromedioActiva,
   },
   {
     id: 'maximetro',
     titulo: 'Maxímetro',
-    descripcion: 'Sumatoria del campo "Maxímetro" consolidado',
+    descripcion: 'Máxima demanda instantánea en kW',
     unidad: 'kW',
     motivoClave: 'variacion_maximetro',
     decimales: 2,
-    extractor: (dato) => dato.maximetroTotal,
+    extractor: extraerMaximetro,
   },
   {
     id: 'energiaReconstruida',
     titulo: 'E. Activa reconstruida',
-    descripcion: 'Suma del campo "A + B + C" (energía reconstruida tras refacturación)',
+    descripcion: 'Energía reconstruida (A+B+C) en kWh',
     unidad: 'kWh',
     motivoClave: 'variacion_energia_reconstruida',
     decimales: 0,
-    extractor: (dato) => dato.energiaReconstruidaTotal,
+    extractor: extraerEnergiaReconstruida,
   },
 ];
 
