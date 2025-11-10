@@ -258,21 +258,20 @@ export const ExpedienteTipoV = () => {
     }
   };
 
-  const handleExportarAnomalias = () => {
-    if (!resultadoAnalisis) return;
-    const anomalías = (resultadoAnalisis.comparativaMensual as ConsumoMensual[]).filter(
-      (registro) => registro.esAnomalia
-    );
+  const handleExportarAnomalias = (filas?: ConsumoMensual[]) => {
+    if (!resultadoAnalisis && !filas) return;
+    const datosTabla =
+      filas ?? (resultadoAnalisis?.comparativaMensual as ConsumoMensual[] | undefined);
 
-    if (anomalías.length === 0) {
-      setError('No hay anomalías para exportar');
+    if (!datosTabla || datosTabla.length === 0) {
+      setError('No hay datos disponibles para exportar');
       setTimeout(() => setError(null), 3000);
       return;
     }
 
     try {
-      exportarComparativaMensualExcel(anomalías, 'anomalias_detectadas.xlsx');
-      setSuccessMessage(' Anomalías exportadas correctamente');
+      exportarComparativaMensualExcel(datosTabla, 'anomalias_detectadas.xlsx');
+      setSuccessMessage(' Tabla de anomalías exportada correctamente');
       setTimeout(() => setSuccessMessage(null), 3000);
     } catch {
       setError('Error al exportar anomalías');

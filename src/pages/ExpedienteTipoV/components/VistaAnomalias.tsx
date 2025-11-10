@@ -11,7 +11,7 @@ import { formatearNumero } from '../../../services/analisisConsumoService';
 interface VistaAnomaliasProps {
   datos: ConsumoMensual[];
   detallesPorPeriodo: Record<string, DerivacionData[]>;
-  onExportar?: () => void;
+  onExportar?: (filas: ConsumoMensual[]) => void;
 }
 
 export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaAnomaliasProps) => {
@@ -119,7 +119,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
             {onExportar && (
               <button
                 className="btn-export"
-                onClick={onExportar}
+                onClick={() => onExportar(datos)}
                 title="Exportar anomalías a Excel"
               >
                 <Download size={16} />

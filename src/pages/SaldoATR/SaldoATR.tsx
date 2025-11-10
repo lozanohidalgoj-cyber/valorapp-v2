@@ -16,7 +16,13 @@ import {
   exportarComparativaMensualExcel,
   exportarVistaAnualExcel,
 } from '../../services/exportacionService';
-import type { DerivacionData, ResultadoAnalisis, SaldoATRColumna, SaldoATRRow } from '../../types';
+import type {
+  ConsumoMensual,
+  DerivacionData,
+  ResultadoAnalisis,
+  SaldoATRColumna,
+  SaldoATRRow,
+} from '../../types';
 import type { VistaAnalisis } from '../ExpedienteTipoV/types';
 import {
   ResumenAnalisis,
@@ -345,26 +351,25 @@ export const SaldoATR = () => {
     }
   };
 
-  const handleExportarAnomalias = () => {
-    if (!resultadoAnalisis) {
-      setCustomError('No hay anomalías disponibles. Ejecuta el análisis primero.');
+  const handleExportarAnomalias = (filas?: ConsumoMensual[]) => {
+    if (!resultadoAnalisis && !filas) {
+      setCustomError('No hay datos disponibles. Ejecuta el análisis primero.');
       setTimeout(() => setCustomError(null), 4000);
       return;
     }
 
-    const anomalías = resultadoAnalisis.comparativaMensual.filter(
-      (registro) => registro.esAnomalia
-    );
+    const datosTabla =
+      filas ?? (resultadoAnalisis?.comparativaMensual as ConsumoMensual[] | undefined);
 
-    if (anomalías.length === 0) {
-      setCustomError('No se detectaron anomalías para exportar.');
+    if (!datosTabla || datosTabla.length === 0) {
+      setCustomError('No se encontraron periodos para exportar.');
       setTimeout(() => setCustomError(null), 4000);
       return;
     }
 
     try {
-      exportarComparativaMensualExcel(anomalías, 'anomalias_saldo_atr.xlsx');
-      setCustomSuccess('Anomalías exportadas correctamente');
+      exportarComparativaMensualExcel(datosTabla, 'anomalias_saldo_atr.xlsx');
+      setCustomSuccess('Tabla de anomalías exportada correctamente');
       setTimeout(() => setCustomSuccess(null), 4000);
     } catch {
       setCustomError('Error al exportar las anomalías');

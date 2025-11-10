@@ -9,6 +9,67 @@ import * as XLSX from 'xlsx';
 import type { ConsumoAnual, ConsumoMensual, DerivacionData } from '../types';
 import { logger } from './loggerService';
 
+const MOTIVOS_LABELS: Record<string, string> = {
+  variacion_consumo_activa: 'Variación consumo activa',
+  variacion_promedio_activa: 'Variación promedio activa',
+  variacion_energia_reconstruida: 'Variación energía reconstruida',
+  variacion_maximetro: 'Variación maxímetro',
+};
+
+const traducirMotivosAnomalia = (motivos: string[]): string => {
+  if (motivos.length === 0) {
+    return 'Sin detalle';
+  }
+
+  return motivos.map((motivo) => MOTIVOS_LABELS[motivo] ?? motivo).join(', ');
+};
+
+type EncabezadoComparativa =
+  | 'Periodo'
+  | 'Consumo (kWh)'
+  | 'Potencia (kW)'
+  | 'Días'
+  | 'Consumo Promedio Diario (kWh)'
+  | 'Variación %'
+  | 'Tipo Variación'
+  | 'Motivos'
+  | 'Año'
+  | 'Mes'
+  | 'Es Anomalía';
+
+const ENCABEZADOS_COMPARATIVA_MENSUAL: EncabezadoComparativa[] = [
+  'Periodo',
+  'Consumo (kWh)',
+  'Potencia (kW)',
+  'Días',
+  'Consumo Promedio Diario (kWh)',
+  'Variación %',
+  'Tipo Variación',
+  'Motivos',
+  'Año',
+  'Mes',
+  'Es Anomalía',
+];
+
+const formatearRegistroComparativa = (
+  registro: ConsumoMensual
+): Record<EncabezadoComparativa, string> => ({
+  Periodo: registro.periodo,
+  'Consumo (kWh)': registro.consumoTotal.toFixed(2),
+  'Potencia (kW)':
+    registro.potenciaPromedio !== null ? registro.potenciaPromedio.toFixed(2) : 'N/A',
+  Días: registro.dias.toString(),
+  'Consumo Promedio Diario (kWh)':
+    registro.dias > 0 ? (registro.consumoTotal / registro.dias).toFixed(2) : 'N/A',
+  'Variación %':
+    registro.variacionPorcentual !== null ? `${registro.variacionPorcentual.toFixed(2)}%` : 'N/A',
+  'Tipo Variación': registro.tipoVariacion ?? 'N/A',
+  Motivos: traducirMotivosAnomalia(registro.motivosAnomalia),
+  Año: registro.año.toString(),
+  Mes: registro.mes.toString(),
+  'Es Anomalía': registro.esAnomalia ? 'SÍ' : 'NO',
+});
+
 /**
  * Exporta Vista por Años a archivo Excel
  */
@@ -59,42 +120,25 @@ export const exportarComparativaMensualExcel = (
   nombreArchivo: string = 'comparativa_mensual.xlsx'
 ): void => {
   try {
-    // Crear hoja de trabajo con todas las métricas
-    const datosParaExcel = datos.map((registro) => ({
-      Año: registro.año,
-      Mes: registro.mes,
-      Periodo: registro.periodo,
-      'Consumo Total (kWh)': registro.consumoTotal.toFixed(2),
-      'Consumo Promedio Diario (kWh)': registro.consumoPromedioDiario.toFixed(2),
-      'Potencia (kW)':
-        registro.potenciaPromedio !== null ? registro.potenciaPromedio.toFixed(2) : 'N/A',
-      Días: registro.dias,
-      'Variación %':
-        registro.variacionPorcentual !== null
-          ? registro.variacionPorcentual.toFixed(2) + '%'
-          : 'N/A',
-      'Tipo Variación': registro.tipoVariacion || 'N/A',
-      'Es Anomalía': registro.esAnomalia ? 'SÍ' : 'NO',
-    }));
+    const datosParaExcel = datos.map(formatearRegistroComparativa);
 
-    const worksheet = XLSX.utils.json_to_sheet(datosParaExcel);
+    const worksheet = XLSX.utils.json_to_sheet(datosParaExcel, {
+      header: ENCABEZADOS_COMPARATIVA_MENSUAL as string[],
+    });
 
-    // Ajustar ancho de columnas
     worksheet['!cols'] = [
-      { wch: 10 }, // Año
-      { wch: 8 }, // Mes
-      { wch: 12 }, // Periodo
-      { wch: 20 }, // Consumo Total
-      { wch: 25 }, // Consumo Promedio Diario
-      { wch: 16 }, // Potencia promedio
+      { wch: 14 }, // Periodo
+      { wch: 18 }, // Consumo
+      { wch: 16 }, // Potencia
       { wch: 8 }, // Días
-      { wch: 15 }, // Variación %
-      { wch: 15 }, // Tipo Variación
-      { wch: 12 }, // Es Anomalía
+      { wch: 28 }, // Consumo promedio diario
+      { wch: 14 }, // Variación %
+      { wch: 18 }, // Tipo variación
+      { wch: 40 }, // Motivos
+      { wch: 8 }, // Año
+      { wch: 6 }, // Mes
+      { wch: 12 }, // Es anomalía
     ];
-
-    // Aplicar formato condicional a anomalías (fondo rojo)
-    // Nota: xlsx no soporta estilos completos, pero podemos marcarlas
 
     const workbook = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(workbook, worksheet, 'Comparativa Mensual');
@@ -156,33 +200,14 @@ export const exportarVistaAnualCSV = (datos: ConsumoAnual[]): string => {
  * Exporta Comparativa Mensual a CSV
  */
 export const exportarComparativaMensualCSV = (datos: ConsumoMensual[]): string => {
-  const encabezados = [
-    'Año',
-    'Mes',
-    'Periodo',
-    'Consumo Total (kWh)',
-    'Consumo Promedio Diario (kWh)',
-    'Potencia (kW)',
-    'Días',
-    'Variación %',
-    'Tipo Variación',
-    'Es Anomalía',
-  ];
+  const filas = datos.map((registro) => {
+    const fila = formatearRegistroComparativa(registro);
+    return ENCABEZADOS_COMPARATIVA_MENSUAL.map((encabezado) => fila[encabezado]);
+  });
 
-  const filas = datos.map((registro) => [
-    registro.año,
-    registro.mes,
-    registro.periodo,
-    registro.consumoTotal.toFixed(2),
-    registro.consumoPromedioDiario.toFixed(2),
-    registro.potenciaPromedio !== null ? registro.potenciaPromedio.toFixed(2) : 'N/A',
-    registro.dias,
-    registro.variacionPorcentual !== null ? registro.variacionPorcentual.toFixed(2) : 'N/A',
-    registro.tipoVariacion || 'N/A',
-    registro.esAnomalia ? 'SÍ' : 'NO',
-  ]);
-
-  return [encabezados.join(','), ...filas.map((fila) => fila.join(','))].join('\n');
+  return [ENCABEZADOS_COMPARATIVA_MENSUAL.join(','), ...filas.map((fila) => fila.join(','))].join(
+    '\n'
+  );
 };
 
 /**
@@ -234,20 +259,23 @@ export const exportarAnalisisCompleto = (
     XLSX.utils.book_append_sheet(workbook, wsAnual, 'Vista por años');
 
     // Hoja 2: Comparativa Mensual
-    const datosMensuales = comparativaMensual.map((r) => ({
-      Año: r.año,
-      Mes: r.mes,
-      Periodo: r.periodo,
-      'Consumo Total (kWh)': r.consumoTotal.toFixed(2),
-      'Consumo Promedio Diario (kWh)': r.consumoPromedioDiario.toFixed(2),
-      'Potencia (kW)': r.potenciaPromedio !== null ? r.potenciaPromedio.toFixed(2) : 'N/A',
-      Días: r.dias,
-      'Variación %':
-        r.variacionPorcentual !== null ? r.variacionPorcentual.toFixed(2) + '%' : 'N/A',
-      'Tipo Variación': r.tipoVariacion || 'N/A',
-      'Es Anomalía': r.esAnomalia ? 'SÍ' : 'NO',
-    }));
-    const wsMensual = XLSX.utils.json_to_sheet(datosMensuales);
+    const datosMensuales = comparativaMensual.map(formatearRegistroComparativa);
+    const wsMensual = XLSX.utils.json_to_sheet(datosMensuales, {
+      header: ENCABEZADOS_COMPARATIVA_MENSUAL as string[],
+    });
+    wsMensual['!cols'] = [
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 16 },
+      { wch: 8 },
+      { wch: 28 },
+      { wch: 14 },
+      { wch: 18 },
+      { wch: 40 },
+      { wch: 8 },
+      { wch: 6 },
+      { wch: 12 },
+    ];
     XLSX.utils.book_append_sheet(workbook, wsMensual, 'Comparativa Mensual');
 
     // Hoja 3: Entrada datos (primeras 100 filas para no saturar)
