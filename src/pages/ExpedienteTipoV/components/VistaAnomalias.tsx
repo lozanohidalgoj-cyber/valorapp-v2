@@ -79,6 +79,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   <th>Tipo</th>
                   <th>Consumo (kWh)</th>
                   <th>Días</th>
+                  <th>Consumo Promedio Diario (kWh)</th>
                   <th>Motivos</th>
                 </tr>
               </thead>
@@ -96,6 +97,11 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                     </td>
                     <td>{formatearNumero(registro.consumoTotal)}</td>
                     <td>{registro.dias}</td>
+                    <td>
+                      {registro.dias > 0
+                        ? formatearNumero(registro.consumoTotal / registro.dias, 2)
+                        : 'N/A'}
+                    </td>
                     <td>
                       {registro.motivosAnomalia.length === 0
                         ? 'Sin detalle'
