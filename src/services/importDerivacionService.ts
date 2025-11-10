@@ -16,7 +16,7 @@ import * as XLSX from 'xlsx';
  */
 const COLUMNAS_OBLIGATORIAS = [
   'Número Fiscal de Factura',
-  'Código de Empresa Distribuidora',
+  'Potencia',
   'Código de contrato externo - interfaz',
   'Secuencial de factura',
   'Tipo de factura',
@@ -90,6 +90,8 @@ const COLUMNAS_PERMITIDAS = [...COLUMNAS_OBLIGATORIAS, ...COLUMNAS_OPCIONALES] a
 type ColumnaPermitida = (typeof COLUMNAS_PERMITIDAS)[number];
 
 const ALIAS_COLUMNAS: Record<string, ColumnaPermitida> = {
+  'Código de Empresa Distribuidora': 'Potencia',
+  'Codigo de Empresa Distribuidora': 'Potencia',
   'Secuencial factura': 'Secuencial de factura',
   'Consumo Activo': 'Consumo Activa',
   'Promedio Activo': 'Promedio Activa',

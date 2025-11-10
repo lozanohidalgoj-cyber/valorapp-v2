@@ -95,7 +95,7 @@ export interface Anomalia {
  */
 export interface DerivacionData {
   'Número Fiscal de Factura': string;
-  'Código de Empresa Distribuidora': string;
+  Potencia: string;
   'Código de contrato externo - interfaz': string;
   Contrato?: string;
   'Secuencial de factura': string;
@@ -105,8 +105,8 @@ export interface DerivacionData {
   'Fecha hasta': string;
   'Importe Factura': string | number;
   'Fuente de la factura': string;
-  'Tipo de Fuente': string;
-  'Descripción Tipo de fuente': string;
+  'Estado medida': string;
+  'Tipo de factura (detalle)': string;
   'Tipo de Fuente Anterior': string;
   'Descripción Tipo de fuente Anterior': string;
   'Tipo de punto de medida': string;
@@ -149,6 +149,8 @@ export interface DerivacionData {
   'A + B + C'?: string | number;
   'AB - A'?: string | number;
   'AB - C'?: string | number;
+  'Tipo de Fuente'?: string;
+  'Descripción Tipo de fuente'?: string;
   P1?: string | number;
   P2?: string | number;
   P3?: string | number;

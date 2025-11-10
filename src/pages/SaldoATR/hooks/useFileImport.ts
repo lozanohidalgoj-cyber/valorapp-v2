@@ -27,7 +27,7 @@ export const useFileImport = (): UseFileImportReturn => {
           const currentRow = updatedRows[idx];
           const merged = { ...currentRow } as Record<string, string>;
 
-          ['A', 'C', 'G', 'H', 'I', 'J', 'P'].forEach((col) => {
+          ['A', 'B', 'C', 'G', 'H', 'I', 'J', 'K', 'L', 'P'].forEach((col) => {
             merged[col] = importedRecord[col] || '';
           });
 
@@ -36,7 +36,7 @@ export const useFileImport = (): UseFileImportReturn => {
           const plantilla = updatedRows[0] || crearFilaVacia();
           const newRow = { ...plantilla } as Record<string, string>;
 
-          ['A', 'C', 'G', 'H', 'I', 'J', 'P'].forEach((col) => {
+          ['A', 'B', 'C', 'G', 'H', 'I', 'J', 'K', 'L', 'P'].forEach((col) => {
             newRow[col] = importedRecord[col] || '';
           });
 

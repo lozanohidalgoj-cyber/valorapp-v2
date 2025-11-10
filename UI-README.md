@@ -3,11 +3,13 @@
 ## 📱 Pantallas Implementadas
 
 ### 1. **Pantalla Principal (Home)**
+
 **Ruta**: `/`
 
 **Descripción**: Pantalla de bienvenida que permite al usuario seleccionar entre gestión de Fraude o Avería.
 
 **Características**:
+
 - ✅ Diseño centrado vertical y horizontalmente
 - ✅ Título principal: "Bienvenido a ValorApp" (color primario #0000D0)
 - ✅ Subtítulo: "¿Qué tipo de gestión desea realizar?"
@@ -23,11 +25,13 @@
 ---
 
 ### 2. **Pantalla de Selección de Tipo de Avería**
+
 **Ruta**: `/averia`
 
 **Descripción**: Permite seleccionar el tipo específico de avería para continuar el proceso de valoración.
 
 **Características**:
+
 - ✅ Logo/Título de la aplicación: "📊 ValorApp"
 - ✅ Título de sección: "¿Qué tipo de gestión desea realizar?"
 - ✅ Instrucciones claras para el usuario
@@ -46,11 +50,13 @@
 ---
 
 ### 3. **Interfaz Saldo ATR**
+
 **Ruta**: `/saldo-atr`
 
 **Descripción**: Interfaz para visualizar y gestionar datos de Saldo ATR con 46 columnas (A-AT). Permite importar archivos CSV con 14 columnas y mapearlos automáticamente a las columnas correspondientes.
 
 **Características**:
+
 - ✅ Tabla con 46 columnas (A-AT) basada en "Interfaz Saldo ATR.xlsx"
 - ✅ Auto-carga de plantilla base al montar componente
 - ✅ Garantía de mínimo 105 filas visibles
@@ -65,17 +71,21 @@
 
 Desde **Saldo ATR.csv** (14 columnas A-N) hacia **Interfaz Saldo ATR** (46 columnas A-AT):
 
-| CSV Origen | Columna | Contenido | → | Destino | Columna | Contenido |
-|------------|---------|-----------|---|---------|---------|-----------|
-| I | 9 | Código factura | → | A | 1 | Número Fiscal de Factura |
-| B | 2 | Contrato ATR | → | C | 3 | Código de contrato externo |
-| C | 3 | Fecha desde | → | G | 7 | Fecha desde |
-| D | 4 | Fecha hasta | → | H | 8 | Fecha hasta |
-| E | 5 | Consumo total activa | → | I | 9 | Importe Factura |
-| F | 6 | Fuente agregada | → | J | 10 | Fuente de la factura |
-| E | 5 | Consumo total activa | → | P | 16 | Consumo P1/punta |
+| CSV Origen | Columna | Contenido            | →   | Destino | Columna | Contenido                  |
+| ---------- | ------- | -------------------- | --- | ------- | ------- | -------------------------- |
+| I          | 9       | Código factura       | →   | A       | 1       | Número Fiscal de Factura   |
+| H          | 8       | Potencia (kW)        | →   | B       | 2       | Potencia                   |
+| B          | 2       | Contrato ATR         | →   | C       | 3       | Código de contrato externo |
+| C          | 3       | Fecha desde          | →   | G       | 7       | Fecha desde                |
+| D          | 4       | Fecha hasta          | →   | H       | 8       | Fecha hasta                |
+| E          | 5       | Consumo total activa | →   | I       | 9       | Importe Factura            |
+| F          | 6       | Fuente agregada      | →   | J       | 10      | Fuente de la factura       |
+| G          | 7       | Estado medida        | →   | K       | 11      | Estado medida              |
+| J          | 10      | Tipo de factura      | →   | L       | 12      | Tipo de factura            |
+| E          | 5       | Consumo total activa | →   | P       | 16      | Consumo P1/punta           |
 
 **Estructura CSV Origen Esperada** (14 columnas A-N):
+
 1. CUPS
 2. Contrato ATR
 3. Fecha desde
@@ -92,13 +102,15 @@ Desde **Saldo ATR.csv** (14 columnas A-N) hacia **Interfaz Saldo ATR** (46 colum
 14. Autofactura
 
 **Validaciones**:
+
 - ✅ Solo acepta archivos `.csv`
 - ✅ Verifica que el archivo tenga 14 columnas
 - ✅ Advertencia si los encabezados no coinciden exactamente
 - ✅ Sincronización de filas: actualiza solo las correspondientes al CSV importado
-- ✅ Preserva datos existentes en columnas no mapeadas (B, D-F, K-O, Q-AT)
+- ✅ Preserva datos existentes en columnas no mapeadas (D-F, M-O, Q-AT)
 
 **Flujo de Uso**:
+
 1. Usuario navega a `/saldo-atr` (desde ExpedienteTipoV o directamente)
 2. Se carga automáticamente la plantilla base con mínimo 105 filas
 3. Usuario hace clic en "Importar Saldo ATR"
@@ -136,10 +148,18 @@ colors: {
 **Fuente principal**: Inter (sistema de respaldo incluido)
 
 ```css
-font-family: 'Inter', system-ui, -apple-system, Avenir, Helvetica, Arial, sans-serif;
+font-family:
+  'Inter',
+  system-ui,
+  -apple-system,
+  Avenir,
+  Helvetica,
+  Arial,
+  sans-serif;
 ```
 
 **Tamaños utilizados**:
+
 - Título principal: `text-5xl` (60px) / `text-6xl` (72px) en desktop
 - Subtítulo: `text-xl` (20px) / `text-2xl` (24px)
 - Títulos de sección: `text-2xl` a `text-3xl`
@@ -155,6 +175,7 @@ font-family: 'Inter', system-ui, -apple-system, Avenir, Helvetica, Arial, sans-s
 **Ubicación**: `src/components/ButtonTailwind/ButtonTailwind.tsx`
 
 **Uso**:
+
 ```tsx
 import { ButtonTailwind } from '@/components';
 
@@ -164,8 +185,8 @@ import { ButtonTailwind } from '@/components';
 </ButtonTailwind>
 
 // Botón con iconos
-<ButtonTailwind 
-  variant="secondary" 
+<ButtonTailwind
+  variant="secondary"
   iconLeft={<Icon />}
   iconRight={<ArrowIcon />}
 >
@@ -179,6 +200,7 @@ import { ButtonTailwind } from '@/components';
 ```
 
 **Props**:
+
 - `variant`: 'primary' | 'secondary' | 'outline' | 'ghost'
 - `size`: 'small' | 'medium' | 'large'
 - `fullWidth`: boolean
@@ -231,6 +253,7 @@ navigate('/');
 ### Hover Effects
 
 Todos los botones principales incluyen:
+
 - ✅ Transformación en Y (-4px)
 - ✅ Cambio de color de fondo
 - ✅ Aumento de sombra
@@ -240,12 +263,14 @@ Todos los botones principales incluyen:
 ### Iconos Animados
 
 Las flechas en los botones de la pantalla de avería tienen:
+
 - ✅ Translación en X (+8px) al hover
 - ✅ Transición suave
 
 ### Focus States
 
 Todos los botones incluyen:
+
 - ✅ Ring de enfoque visible (accesibilidad)
 - ✅ Grosor: 4px
 - ✅ Opacidad: 50%
@@ -269,10 +294,12 @@ xl: >= 1280px (desktop grande)
 ### Adaptaciones por Pantalla
 
 **Home**:
+
 - Móvil: Botones apilados verticalmente, título más pequeño
 - Desktop: Botones horizontales, título grande
 
 **Averia**:
+
 - Móvil: Tarjeta ocupa 100% del ancho con padding reducido
 - Desktop: Tarjeta centrada con max-width de 3xl
 
@@ -320,12 +347,12 @@ npm run lint
 ```json
 {
   "dependencies": {
-    "react-router-dom": "^6.x.x"  // Navegación entre páginas
+    "react-router-dom": "^6.x.x" // Navegación entre páginas
   },
   "devDependencies": {
-    "tailwindcss": "^3.x.x",       // Utility-first CSS
-    "postcss": "^8.x.x",           // Procesador CSS
-    "autoprefixer": "^10.x.x"      // Prefijos CSS automáticos
+    "tailwindcss": "^3.x.x", // Utility-first CSS
+    "postcss": "^8.x.x", // Procesador CSS
+    "autoprefixer": "^10.x.x" // Prefijos CSS automáticos
   }
 }
 ```
@@ -361,15 +388,18 @@ src/
 ## 📝 Convenciones de Código
 
 ### Nombres de Componentes
+
 - PascalCase para componentes: `Home`, `Averia`, `ButtonTailwind`
 - Archivos .tsx para componentes con JSX
 
 ### Estilos con Tailwind
+
 - Utility classes directamente en JSX
 - Clases condicionales con template literals
 - Evitar inline styles salvo excepciones
 
 ### Comentarios
+
 - JSDoc para componentes y funciones públicas
 - Comentarios inline para lógica compleja
 - Secciones marcadas con emojis para mejor navegación

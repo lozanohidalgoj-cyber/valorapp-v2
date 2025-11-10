@@ -55,12 +55,23 @@ export const COLUMN_LETTERS: readonly SaldoATRColumna[] = [
 ] as const;
 
 // Columnas que deben quedar VACÍAS en la plantilla base
-export const COLUMNS_TO_EMPTY = new Set<SaldoATRColumna>(['A', 'C', 'G', 'H', 'I', 'J', 'P']);
+export const COLUMNS_TO_EMPTY = new Set<SaldoATRColumna>([
+  'A',
+  'B',
+  'C',
+  'G',
+  'H',
+  'I',
+  'J',
+  'K',
+  'L',
+  'P',
+]);
 
 // Encabezados por defecto (fallback si no se ha importado archivo todavía)
 export const DEFAULT_HEADERS: Partial<Record<string, string>> = {
   A: 'Número Fiscal de Factura',
-  B: 'Código de Empresa Distribuidora',
+  B: 'Potencia',
   C: 'Código de contrato externo - interfaz',
   D: 'Secuencial de factura',
   E: 'Tipo de factura',
@@ -69,8 +80,8 @@ export const DEFAULT_HEADERS: Partial<Record<string, string>> = {
   H: 'Fecha hasta',
   I: 'Importe Factura',
   J: 'Fuente de la factura',
-  K: 'Tipo de Fuente',
-  L: 'Descripción Tipo de fuente',
+  K: 'Estado medida',
+  L: 'Tipo de factura',
   M: 'Tipo de Fuente Anterior',
   N: 'Descripción Tipo de fuente Anterior',
   O: 'Tipo de punto de medida',

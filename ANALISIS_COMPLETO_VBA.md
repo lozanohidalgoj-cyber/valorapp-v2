@@ -338,7 +338,7 @@ Selection.ClearContents  ' ← ELIMINA desde fila 3 (mantiene encabezados)
 
 ```
 A: Número Fiscal de Factura
-B: Código de Empresa Distribuidora
+B: Potencia
 C: Código de contrato externo - interfaz
 D: Secuencial de factura
 E: Tipo de factura
@@ -347,8 +347,8 @@ G: Fecha desde ← CAMPO DE ORDENACIÓN
 H: Fecha hasta
 I: Importe Factura
 J: Fuente de la factura
-K: Tipo de Fuente
-L: Descripción Tipo de fuente
+K: Estado medida
+L: Tipo de factura
 M: Tipo de Fuente Anterior
 N: Descripción Tipo de fuente Anterior
 O: Tipo de punto de medida
@@ -863,7 +863,7 @@ Análisis de Expedientes.xlsm
 ```typescript
 interface DerivacionData {
   'Número Fiscal de Factura': string; // Columna A
-  'Código de Empresa Distribuidora': string; // Columna B
+  Potencia: string; // Columna B
   'Código de contrato externo - interfaz': string; // Columna C
   'Secuencial de factura': string; // Columna D
   'Tipo de factura': string; // Columna E

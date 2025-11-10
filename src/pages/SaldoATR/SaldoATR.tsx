@@ -16,7 +16,7 @@ import {
   exportarComparativaMensualExcel,
   exportarVistaAnualExcel,
 } from '../../services/exportacionService';
-import type { DerivacionData, ResultadoAnalisis, SaldoATRRow } from '../../types';
+import type { DerivacionData, ResultadoAnalisis, SaldoATRColumna, SaldoATRRow } from '../../types';
 import type { VistaAnalisis } from '../ExpedienteTipoV/types';
 import {
   ResumenAnalisis,
@@ -32,6 +32,7 @@ import '../ExpedienteTipoV/ExpedienteTipoV.css';
 import './SaldoATR.css';
 
 const PALABRAS_CLAVE_ANULACION = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'] as const;
+const COLUMNAS_REVISION_ANULACION: readonly SaldoATRColumna[] = ['E', 'F', 'K', 'L'];
 const MAX_FACTURAS_DETALLE = 5;
 
 const obtenerIdentificadorSaldoAtr = (fila: SaldoATRRow): string => {
@@ -78,10 +79,20 @@ const convertirSaldoAtrADerivacion = (
   headers: string[]
 ): { registros: DerivacionData[]; columnas: string[] } => {
   const fallbackHeaders = COLUMN_LETTERS.map((columna) => DEFAULT_HEADERS[columna] ?? '');
-  const nombresColumnas =
+  const normalizarNombreColumna = (nombre: string): string => {
+    if (!nombre) return '';
+    const limpio = nombre.trim();
+    if (limpio.toLowerCase() === 'código de empresa distribuidora') {
+      return 'Potencia';
+    }
+    return limpio;
+  };
+
+  const nombresColumnas = (
     headers.length === COLUMN_LETTERS.length && headers.some((nombre) => nombre)
       ? headers
-      : fallbackHeaders;
+      : fallbackHeaders
+  ).map(normalizarNombreColumna);
 
   const registrosDerivacion = registros
     .map((fila) => {
@@ -195,10 +206,21 @@ export const SaldoATR = () => {
     const facturasExcluidas: string[] = [];
 
     const filasFiltradas = rows.filter((fila) => {
-      const estado = (fila['F'] ?? '').toString().trim().toUpperCase();
-      const coincidencia = PALABRAS_CLAVE_ANULACION.some((palabra) => estado.includes(palabra));
+      const contienePalabraClave = COLUMNAS_REVISION_ANULACION.some((columna) => {
+        const valor = fila[columna];
+        if (valor === undefined || valor === null) {
+          return false;
+        }
 
-      if (coincidencia) {
+        const texto = valor.toString().trim().toUpperCase();
+        if (texto.length === 0) {
+          return false;
+        }
+
+        return PALABRAS_CLAVE_ANULACION.some((palabra) => texto.includes(palabra));
+      });
+
+      if (contienePalabraClave) {
         facturasExcluidas.push(obtenerIdentificadorSaldoAtr(fila));
         return false;
       }

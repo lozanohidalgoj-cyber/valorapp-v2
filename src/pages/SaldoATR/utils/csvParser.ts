@@ -51,11 +51,14 @@ export function parseInterfazBaseCSV(raw: string): { headers: string[]; rows: Sa
  * Parsea el CSV "Saldo ATR.csv" (14 columnas A-N) y mapea a las columnas destino.
  * Mapeo de datos:
  * - CSV[8] Código factura → Destino A (Número Fiscal de Factura)
+ * - CSV[7] Potencia (kW) → Destino B (Potencia)
  * - CSV[1] Contrato ATR → Destino C (Código de contrato externo)
  * - CSV[2] Fecha desde → Destino G (Fecha desde)
  * - CSV[3] Fecha hasta → Destino H (Fecha hasta)
  * - CSV[4] Consumo total activa → Destino I (Importe Factura)
  * - CSV[5] Fuente agregada → Destino J (Fuente de la factura)
+ * - CSV[6] Estado medida → Destino K (Estado medida)
+ * - CSV[9] Tipo de factura → Destino L (Tipo de factura)
  * - CSV[4] Consumo total activa → Destino P (Consumo P1/punta)
  */
 export function parseSaldoATRImport(raw: string): SaldoATRRow[] {
@@ -83,11 +86,14 @@ export function parseSaldoATRImport(raw: string): SaldoATRRow[] {
     const rowRecord = row as Record<string, string>;
 
     rowRecord['A'] = parts[8] || '';
+    rowRecord['B'] = parts[7] || '';
     rowRecord['C'] = parts[1] || '';
     rowRecord['G'] = parts[2] || '';
     rowRecord['H'] = parts[3] || '';
     rowRecord['I'] = parts[4] || '';
     rowRecord['J'] = parts[5] || '';
+    rowRecord['K'] = parts[6] || '';
+    rowRecord['L'] = parts[9] || '';
     rowRecord['P'] = parts[4] || '';
 
     mappedRows.push(row);
