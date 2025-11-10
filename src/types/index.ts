@@ -225,6 +225,10 @@ export interface ConsumoMensual {
   energiaReconstruidaTotal: number;
   /** Consumo promedio diario */
   consumoPromedioDiario: number;
+  /** Potencia promedio declarada en el periodo */
+  potenciaPromedio: number | null;
+  /** Variación porcentual de la potencia respecto al periodo anterior */
+  variacionPotenciaPorcentual: number | null;
   /** Número de días del periodo */
   dias: number;
   /** Variación porcentual respecto al mes anterior */

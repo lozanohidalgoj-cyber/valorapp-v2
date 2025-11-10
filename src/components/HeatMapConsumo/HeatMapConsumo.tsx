@@ -94,6 +94,7 @@ const CAMPOS_DETALLE = [
   'Fecha Inicio',
   'Fecha fin',
   'Consumo Activa',
+  'Potencia',
   'Promedio Activa',
   'Consumo Reactiva',
   'Promedio Reactiva',

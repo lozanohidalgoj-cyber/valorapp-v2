@@ -66,6 +66,8 @@ export const exportarComparativaMensualExcel = (
       Periodo: registro.periodo,
       'Consumo Total (kWh)': registro.consumoTotal.toFixed(2),
       'Consumo Promedio Diario (kWh)': registro.consumoPromedioDiario.toFixed(2),
+      'Potencia (kW)':
+        registro.potenciaPromedio !== null ? registro.potenciaPromedio.toFixed(2) : 'N/A',
       Días: registro.dias,
       'Variación %':
         registro.variacionPorcentual !== null
@@ -84,6 +86,7 @@ export const exportarComparativaMensualExcel = (
       { wch: 12 }, // Periodo
       { wch: 20 }, // Consumo Total
       { wch: 25 }, // Consumo Promedio Diario
+      { wch: 16 }, // Potencia promedio
       { wch: 8 }, // Días
       { wch: 15 }, // Variación %
       { wch: 15 }, // Tipo Variación
@@ -159,6 +162,7 @@ export const exportarComparativaMensualCSV = (datos: ConsumoMensual[]): string =
     'Periodo',
     'Consumo Total (kWh)',
     'Consumo Promedio Diario (kWh)',
+    'Potencia (kW)',
     'Días',
     'Variación %',
     'Tipo Variación',
@@ -171,6 +175,7 @@ export const exportarComparativaMensualCSV = (datos: ConsumoMensual[]): string =
     registro.periodo,
     registro.consumoTotal.toFixed(2),
     registro.consumoPromedioDiario.toFixed(2),
+    registro.potenciaPromedio !== null ? registro.potenciaPromedio.toFixed(2) : 'N/A',
     registro.dias,
     registro.variacionPorcentual !== null ? registro.variacionPorcentual.toFixed(2) : 'N/A',
     registro.tipoVariacion || 'N/A',
@@ -235,6 +240,7 @@ export const exportarAnalisisCompleto = (
       Periodo: r.periodo,
       'Consumo Total (kWh)': r.consumoTotal.toFixed(2),
       'Consumo Promedio Diario (kWh)': r.consumoPromedioDiario.toFixed(2),
+      'Potencia (kW)': r.potenciaPromedio !== null ? r.potenciaPromedio.toFixed(2) : 'N/A',
       Días: r.dias,
       'Variación %':
         r.variacionPorcentual !== null ? r.variacionPorcentual.toFixed(2) + '%' : 'N/A',

@@ -108,6 +108,8 @@ const generarComparativaMensual = (
       sumaMaximetro: number;
       sumaEnergiaReconstruida: number;
       sumaDias: number;
+      sumaPotencia: number;
+      registrosPotencia: number;
       tieneConsumoActiva: boolean;
       tienePromedioActiva: boolean;
       tieneEnergiaReconstruida: boolean;
@@ -129,6 +131,8 @@ const generarComparativaMensual = (
           sumaMaximetro: 0,
           sumaEnergiaReconstruida: 0,
           sumaDias: 0,
+          sumaPotencia: 0,
+          registrosPotencia: 0,
           tieneConsumoActiva: false,
           tienePromedioActiva: false,
           tieneEnergiaReconstruida: false,
@@ -200,6 +204,19 @@ const generarComparativaMensual = (
         registro['Fecha hasta']
       );
       entrada.sumaDias += diasDeclarados > 0 ? diasDeclarados : diasCalculados;
+
+      if (
+        Object.prototype.hasOwnProperty.call(registro, 'Potencia') &&
+        registro['Potencia'] !== '' &&
+        registro['Potencia'] !== null &&
+        registro['Potencia'] !== undefined
+      ) {
+        const potenciaDeclarada = convertirNumeroEspañol(registro['Potencia']);
+        if (!Number.isNaN(potenciaDeclarada)) {
+          entrada.sumaPotencia += potenciaDeclarada;
+          entrada.registrosPotencia += 1;
+        }
+      }
     }
   });
 
@@ -236,8 +253,11 @@ const generarComparativaMensual = (
     const consumoReferencia = metricasActuales.consumoActivaTotal;
     const dias = agrupado.sumaDias;
     const consumoPromedioDiario = dias > 0 ? consumoReferencia / dias : 0;
+    const potenciaPromedio =
+      agrupado.registrosPotencia > 0 ? agrupado.sumaPotencia / agrupado.registrosPotencia : null;
 
     let variacionPorcentual: number | null = null;
+    let variacionPotenciaPorcentual: number | null = null;
     let tipoVariacion: 'aumento' | 'descenso' | 'estable' | null = null;
     const motivosAnomalia: string[] = [];
 
@@ -299,6 +319,16 @@ const generarComparativaMensual = (
           motivosAnomalia.push('variacion_maximetro');
         }
       }
+
+      const potenciaAnterior =
+        agregadoAnterior.registrosPotencia > 0
+          ? agregadoAnterior.sumaPotencia / agregadoAnterior.registrosPotencia
+          : null;
+
+      if (potenciaPromedio !== null && potenciaAnterior !== null && potenciaAnterior !== 0) {
+        variacionPotenciaPorcentual =
+          ((potenciaPromedio - potenciaAnterior) / potenciaAnterior) * 100;
+      }
     }
 
     return {
@@ -311,6 +341,8 @@ const generarComparativaMensual = (
       maximetroTotal: agrupado.sumaMaximetro,
       energiaReconstruidaTotal: metricasActuales.energiaReconstruidaTotal,
       consumoPromedioDiario,
+      potenciaPromedio,
+      variacionPotenciaPorcentual,
       dias,
       variacionPorcentual,
       esAnomalia: motivosAnomalia.length > 0,
