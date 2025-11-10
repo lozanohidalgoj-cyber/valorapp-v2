@@ -246,9 +246,15 @@ const generarComparativaMensual = (
       const agregadoAnterior = datosPorMes[periodoAnterior];
       const metricasAnteriores = obtenerMetricas(agregadoAnterior);
       const consumoAnterior = metricasAnteriores.consumoActivaTotal;
+      const diasAnteriores = agregadoAnterior.sumaDias;
+      const consumoPromedioDiarioAnterior =
+        diasAnteriores > 0 ? consumoAnterior / diasAnteriores : null;
 
-      if (consumoAnterior > 0) {
-        variacionPorcentual = ((consumoReferencia - consumoAnterior) / consumoAnterior) * 100;
+      if (consumoPromedioDiarioAnterior !== null && consumoPromedioDiarioAnterior > 0) {
+        variacionPorcentual =
+          ((consumoPromedioDiario - consumoPromedioDiarioAnterior) /
+            consumoPromedioDiarioAnterior) *
+          100;
 
         if (variacionPorcentual > 5) {
           tipoVariacion = 'aumento';

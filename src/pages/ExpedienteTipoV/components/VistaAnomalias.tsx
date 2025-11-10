@@ -75,42 +75,47 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
               <thead>
                 <tr>
                   <th>Periodo</th>
-                  <th>Variación %</th>
-                  <th>Tipo</th>
                   <th>Consumo (kWh)</th>
                   <th>Días</th>
                   <th>Consumo Promedio Diario (kWh)</th>
+                  <th>Variación %</th>
+                  <th>Tipo</th>
                   <th>Motivos</th>
                 </tr>
               </thead>
               <tbody>
-                {anomalías.map((registro) => (
-                  <tr key={registro.periodo} className="expediente-anomalias__row">
-                    <td>{registro.periodo}</td>
-                    <td>
-                      {registro.variacionPorcentual === null
-                        ? 'N/A'
-                        : `${formatearNumero(registro.variacionPorcentual)}%`}
-                    </td>
-                    <td className="expediente-anomalias__tipo">
-                      {registro.tipoVariacion ?? 'N/A'}
-                    </td>
-                    <td>{formatearNumero(registro.consumoTotal)}</td>
-                    <td>{registro.dias}</td>
-                    <td>
-                      {registro.dias > 0
-                        ? formatearNumero(registro.consumoTotal / registro.dias, 2)
-                        : 'N/A'}
-                    </td>
-                    <td>
-                      {registro.motivosAnomalia.length === 0
-                        ? 'Sin detalle'
-                        : registro.motivosAnomalia
-                            .map((motivo) => motivosLegibles[motivo] ?? motivo)
-                            .join(', ')}
-                    </td>
-                  </tr>
-                ))}
+                {anomalías.map((registro) => {
+                  const consumoPromedioDiario =
+                    registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+
+                  return (
+                    <tr key={registro.periodo} className="expediente-anomalias__row">
+                      <td>{registro.periodo}</td>
+                      <td>{formatearNumero(registro.consumoTotal)}</td>
+                      <td>{registro.dias}</td>
+                      <td>
+                        {consumoPromedioDiario !== null
+                          ? formatearNumero(consumoPromedioDiario, 2)
+                          : 'N/A'}
+                      </td>
+                      <td>
+                        {registro.variacionPorcentual === null
+                          ? 'N/A'
+                          : `${formatearNumero(registro.variacionPorcentual)}%`}
+                      </td>
+                      <td className="expediente-anomalias__tipo">
+                        {registro.tipoVariacion ?? 'N/A'}
+                      </td>
+                      <td>
+                        {registro.motivosAnomalia.length === 0
+                          ? 'Sin detalle'
+                          : registro.motivosAnomalia
+                              .map((motivo) => motivosLegibles[motivo] ?? motivo)
+                              .join(', ')}
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

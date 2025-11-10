@@ -76,15 +76,15 @@ El sistema "Análisis de Expedientes.xlsm" procesa datos de facturación eléctr
 
 ### 📦 Módulos Identificados
 
-| Módulo | Nombre de Macro | Función Principal | Estado |
-|--------|----------------|-------------------|--------|
-| **Module1** | `Exportar_Todos_Los_Modulos()` | Exporta código VBA a archivos .bas/.cls | ⚙️ Utilidad |
-| **Módulo1-3, 5, 9-10** | (Vacíos) | Sin código | ⚠️ No usados |
-| **Módulo4** ⭐ | `Copia_y_abre_hoja_análisis3()` | **MACRO PRINCIPAL** - Proceso completo | ✅ CRÍTICO |
-| **Módulo6** | `Abre_Informe_DGE()` | Genera informe DGE con filtros especiales | 🔷 Secundario |
-| **Módulo7** | `Abre_Informe()` | Variante de informe DGE | 🔷 Secundario |
-| **Módulo8** | `Copia_y_abre_hoja_Análisis()` | Versión alternativa de Módulo4 | 🔄 Duplicado |
-| **Módulo11** | `ComplementarInformacion()` | VLOOKUP entre archivos | 📊 Complemento |
+| Módulo                 | Nombre de Macro                 | Función Principal                         | Estado         |
+| ---------------------- | ------------------------------- | ----------------------------------------- | -------------- |
+| **Module1**            | `Exportar_Todos_Los_Modulos()`  | Exporta código VBA a archivos .bas/.cls   | ⚙️ Utilidad    |
+| **Módulo1-3, 5, 9-10** | (Vacíos)                        | Sin código                                | ⚠️ No usados   |
+| **Módulo4** ⭐         | `Copia_y_abre_hoja_análisis3()` | **MACRO PRINCIPAL** - Proceso completo    | ✅ CRÍTICO     |
+| **Módulo6**            | `Abre_Informe_DGE()`            | Genera informe DGE con filtros especiales | 🔷 Secundario  |
+| **Módulo7**            | `Abre_Informe()`                | Variante de informe DGE                   | 🔷 Secundario  |
+| **Módulo8**            | `Copia_y_abre_hoja_Análisis()`  | Versión alternativa de Módulo4            | 🔄 Duplicado   |
+| **Módulo11**           | `ComplementarInformacion()`     | VLOOKUP entre archivos                    | 📊 Complemento |
 
 ### 🎯 Macro Principal: `Copia_y_abre_hoja_análisis3()` (Módulo4)
 
@@ -261,16 +261,17 @@ ActiveWorkbook.RefreshAll  ' ← RECALCULA TODAS LAS FÓRMULAS
 
 **Ubicación:** Módulo4, líneas 24-29
 
-| Campo | Columna Excel | Valores a Eliminar | Razón de Negocio |
-|-------|---------------|-------------------|------------------|
-| **Estado de la factura** | F (Field 1) | `"ANULADORA(ES PARA FACTURA DE ABONO DE FACTURA TIPO A)"` | Factura que anula otra tipo A (no consumo real) |
-| | | `"ANULADORA (ES PARA LA FACTURA DE ABONO SUSTITUIDA TIPO S)"` | Factura que anula otra tipo S (no consumo real) |
-| | | `"FRAUDE"` | Factura de fraude detectado (no consumo válido) |
-| | | `"A"` | Factura tipo A (abono/anulación) |
-| | | `"S"` | Factura sustituida (reemplazada por otra) |
-| | | `"SUSTITUIDA"` | Factura que fue sustituida |
+| Campo                    | Columna Excel | Valores a Eliminar                                            | Razón de Negocio                                |
+| ------------------------ | ------------- | ------------------------------------------------------------- | ----------------------------------------------- |
+| **Estado de la factura** | F (Field 1)   | `"ANULADORA(ES PARA FACTURA DE ABONO DE FACTURA TIPO A)"`     | Factura que anula otra tipo A (no consumo real) |
+|                          |               | `"ANULADORA (ES PARA LA FACTURA DE ABONO SUSTITUIDA TIPO S)"` | Factura que anula otra tipo S (no consumo real) |
+|                          |               | `"FRAUDE"`                                                    | Factura de fraude detectado (no consumo válido) |
+|                          |               | `"A"`                                                         | Factura tipo A (abono/anulación)                |
+|                          |               | `"S"`                                                         | Factura sustituida (reemplazada por otra)       |
+|                          |               | `"SUSTITUIDA"`                                                | Factura que fue sustituida                      |
 
 **Implementación VBA:**
+
 ```vba
 ActiveSheet.Range("$F$1:$F$137").AutoFilter Field:=1, Criteria1:=Array( _
     "ANULADORA(ES PARA FACTURA DE ABONO DE FACTURA TIPO A)", _
@@ -288,11 +289,12 @@ Selection.ClearContents  ' ← ELIMINACIÓN FÍSICA
 
 **Ubicación:** Módulo6/7 (Informe DGE)
 
-| Campo | Columna Excel | Valores a Eliminar | Razón |
-|-------|---------------|-------------------|-------|
-| **Consumo P4/supervalle** | S (Field 19) | `"-"` | Valor no numérico, dato corrupto |
+| Campo                     | Columna Excel | Valores a Eliminar | Razón                            |
+| ------------------------- | ------------- | ------------------ | -------------------------------- |
+| **Consumo P4/supervalle** | S (Field 19)  | `"-"`              | Valor no numérico, dato corrupto |
 
 **Implementación VBA:**
+
 ```vba
 ActiveSheet.Range("$A$1:$AR$200").AutoFilter Field:=19, Criteria1:="-"
 Rows("3:200").Select
@@ -308,12 +310,14 @@ Selection.ClearContents  ' ← ELIMINA desde fila 3 (mantiene encabezados)
 **Ubicación:** Módulo4, líneas 42-53
 
 **Criterio:**
+
 - Campo de ordenación: **Columna G** ("Fecha desde")
 - Orden: **Ascendente** (del más antiguo al más reciente)
 - Rango completo: **A1:AS200** (incluye encabezados)
 - Método: **xlPinYin** (ordenamiento chino, pero funciona para fechas DD/MM/YYYY)
 
-**Razón de negocio:** 
+**Razón de negocio:**
+
 - Permite análisis cronológico correcto
 - Las fórmulas de "Comparativa mensual" dependen del orden temporal
 - Facilita detección de tendencias y variaciones mes a mes
@@ -325,11 +329,13 @@ Selection.ClearContents  ' ← ELIMINA desde fila 3 (mantiene encabezados)
 **Ubicación:** Módulo4, líneas 32-39
 
 **Proceso:**
+
 1. Los filtros automáticos pueden corromper la fila 1 (encabezados)
 2. Se copian encabezados "limpios" desde hoja "Comentario", fila 50
 3. Se pegan en hoja "Entrada datos", fila 1
 
 **Encabezados esperados (45 columnas):**
+
 ```
 A: Número Fiscal de Factura
 B: Código de Empresa Distribuidora
@@ -386,16 +392,17 @@ AS: Maxímetro P6
 
 **Basado en:** Hoja "Vista por años" del Excel
 
-| Métrica | Fórmula Excel Equivalente | Descripción |
-|---------|--------------------------|-------------|
-| **Año** | `=YEAR([Fecha desde])` | Extrae año de la fecha de inicio |
-| **Suma Consumo Activa** | `=SUMIFS(P:P, G:G, ">=01/01/YYYY", G:G, "<=31/12/YYYY") + SUMIFS(Q:Q, ...) + SUMIFS(R:R, ...)` | **P1 + P2 + P3** del año |
-| **Máx Maxímetro** | `=MAX(IF(YEAR(G:G)=YYYY, MAX(AN:AS, "")))` | Mayor maxímetro de todos los periodos (P1-P6) |
-| **Periodos** | `=COUNTIFS(G:G, ">=01/01/YYYY", G:G, "<=31/12/YYYY")` | Número de facturas del año |
-| **Días** | `=SUMPRODUCT((YEAR(G:G)=YYYY)*(H:H-G:G))` | Suma de días entre fecha desde y fecha hasta |
-| **Promedio/Día** | `=[Suma Consumo Activa] / [Días]` | Consumo diario promedio |
+| Métrica                 | Fórmula Excel Equivalente                                                                      | Descripción                                   |
+| ----------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------- |
+| **Año**                 | `=YEAR([Fecha desde])`                                                                         | Extrae año de la fecha de inicio              |
+| **Suma Consumo Activa** | `=SUMIFS(P:P, G:G, ">=01/01/YYYY", G:G, "<=31/12/YYYY") + SUMIFS(Q:Q, ...) + SUMIFS(R:R, ...)` | **P1 + P2 + P3** del año                      |
+| **Máx Maxímetro**       | `=MAX(IF(YEAR(G:G)=YYYY, MAX(AN:AS, "")))`                                                     | Mayor maxímetro de todos los periodos (P1-P6) |
+| **Periodos**            | `=COUNTIFS(G:G, ">=01/01/YYYY", G:G, "<=31/12/YYYY")`                                          | Número de facturas del año                    |
+| **Días**                | `=SUMPRODUCT((YEAR(G:G)=YYYY)*(H:H-G:G))`                                                      | Suma de días entre fecha desde y fecha hasta  |
+| **Promedio/Día**        | `=[Suma Consumo Activa] / [Días]`                                                              | Consumo diario promedio                       |
 
 **Ejemplo de cálculo manual:**
+
 ```
 Datos de entrada (año 2024):
 - Factura 1: Fecha desde: 15/01/2024, Fecha hasta: 14/02/2024
@@ -414,18 +421,19 @@ Cálculos:
 
 ### 📅 Comparativa Mensual - Fórmulas Excel
 
-| Métrica | Fórmula Excel Equivalente | Descripción |
-|---------|--------------------------|-------------|
-| **Año** | `=YEAR([Fecha desde])` | Año del periodo |
-| **Mes** | `=MONTH([Fecha desde])` | Mes del periodo (1-12) |
-| **Periodo** | `=TEXT([Fecha desde], "YYYY-MM")` | Formato "2024-01" |
-| **Consumo Total** | `=SUMIFS(P:P, G:G, ">=01/MM/YYYY", G:G, "<=31/MM/YYYY") + ...` | **P1 + P2 + P3** del mes |
-| **Días** | `=SUMPRODUCT((TEXT(G:G,"YYYY-MM")=periodo)*(H:H-G:G))` | Días del periodo |
-| **Consumo Promedio Diario** | `=[Consumo Total] / [Días]` | Consumo/día del mes |
-| **Variación %** | `=([Consumo mes actual] - [Consumo mes anterior]) / [Consumo mes anterior] * 100` | Variación porcentual |
-| **Es Anomalía** | `=IF(ABS([Variación %]) > 40, TRUE, FALSE)` | Umbral: ±40% |
+| Métrica                     | Fórmula Excel Equivalente                                                                                             | Descripción              |
+| --------------------------- | --------------------------------------------------------------------------------------------------------------------- | ------------------------ |
+| **Año**                     | `=YEAR([Fecha desde])`                                                                                                | Año del periodo          |
+| **Mes**                     | `=MONTH([Fecha desde])`                                                                                               | Mes del periodo (1-12)   |
+| **Periodo**                 | `=TEXT([Fecha desde], "YYYY-MM")`                                                                                     | Formato "2024-01"        |
+| **Consumo Total**           | `=SUMIFS(P:P, G:G, ">=01/MM/YYYY", G:G, "<=31/MM/YYYY") + ...`                                                        | **P1 + P2 + P3** del mes |
+| **Días**                    | `=SUMPRODUCT((TEXT(G:G,"YYYY-MM")=periodo)*(H:H-G:G))`                                                                | Días del periodo         |
+| **Consumo Promedio Diario** | `=[Consumo Total] / [Días]`                                                                                           | Consumo/día del mes      |
+| **Variación %**             | `=([Consumo promedio diario actual] - [Consumo promedio diario anterior]) / [Consumo promedio diario anterior] * 100` | Variación porcentual     |
+| **Es Anomalía**             | `=IF(ABS([Variación %]) > 40, TRUE, FALSE)`                                                                           | Umbral: ±40%             |
 
 **Lógica de detección de anomalías:**
+
 ```
 SI variación > 40% ENTONCES
   esAnomalia = TRUE
@@ -438,6 +446,7 @@ SI -5% <= variación <= 5% ENTONCES
 ```
 
 **Ejemplo:**
+
 ```
 Enero 2024: 500 kWh
 Febrero 2024: 300 kWh
@@ -451,6 +460,7 @@ tipoVariacion = "descenso"
 ### 🎨 Heat Map - Reglas de Color
 
 **Gradiente de colores:**
+
 ```
 Valor Mínimo (0%)  → RGB(255, 0, 0)    [ROJO]
         ↓
@@ -460,6 +470,7 @@ Valor Máximo (100%)→ RGB(0, 255, 0)    [VERDE]
 ```
 
 **Fórmula de interpolación:**
+
 ```javascript
 normalizado = (valor - min) / (max - min);
 
@@ -479,6 +490,7 @@ if (normalizado < 0.5) {
 ```
 
 **Detección de outliers (valores fuera del promedio):**
+
 ```
 promedio = AVERAGE(valores)
 desviacionEstandar = STDEV(valores)
@@ -518,6 +530,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
    - Resaltar campos problemáticos
 
 #### Criterios de Aceptación:
+
 - ✅ Importa CSV con 45 columnas correctamente
 - ✅ Detecta y reporta errores de formato
 - ✅ Convierte fechas DD/MM/YYYY a objetos Date
@@ -543,7 +556,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
        'FRAUDE',
        'A',
        'S',
-       'SUSTITUIDA'
+       'SUSTITUIDA',
      ];
      ```
 
@@ -562,6 +575,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
    - Permitir deshacer filtros (guardar estado previo)
 
 #### Criterios de Aceptación:
+
 - ✅ Elimina EXACTAMENTE los mismos registros que VBA
 - ✅ Ordena cronológicamente idéntico a Excel
 - ✅ Muestra contador de registros eliminados
@@ -605,6 +619,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
    - Generar reporte de diferencias
 
 #### Criterios de Aceptación:
+
 - ✅ Resultados numéricos IDÉNTICOS a Excel (±0.01%)
 - ✅ Detección de anomalías coincide con Excel
 - ✅ Clasificaciones (aumento/descenso) correctas
@@ -652,6 +667,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
    - Accesibilidad (ARIA labels)
 
 #### Criterios de Aceptación:
+
 - ✅ 4 vistas funcionales
 - ✅ Heat map visualmente idéntico a Excel
 - ✅ Gráficos interactivos
@@ -690,6 +706,7 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
    - Hosting en Vercel/Netlify
 
 #### Criterios de Aceptación:
+
 - ✅ Tiempo de carga inicial <2 segundos
 - ✅ Procesamiento de 200 registros <500 ms
 - ✅ Cobertura de tests >80%
@@ -702,48 +719,48 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
 
 ### ✅ Funcionalidades YA IMPLEMENTADAS
 
-| Funcionalidad | Estado | Archivo | Comentario |
-|---------------|--------|---------|------------|
-| Importación CSV | ✅ Completo | `importService.ts` | Soporta 46 campos |
-| Filtro por "Estado de factura" | ✅ Completo | `ExpedienteTipoV.tsx` | 6 valores exactos |
-| Filtro por "Consumo P4" | ✅ Completo | `ExpedienteTipoV.tsx` | Elimina "-" |
-| Ordenación por fecha | ✅ Completo | `ExpedienteTipoV.tsx` | Ascendente |
-| Vista por Años | ✅ Completo | `analisisConsumoService.ts` | 6 métricas |
-| Comparativa Mensual | ✅ Completo | `analisisConsumoService.ts` | Con anomalías |
-| Heat Map | ✅ Completo | `ExpedienteTipoV.tsx` | Gradiente RGB |
-| Detección de outliers | ✅ Completo | `ExpedienteTipoV.tsx` | ±1σ negrita roja |
-| Listado (tabla) | ✅ Completo | `ExpedienteTipoV.tsx` | 10 columnas visibles |
-| Gráfico SVG | ✅ Completo | `ExpedienteTipoV.tsx` | Chart de línea |
+| Funcionalidad                  | Estado      | Archivo                     | Comentario           |
+| ------------------------------ | ----------- | --------------------------- | -------------------- |
+| Importación CSV                | ✅ Completo | `importService.ts`          | Soporta 46 campos    |
+| Filtro por "Estado de factura" | ✅ Completo | `ExpedienteTipoV.tsx`       | 6 valores exactos    |
+| Filtro por "Consumo P4"        | ✅ Completo | `ExpedienteTipoV.tsx`       | Elimina "-"          |
+| Ordenación por fecha           | ✅ Completo | `ExpedienteTipoV.tsx`       | Ascendente           |
+| Vista por Años                 | ✅ Completo | `analisisConsumoService.ts` | 6 métricas           |
+| Comparativa Mensual            | ✅ Completo | `analisisConsumoService.ts` | Con anomalías        |
+| Heat Map                       | ✅ Completo | `ExpedienteTipoV.tsx`       | Gradiente RGB        |
+| Detección de outliers          | ✅ Completo | `ExpedienteTipoV.tsx`       | ±1σ negrita roja     |
+| Listado (tabla)                | ✅ Completo | `ExpedienteTipoV.tsx`       | 10 columnas visibles |
+| Gráfico SVG                    | ✅ Completo | `ExpedienteTipoV.tsx`       | Chart de línea       |
 
 ### ⚠️ Funcionalidades PARCIALES
 
-| Funcionalidad | Estado | Falta | Prioridad |
-|---------------|--------|-------|-----------|
-| Validación de importación | ⚠️ Parcial | - Validar 45 columnas exactas<br>- Detectar errores por fila<br>- Vista previa antes de importar | MEDIA |
-| Manejo de errores | ⚠️ Parcial | - Mensajes más descriptivos<br>- Sugerencias de corrección | BAJA |
-| Exportación de datos | ⚠️ Parcial | - Exportar Vista por Años a Excel<br>- Exportar Comparativa a CSV | MEDIA |
-| Logging de operaciones | ⚠️ Parcial | - Registrar filtros aplicados<br>- Deshacer/Rehacer | BAJA |
+| Funcionalidad             | Estado     | Falta                                                                                            | Prioridad |
+| ------------------------- | ---------- | ------------------------------------------------------------------------------------------------ | --------- |
+| Validación de importación | ⚠️ Parcial | - Validar 45 columnas exactas<br>- Detectar errores por fila<br>- Vista previa antes de importar | MEDIA     |
+| Manejo de errores         | ⚠️ Parcial | - Mensajes más descriptivos<br>- Sugerencias de corrección                                       | BAJA      |
+| Exportación de datos      | ⚠️ Parcial | - Exportar Vista por Años a Excel<br>- Exportar Comparativa a CSV                                | MEDIA     |
+| Logging de operaciones    | ⚠️ Parcial | - Registrar filtros aplicados<br>- Deshacer/Rehacer                                              | BAJA      |
 
 ### ❌ Funcionalidades FALTANTES
 
-| Funcionalidad | Prioridad | Razón | Esfuerzo Estimado |
-|---------------|-----------|-------|-------------------|
-| Restauración de encabezados (VBA línea 32-39) | 🔴 ALTA | VBA copia desde hoja "Comentario"<br>React no tiene esta hoja | 2 horas |
-| Informe DGE (Módulo6/7) | 🟡 MEDIA | Flujo secundario, no crítico | 4 horas |
-| VLOOKUP complementario (Módulo11) | 🟢 BAJA | Funcionalidad adicional | 3 horas |
-| RefreshAll explícito | 🟡 MEDIA | React recalcula automáticamente,<br>pero podría necesitar invalidación manual | 1 hora |
+| Funcionalidad                                 | Prioridad | Razón                                                                         | Esfuerzo Estimado |
+| --------------------------------------------- | --------- | ----------------------------------------------------------------------------- | ----------------- |
+| Restauración de encabezados (VBA línea 32-39) | 🔴 ALTA   | VBA copia desde hoja "Comentario"<br>React no tiene esta hoja                 | 2 horas           |
+| Informe DGE (Módulo6/7)                       | 🟡 MEDIA  | Flujo secundario, no crítico                                                  | 4 horas           |
+| VLOOKUP complementario (Módulo11)             | 🟢 BAJA   | Funcionalidad adicional                                                       | 3 horas           |
+| RefreshAll explícito                          | 🟡 MEDIA  | React recalcula automáticamente,<br>pero podría necesitar invalidación manual | 1 hora            |
 
 ### 🔍 Diferencias Arquitectónicas React vs VBA
 
-| Aspecto | VBA/Excel | React | Equivalencia |
-|---------|-----------|-------|--------------|
-| **Almacenamiento** | Archivo .xlsm en disco | Estado en memoria (Context API) | ⚠️ React pierde datos al recargar |
-| **Fórmulas** | Celdas con `=SUMA()`, `=SI()` | Funciones JavaScript | ✅ Equivalente |
-| **Actualización** | `RefreshAll` manual | Re-render automático | ✅ Equivalente |
-| **Filtros** | AutoFilter con UI | `.filter()` programático | ✅ Equivalente |
-| **Ordenación** | `.Sort` con UI | `.sort()` programático | ✅ Equivalente |
-| **Hojas múltiples** | Pestañas de Excel | Componentes/vistas | ✅ Equivalente |
-| **Persistencia** | Guardar archivo | localStorage / IndexedDB | ⚠️ Requiere implementación |
+| Aspecto             | VBA/Excel                     | React                           | Equivalencia                      |
+| ------------------- | ----------------------------- | ------------------------------- | --------------------------------- |
+| **Almacenamiento**  | Archivo .xlsm en disco        | Estado en memoria (Context API) | ⚠️ React pierde datos al recargar |
+| **Fórmulas**        | Celdas con `=SUMA()`, `=SI()` | Funciones JavaScript            | ✅ Equivalente                    |
+| **Actualización**   | `RefreshAll` manual           | Re-render automático            | ✅ Equivalente                    |
+| **Filtros**         | AutoFilter con UI             | `.filter()` programático        | ✅ Equivalente                    |
+| **Ordenación**      | `.Sort` con UI                | `.sort()` programático          | ✅ Equivalente                    |
+| **Hojas múltiples** | Pestañas de Excel             | Componentes/vistas              | ✅ Equivalente                    |
+| **Persistencia**    | Guardar archivo               | localStorage / IndexedDB        | ⚠️ Requiere implementación        |
 
 ---
 
@@ -771,12 +788,22 @@ SI valor < (promedio - desviacionEstandar) ENTONCES
 // Test de cálculo de Vista por Años
 it('debe calcular Suma Consumo Activa correctamente', () => {
   const datos: DerivacionData[] = [
-    { 'Fecha desde': '15/01/2024', 'Consumo P1/punta': '100', 'Consumo P2/llano': '150', 'Consumo P3/valle': '80' },
-    { 'Fecha desde': '15/02/2024', 'Consumo P1/punta': '110', 'Consumo P2/llano': '160', 'Consumo P3/valle': '85' }
+    {
+      'Fecha desde': '15/01/2024',
+      'Consumo P1/punta': '100',
+      'Consumo P2/llano': '150',
+      'Consumo P3/valle': '80',
+    },
+    {
+      'Fecha desde': '15/02/2024',
+      'Consumo P1/punta': '110',
+      'Consumo P2/llano': '160',
+      'Consumo P3/valle': '85',
+    },
   ];
-  
+
   const resultado = generarVistaAnual(datos);
-  
+
   expect(resultado[0].sumaConsumoActiva).toBe(685); // 100+150+80+110+160+85
 });
 
@@ -784,11 +811,11 @@ it('debe calcular Suma Consumo Activa correctamente', () => {
 it('debe detectar anomalía con variación >40%', () => {
   const datos = [
     { periodo: '2024-01', consumo: 500 },
-    { periodo: '2024-02', consumo: 300 } // -40% exacto
+    { periodo: '2024-02', consumo: 300 }, // -40% exacto
   ];
-  
+
   const resultado = generarComparativaMensual(datos);
-  
+
   expect(resultado[1].esAnomalia).toBe(true);
   expect(resultado[1].tipoVariacion).toBe('descenso');
 });
@@ -796,13 +823,13 @@ it('debe detectar anomalía con variación >40%', () => {
 
 ### 📊 Métricas de Éxito
 
-| Métrica | Objetivo | Medición |
-|---------|----------|----------|
-| **Exactitud de cálculos** | 100% igual a Excel | Comparación CSV |
+| Métrica                     | Objetivo                   | Medición        |
+| --------------------------- | -------------------------- | --------------- |
+| **Exactitud de cálculos**   | 100% igual a Excel         | Comparación CSV |
 | **Tiempo de procesamiento** | <500 ms para 200 registros | Performance API |
-| **Tamaño de build** | <600 KB gzip | `npm run build` |
-| **Cobertura de tests** | >80% | Jest coverage |
-| **Accesibilidad** | WCAG 2.1 AA | axe DevTools |
+| **Tamaño de build**         | <600 KB gzip               | `npm run build` |
+| **Cobertura de tests**      | >80%                       | Jest coverage   |
+| **Accesibilidad**           | WCAG 2.1 AA                | axe DevTools    |
 
 ---
 
@@ -835,27 +862,27 @@ Análisis de Expedientes.xlsm
 
 ```typescript
 interface DerivacionData {
-  'Número Fiscal de Factura': string;              // Columna A
-  'Código de Empresa Distribuidora': string;       // Columna B
+  'Número Fiscal de Factura': string; // Columna A
+  'Código de Empresa Distribuidora': string; // Columna B
   'Código de contrato externo - interfaz': string; // Columna C
-  'Secuencial de factura': string;                 // Columna D
-  'Tipo de factura': string;                       // Columna E
-  'Estado de la factura': string;                  // Columna F ← FILTRO 1
-  'Fecha desde': string;                           // Columna G ← ORDENACIÓN
-  'Fecha hasta': string;                           // Columna H
-  'Importe Factura': string | number;              // Columna I
-  'Fuente de la factura': string;                  // Columna J
-  'Tipo de Fuente': string;                        // Columna K
-  'Descripción Tipo de fuente': string;            // Columna L
-  'Tipo de Fuente Anterior': string;               // Columna M
-  'Descripción Tipo de fuente Anterior': string;   // Columna N
-  'Tipo de punto de medida': string;               // Columna O
-  'Consumo P1/punta': string | number;             // Columna P ← SUMA
-  'Consumo P2/llano': string | number;             // Columna Q ← SUMA
-  'Consumo P3/valle': string | number;             // Columna R ← SUMA
-  'Consumo P4/supervalle': string | number;        // Columna S ← FILTRO 2 (DGE)
-  'Consumo P5': string | number;                   // Columna T
-  'Consumo P6': string | number;                   // Columna U
+  'Secuencial de factura': string; // Columna D
+  'Tipo de factura': string; // Columna E
+  'Estado de la factura': string; // Columna F ← FILTRO 1
+  'Fecha desde': string; // Columna G ← ORDENACIÓN
+  'Fecha hasta': string; // Columna H
+  'Importe Factura': string | number; // Columna I
+  'Fuente de la factura': string; // Columna J
+  'Tipo de Fuente': string; // Columna K
+  'Descripción Tipo de fuente': string; // Columna L
+  'Tipo de Fuente Anterior': string; // Columna M
+  'Descripción Tipo de fuente Anterior': string; // Columna N
+  'Tipo de punto de medida': string; // Columna O
+  'Consumo P1/punta': string | number; // Columna P ← SUMA
+  'Consumo P2/llano': string | number; // Columna Q ← SUMA
+  'Consumo P3/valle': string | number; // Columna R ← SUMA
+  'Consumo P4/supervalle': string | number; // Columna S ← FILTRO 2 (DGE)
+  'Consumo P5': string | number; // Columna T
+  'Consumo P6': string | number; // Columna U
   // ... (resto de columnas hasta AS)
 }
 ```
