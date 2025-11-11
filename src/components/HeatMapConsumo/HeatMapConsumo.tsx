@@ -317,18 +317,15 @@ const HeatMapConsumoComponent = ({
 
     const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
 
-    // Si hay una fecha de acta o cambio de titular activo, marcar evento
-    if (
-      (fechaActa?.activo && fechaActa?.fecha) ||
-      (cambioTitular?.activo && cambioTitular?.fecha)
-    ) {
+    // Si hay una fecha de acta o cambio de titular con fecha, marcar evento
+    if (fechaActa?.fecha || cambioTitular?.fecha) {
       const nuevosEventos = { ...eventosTemp };
 
-      if (fechaActa?.activo && fechaActa?.fecha) {
+      if (fechaActa?.fecha) {
         nuevosEventos[periodo] = `ACTA: ${fechaActa.fecha}`;
       }
 
-      if (cambioTitular?.activo && cambioTitular?.fecha) {
+      if (cambioTitular?.fecha) {
         nuevosEventos[periodo] = `CAMBIO: ${cambioTitular.fecha}`;
       }
 
@@ -750,7 +747,7 @@ const HeatMapConsumoComponent = ({
               onChange={(e) =>
                 setFechaActa(e.target.value ? { fecha: e.target.value, activo: true } : null)
               }
-              className="control-input"
+              className={`control-input ${fechaActa?.fecha ? 'control-input--active' : ''}`}
             />
           </div>
 
@@ -763,7 +760,7 @@ const HeatMapConsumoComponent = ({
               onChange={(e) =>
                 setCambioTitular(e.target.value ? { fecha: e.target.value, activo: true } : null)
               }
-              className="control-input"
+              className={`control-input ${cambioTitular?.fecha ? 'control-input--active' : ''}`}
             />
           </div>
 
@@ -780,6 +777,20 @@ const HeatMapConsumoComponent = ({
             </button>
           </div>
         </div>
+
+        {(fechaActa?.fecha || cambioTitular?.fecha) && (
+          <div className="modo-marcado-activo">
+            <span className="icono-marcado">👆</span>
+            <strong>Modo marcado activo:</strong>
+            Haz clic en las celdas del mapa para marcar eventos
+            {fechaActa?.fecha && (
+              <span className="evento-tipo">• Fecha de Acta: {fechaActa.fecha}</span>
+            )}
+            {cambioTitular?.fecha && (
+              <span className="evento-tipo">• Cambio de Titular: {cambioTitular.fecha}</span>
+            )}
+          </div>
+        )}
 
         {Object.keys(eventosTemp).length > 0 && (
           <div className="eventos-pendientes">
