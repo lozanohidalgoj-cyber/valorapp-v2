@@ -1688,3 +1688,30 @@
       inset 0 0 0px rgba(255, 193, 7, 0);
   }
 }
+
+/* ============================================================
+   ENLACES DE NÚMERO FISCAL (Vista Anomalías)
+   ============================================================ */
+.expediente-fiscales-wrap {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.expediente-link-fiscal {
+  background: rgba(0, 0, 208, 0.08);
+  color: var(--color-primary);
+  border: 1px solid rgba(0, 0, 208, 0.2);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 0.8rem;
+  cursor: pointer;
+}
+
+.expediente-link-fiscal:hover {
+  background: rgba(0, 0, 208, 0.14);
+}
+
+.expediente-fiscal-placeholder {
+  color: #888;
+}

@@ -63,6 +63,7 @@ export const ExpedienteTipoV = () => {
   } = useAnalysis();
 
   const [modoVista, setModoVista] = useState<VistaModuloExpediente>('principal');
+  const [filtroFactura, setFiltroFactura] = useState<string | null>(null);
 
   // Estado local para mensajes
   const [error, setError] = useState<string | null>(null);
@@ -209,6 +210,11 @@ export const ExpedienteTipoV = () => {
   const mostrarDerivacion = () => {
     setMostrandoAnalisis(false);
     setVistaActual('anual');
+    setModoVista('derivacion');
+  };
+
+  const irADerivacionPorFactura = (numeroFiscal: string) => {
+    setFiltroFactura(numeroFiscal);
     setModoVista('derivacion');
   };
 
@@ -360,7 +366,35 @@ export const ExpedienteTipoV = () => {
 
         {modoVista === 'derivacion' && (
           <div className="expediente-data-card">
-            <DataTable data={derivacionData} columns={derivacionColumns} />
+            {filtroFactura && (
+              <div className="expediente-filter-bar" role="status">
+                <span>
+                  Filtrando por Número Fiscal de Factura: <strong>{filtroFactura}</strong>
+                </span>
+                <button
+                  type="button"
+                  className="btn-export"
+                  onClick={() => setFiltroFactura(null)}
+                  title="Quitar filtro"
+                >
+                  Quitar filtro
+                </button>
+              </div>
+            )}
+            <DataTable
+              data={
+                filtroFactura
+                  ? derivacionData.filter(
+                      (r) =>
+                        String(
+                          (r as unknown as Record<string, unknown>)['Número Fiscal de Factura'] ??
+                            ''
+                        ) === filtroFactura
+                    )
+                  : derivacionData
+              }
+              columns={derivacionColumns}
+            />
           </div>
         )}
 
@@ -431,6 +465,7 @@ export const ExpedienteTipoV = () => {
                 datos={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
                 detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
                 onExportar={handleExportarAnomalias}
+                onIrADerivacionPorFactura={irADerivacionPorFactura}
               />
             )}
           </div>

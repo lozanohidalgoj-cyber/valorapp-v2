@@ -17,9 +17,15 @@ interface VistaAnomaliasProps {
   datos: ConsumoMensual[];
   detallesPorPeriodo: Record<string, DerivacionData[]>;
   onExportar?: (filas: ConsumoMensual[]) => void;
+  onIrADerivacionPorFactura?: (numeroFiscal: string) => void;
 }
 
-export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaAnomaliasProps) => {
+export const VistaAnomalias = ({
+  datos,
+  detallesPorPeriodo,
+  onExportar,
+  onIrADerivacionPorFactura,
+}: VistaAnomaliasProps) => {
   const tableRef = useRef<HTMLTableElement>(null);
 
   const handleScrollToPeriodo = (periodo: string) => {
@@ -357,6 +363,9 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
             <table className="expediente-table expediente-table-analisis" ref={tableRef}>
               <thead>
                 <tr>
+                  <th>Número Fiscal</th>
+                  <th>Fecha desde</th>
+                  <th>Fecha hasta</th>
                   <th>Periodo</th>
                   <th>Consumo (kWh)</th>
                   <th>Días</th>
@@ -387,6 +396,71 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   const esAnomalia = esComportamientoAnomalo(analisis);
                   const claseAnomalia = esAnomalia ? 'expediente-anomalias__row--anomalia' : '';
 
+                  const periodoRegistros = detallesPorPeriodo[registro.periodo] || [];
+                  const numerosFiscales = (() => {
+                    const set = new Set<string>();
+                    periodoRegistros.forEach((r) => {
+                      const nf = (r as unknown as Record<string, unknown>)[
+                        'Número Fiscal de Factura'
+                      ];
+                      const val = nf !== undefined && nf !== null ? String(nf).trim() : '';
+                      if (val) set.add(val);
+                    });
+                    return Array.from(set);
+                  })();
+
+                  const fechasDesdeHasta = (() => {
+                    const fechasDesde = periodoRegistros
+                      .map((r) =>
+                        String(
+                          (r as unknown as Record<string, unknown>)['Fecha desde'] || ''
+                        ).trim()
+                      )
+                      .filter((s) => s);
+                    const fechasHasta = periodoRegistros
+                      .map((r) =>
+                        String(
+                          (r as unknown as Record<string, unknown>)['Fecha hasta'] || ''
+                        ).trim()
+                      )
+                      .filter((s) => s);
+
+                    const safeParse = (s: string): number => {
+                      const t = Date.parse(s);
+                      return Number.isNaN(t) ? Number.NaN : t;
+                    };
+
+                    let minDesde: string | null = null;
+                    let minDesdeTime = Number.POSITIVE_INFINITY;
+                    for (const s of fechasDesde) {
+                      const t = safeParse(s);
+                      if (!Number.isNaN(t) && t < minDesdeTime) {
+                        minDesdeTime = t;
+                        minDesde = s;
+                      }
+                    }
+
+                    let maxHasta: string | null = null;
+                    let maxHastaTime = Number.NEGATIVE_INFINITY;
+                    for (const s of fechasHasta) {
+                      const t = safeParse(s);
+                      if (!Number.isNaN(t) && t > maxHastaTime) {
+                        maxHastaTime = t;
+                        maxHasta = s;
+                      }
+                    }
+
+                    // Fallbacks si no parsea bien: usar primer/último valor
+                    if (minDesde === null && fechasDesde.length > 0) {
+                      minDesde = fechasDesde[0];
+                    }
+                    if (maxHasta === null && fechasHasta.length > 0) {
+                      maxHasta = fechasHasta[fechasHasta.length - 1];
+                    }
+
+                    return { desde: minDesde ?? '—', hasta: maxHasta ?? '—' };
+                  })();
+
                   return (
                     <tr
                       key={registro.periodo}
@@ -404,8 +478,27 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                             : undefined
                         }
                       >
-                        {registro.periodo}
+                        {numerosFiscales.length > 0 ? (
+                          <div className="expediente-fiscales-wrap">
+                            {numerosFiscales.map((nf) => (
+                              <button
+                                key={nf}
+                                type="button"
+                                className="expediente-link-fiscal"
+                                onClick={() => onIrADerivacionPorFactura?.(nf)}
+                                title={`Ver derivación para factura ${nf}`}
+                              >
+                                {nf}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="expediente-fiscal-placeholder">—</span>
+                        )}
                       </td>
+                      <td>{fechasDesdeHasta.desde}</td>
+                      <td>{fechasDesdeHasta.hasta}</td>
+                      <td>{registro.periodo}</td>
                       <td>{formatearNumero(registro.consumoTotal)}</td>
                       <td>{registro.dias}</td>
                       <td className="expediente-table-analisis__columna-promedio">
