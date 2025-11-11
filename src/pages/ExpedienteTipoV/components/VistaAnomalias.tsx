@@ -66,6 +66,86 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     return promedios;
   }, [datos]);
+  const analisisPorPeriodo = useMemo(() => {
+    const ordenados = [...datos].sort((a, b) => a.periodo.localeCompare(b.periodo));
+    const resultado = new Map<
+      string,
+      { variacionHistorica: number | null; comportamiento: string }
+    >();
+    let totalZerosPrevios = 0;
+    let consecutivosZeros = 0;
+    let cambioPotenciaActivo = false;
+
+    ordenados.forEach((registro, indice) => {
+      const consumoPromedioActual =
+        registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+      const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
+      const variacionHistorica =
+        promedioHistorico === null || promedioHistorico === 0 || consumoPromedioActual === null
+          ? null
+          : ((consumoPromedioActual - promedioHistorico) / promedioHistorico) * 100;
+      const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
+      const consumoPromedioAnterior =
+        anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
+      const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
+
+      const consumoEsCero = registro.consumoTotal === 0;
+      const habiaCeroAntes = totalZerosPrevios > 0;
+      const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
+      const variacionPosterior = siguiente?.variacionPorcentual;
+      const incrementoPosterior =
+        consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
+      const potenciaActual = registro.potenciaPromedio;
+      const potenciaPeriodoAnterior =
+        indice > 0 ? ordenados[indice - 1].potenciaPromedio : potenciaActual;
+
+      if (indice > 0 && potenciaActual !== potenciaPeriodoAnterior) {
+        cambioPotenciaActivo = true;
+      }
+
+      let comportamiento = 'Normal';
+
+      if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
+        comportamiento = 'Cero sospechoso';
+      } else if (consumoEsCero) {
+        comportamiento = 'Cero esperado estacional';
+      } else if (
+        consumoPromedioAnterior !== null &&
+        consumoPromedioAnterior !== 0 &&
+        consumoPromedioActual !== null
+      ) {
+        const variacionMes =
+          ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
+        if (variacionMes <= -30) {
+          comportamiento = 'Descenso brusco mes a mes';
+        }
+      }
+
+      if (comportamiento === 'Normal' && cambioPotenciaActivo) {
+        comportamiento = 'Cambio de potencia';
+      } else if (comportamiento === 'Normal' && registro.variacionPorcentual !== null) {
+        if (registro.variacionPorcentual > 0) {
+          comportamiento = 'Aumento de consumo';
+        } else if (registro.variacionPorcentual === 0) {
+          comportamiento = 'Sin cambio';
+        }
+      }
+
+      resultado.set(registro.periodo, {
+        variacionHistorica,
+        comportamiento,
+      });
+
+      if (consumoEsCero) {
+        consecutivosZeros += 1;
+        totalZerosPrevios += 1;
+      } else {
+        consecutivosZeros = 0;
+      }
+    });
+
+    return resultado;
+  }, [datos, promedioHistoricoPorMes]);
   const coloresPorPotencia = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.14)', text: 'var(--color-primary)' },
@@ -164,6 +244,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   <th>Consumo Promedio Diario (kWh)</th>
                   <th>Promedio Histórico (mismo mes)</th>
                   <th>Variación Histórica (%)</th>
+                  <th>Tipo de comportamiento detectado</th>
                   <th>Variación %</th>
                 </tr>
               </thead>
@@ -183,12 +264,9 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   const colorPotencia =
                     potenciaClave !== null ? coloresPorPotencia.get(potenciaClave) : undefined;
                   const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
-                  const variacionHistorica =
-                    promedioHistorico === null ||
-                    promedioHistorico === 0 ||
-                    consumoPromedioDiario === null
-                      ? null
-                      : ((consumoPromedioDiario - promedioHistorico) / promedioHistorico) * 100;
+                  const analisis = analisisPorPeriodo.get(registro.periodo);
+                  const variacionHistorica = analisis?.variacionHistorica ?? null;
+                  const comportamientoDetectado = analisis?.comportamiento ?? 'Normal';
 
                   return (
                     <tr
@@ -239,6 +317,9 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {variacionHistorica === null
                           ? 'N/A'
                           : `${formatearNumero(variacionHistorica, 2)}%`}
+                      </td>
+                      <td className="expediente-table-analisis__columna-comportamiento">
+                        {comportamientoDetectado}
                       </td>
                       <td>
                         {registro.variacionPorcentual === null
