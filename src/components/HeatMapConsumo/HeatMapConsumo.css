@@ -65,6 +65,14 @@
   font-weight: 700;
   color: var(--color-primary);
 }
+.heatmap-chip--baseline {
+  background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
+  border-color: var(--color-primary);
+}
+.heatmap-chip--baseline .chip-value {
+  color: #d81b60;
+  font-weight: 800;
+}
 .heatmap-legend {
   display: flex;
   flex-direction: column;

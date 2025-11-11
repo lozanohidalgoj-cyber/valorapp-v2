@@ -6,6 +6,131 @@
 import type { ConsumoMensual, ResultadoClasificacionExpediente } from '../types';
 
 /**
+ * 🌈 Análisis avanzado del patrón de mapa de calor
+ * Detecta tipos de anomalías específicas
+ * basándose en colores, tendencias y distribución temporal
+ */
+/* function analizarPatronMapaCalor(consumos: ConsumoMensual[]): {
+  patronDetectado: string;
+  justificacion: string;
+  mostrarInicioAnomalia: boolean;
+} {
+  if (consumos.length < 3) {
+    return {
+      patronDetectado: 'datos_insuficientes',
+      justificacion: 'Necesita al menos 3 periodos para análisis',
+      mostrarInicioAnomalia: false
+    };
+  }
+
+  // Calcular baseline de primeros periodos (30% o máximo 12 meses)
+  const periodoBaseline = Math.min(12, Math.floor(consumos.length * 0.3));
+  const consumosBaseline = consumos.slice(0, periodoBaseline).map(c => c.consumoActivaTotal);
+  const promedioBaseline = consumosBaseline.reduce((sum, val) => sum + val, 0) / consumosBaseline.length;
+  
+  // Analizar distribución de consumos por rangos de color
+  let periodosVerdes = 0;     // Consumo normal (≥ 80% baseline)
+  let periodosAmarillos = 0;  // Consumo moderado (50-80% baseline)
+  let periodosNaranjas = 0;   // Consumo bajo (20-50% baseline)
+  let periodosRojos = 0;      // Consumo crítico (< 20% baseline)
+  let periodosConCambios = 0; // Cambios de potencia
+  
+  // Detectar patrones temporales
+  let bloquesCeroConsecutivos = 0;
+  let periodosSinAnomalias = 0;
+  let descensoSostenidoDetectado = false;
+  let cambiosPotenciaTotales = 0;
+
+  consumos.forEach((consumo, indice) => {
+    const porcentajeVsBaseline = (consumo.consumoActivaTotal / promedioBaseline) * 100;
+    
+    // Clasificar por color según porcentaje del baseline
+    if (porcentajeVsBaseline >= 80) {
+      periodosVerdes++;
+    } else if (porcentajeVsBaseline >= 50) {
+      periodosAmarillos++;
+    } else if (porcentajeVsBaseline >= 20) {
+      periodosNaranjas++;
+    } else {
+      periodosRojos++;
+    }
+
+    // Detectar cambios de potencia
+    if (indice > 0) {
+      const actual = consumo.potenciaPromedio;
+      const anterior = consumos[indice - 1].potenciaPromedio;
+      if (actual !== null && anterior !== null && Math.abs(actual - anterior) >= 0.5) {
+        cambiosPotenciaTotales++;
+        periodosConCambios++;
+      }
+    }
+
+    // Detectar bloques de cero
+    if (consumo.consumoActivaTotal === 0) {
+      bloquesCeroConsecutivos++;
+    }
+
+    // Verificar si es periodo sin anomalías (comportamiento normal)
+    if (porcentajeVsBaseline >= 75 && porcentajeVsBaseline <= 125) {
+      periodosSinAnomalias++;
+    }
+  });
+
+  // Detectar descenso sostenido: 3+ periodos rojos/naranjas consecutivos o distribuidos
+  const periodosAnomalos = periodosNaranjas + periodosRojos;
+  const porcentajeAnomalos = (periodosAnomalos / consumos.length) * 100;
+  
+  if (periodosAnomalos >= 3 && porcentajeAnomalos >= 30) {
+    descensoSostenidoDetectado = true;
+  }
+
+  // 🎯 REGLAS DE CLASIFICACIÓN BASADAS EN PATRONES VISUALES
+
+  // REGLA 1: No anomalía - 0 esperado (patrones estacionales de ceros)
+  if (bloquesCeroConsecutivos >= 3 && periodosVerdes >= consumos.length * 0.6) {
+    return {
+      patronDetectado: 'No anomalía - 0 esperado',
+      justificacion: `${bloquesCeroConsecutivos} periodos con cero esperado estacional, ${periodosVerdes} periodos normales`,
+      mostrarInicioAnomalia: false
+    };
+  }
+
+  // REGLA 2: Sin anomalía (mayoría verde/amarillo, patrón estable)
+  if (periodosSinAnomalias >= consumos.length * 0.75 && periodosRojos === 0) {
+    return {
+      patronDetectado: 'Sin anomalía',
+      justificacion: `${periodosSinAnomalias}/${consumos.length} periodos con comportamiento normal`,
+      mostrarInicioAnomalia: false
+    };
+  }
+
+  // REGLA 3: No objetivo por cambio de potencia (cambios frecuentes)
+  if (cambiosPotenciaTotales >= 2 && periodosConCambios >= consumos.length * 0.3) {
+    return {
+      patronDetectado: 'No objetivo por cambio de potencia',
+      justificacion: `${cambiosPotenciaTotales} cambios de potencia detectados, ${periodosConCambios} periodos afectados`,
+      mostrarInicioAnomalia: false
+    };
+  }
+
+  // REGLA 4: Descenso sostenido (patrón rojo/naranja dominante CON tendencia descendente)
+  if (descensoSostenidoDetectado && (periodosRojos >= 2 || periodosNaranjas >= 3)) {
+    return {
+      patronDetectado: 'Descenso sostenido',
+      justificacion: `${periodosAnomalos} periodos anómalos (${periodosRojos} críticos, ${periodosNaranjas} bajos), ${porcentajeAnomalos.toFixed(1)}% del total`,
+      mostrarInicioAnomalia: true // ✅ ÚNICO QUE MUESTRA INICIO
+    };
+  }
+
+  // REGLA 5: Anomalía indeterminada (patrones mixtos sin tendencia clara)
+  return {
+    patronDetectado: 'Anomalía indeterminada',
+    justificacion: `Patrón mixto: ${periodosVerdes}V ${periodosAmarillos}A ${periodosNaranjas}N ${periodosRojos}R, sin tendencia clara`,
+    mostrarInicioAnomalia: false
+  };
+} */
+
+/**
  * Clasifica el expediente completo en una de las 5 categorías globales
  * @param consumosMensuales - Array de consumos mensuales ordenados cronológicamente
  * @returns Resultado de la clasificación global con detalles
@@ -48,6 +173,13 @@ export const clasificarExpediente = (
       confianza: 0,
     };
   }
+
+  // 🌈 NUEVO: Análisis basado en patrones del mapa de calor
+  // const analisisVisual = analizarPatronMapaCalor(consumosMensuales);
+
+  // Usar la clasificación del análisis visual como base
+  // let clasificacionFinal = analisisVisual.patronDetectado as any;
+  // const mostrarInicio = analisisVisual.mostrarInicioAnomalia;
 
   const detalle: string[] = [];
   let confianza = 0;
@@ -184,16 +316,11 @@ export const clasificarExpediente = (
   }
 
   // CASO 4: Descenso sostenido
-  // Criterios más estrictos usando análisis global:
+  // Criterios usando análisis GLOBAL (no consecutividad estricta):
   // - Debe haber inicio de anomalía detectado
-  // - Al menos 3 periodos consecutivos en descenso
-  // - Consumo actual significativamente inferior al promedio global (< -30%)
+  // - Al menos 3 periodos TOTALES (no necesariamente consecutivos) con consumo bajo
+  // - Consumo promedio post-anomalía significativamente inferior al promedio global (≤ -20%)
   if (inicioAnomalia) {
-    const periodosConsecutivosDescenso = contarPeriodosConsecutivosDescenso(
-      consumosMensuales,
-      inicioAnomalia.indice
-    );
-
     // Consumo promedio DESPUÉS del inicio de la anomalía
     const consumosDespuesAnomalia = consumosMensuales
       .slice(inicioAnomalia.indice)
@@ -204,20 +331,39 @@ export const clasificarExpediente = (
     // Variación del consumo post-anomalía vs. promedio global
     const variacionVsGlobal = ((promedioDespuesAnomalia - promedioGlobal) / promedioGlobal) * 100;
 
-    // Es descenso sostenido si:
-    // 1. Al menos 3 periodos consecutivos en descenso
-    // 2. El promedio post-anomalía es al menos 30% menor que el promedio global
-    if (periodosConsecutivosDescenso >= 3 && variacionVsGlobal <= -30) {
+    // 🌍 NUEVO: Contar periodos con consumo significativamente bajo (no necesariamente consecutivos)
+    const periodosConConsumoBajo = consumosMensuales.slice(inicioAnomalia.indice).filter((c) => {
+      const zScore =
+        desviacionGlobal > 0 ? (c.consumoActivaTotal - promedioGlobal) / desviacionGlobal : 0;
+      // Consumo bajo si Z-Score < -1.5 O consumo < 50% del promedio global
+      return zScore < -1.5 || c.consumoActivaTotal < promedioGlobal * 0.5;
+    }).length;
+
+    // Es descenso sostenido si CUMPLE CUALQUIERA de estos criterios:
+    // OPCIÓN 1: ≥3 periodos con consumo bajo Y promedio post-anomalía ≤ -20% vs global
+    // OPCIÓN 2: ≥5 periodos con consumo bajo (incluso sin -20% de reducción)
+    // OPCIÓN 3: Promedio post-anomalía ≤ -40% vs global (descenso muy fuerte)
+    const tienePeriodosSuficientes = periodosConConsumoBajo >= 3;
+    const tieneDescensoSignificativo = variacionVsGlobal <= -20; // Reducido de -30% a -20%
+    const tieneMuchosPeriodosBajos = periodosConConsumoBajo >= 5;
+    const tieneDescensoMuyFuerte = variacionVsGlobal <= -40;
+
+    const esDescensoSostenido =
+      (tienePeriodosSuficientes && tieneDescensoSignificativo) || // Criterio normal
+      tieneMuchosPeriodosBajos || // Muchos periodos bajos
+      tieneDescensoMuyFuerte; // Descenso drástico
+
+    if (esDescensoSostenido) {
       confianza = 90;
       detalle.push(`Inicio de anomalía detectado en: ${inicioAnomalia.periodo}`);
       detalle.push(`Consumo previo: ${inicioAnomalia.consumoPrevio?.toFixed(0)} kWh`);
       detalle.push(`Consumo al inicio: ${inicioAnomalia.consumo?.toFixed(0)} kWh`);
       detalle.push(`Variación inicial: ${inicioAnomalia.variacion?.toFixed(1)}%`);
       detalle.push(
-        `Descenso sostenido durante ${periodosConsecutivosDescenso} periodos consecutivos`
+        `${periodosConConsumoBajo} periodos con consumo significativamente bajo detectados`
       );
-      detalle.push(`Promedio global: ${promedioGlobal.toFixed(0)} kWh`);
-      detalle.push(`Promedio post-anomalía: ${promedioDespuesAnomalia.toFixed(0)} kWh`);
+      detalle.push(`Promedio global histórico: ${promedioGlobal.toFixed(0)} kWh`);
+      detalle.push(`Promedio desde inicio de anomalía: ${promedioDespuesAnomalia.toFixed(0)} kWh`);
       detalle.push(`Reducción vs. promedio global: ${variacionVsGlobal.toFixed(1)}%`);
 
       return {
@@ -339,6 +485,7 @@ function contarCambiosPotencia(consumos: ConsumoMensual[]): number {
  * Encuentra el primer periodo donde se detectó una anomalía significativa
  * Considera TODO el histórico (anterior Y posterior) para determinar si es anomalía real
  * IGNORA periodos con cambio de potencia (no son anomalías reales)
+ * IGNORA primeros periodos (necesita baseline histórico)
  */
 function encontrarInicioAnomalia(
   consumos: ConsumoMensual[],
@@ -352,12 +499,20 @@ function encontrarInicioAnomalia(
   consumoPrevio: number | null;
   variacion: number | null;
 } | null {
-  // IMPORTANTE: Empezar desde índice 2 (3er periodo) para tener suficiente histórico
-  for (let i = 2; i < consumos.length; i++) {
+  // Calcular promedio de los primeros 12 meses (o todos si hay menos)
+  const periodoBaseline = Math.min(12, Math.floor(consumos.length * 0.3));
+  const consumosBaseline = consumos.slice(0, periodoBaseline).map((c) => c.consumoActivaTotal);
+  const promedioBaseline =
+    consumosBaseline.reduce((sum, val) => sum + val, 0) / consumosBaseline.length;
+
+  // IMPORTANTE: Empezar desde después del periodo de baseline
+  const indiceInicio = Math.max(2, periodoBaseline);
+
+  for (let i = indiceInicio; i < consumos.length; i++) {
     const actual = consumos[i];
     const anterior = consumos[i - 1];
 
-    // FILTRO CRÍTICO: Ignorar si hubo cambio de potencia (≥ 0.5 kW)
+    // FILTRO CRÍTICO 1: Ignorar si hubo cambio de potencia (≥ 0.5 kW)
     const potenciaActual = actual.potenciaPromedio;
     const potenciaAnterior = anterior.potenciaPromedio;
     const huboCAMBIO_POTENCIA =
@@ -365,46 +520,99 @@ function encontrarInicioAnomalia(
       potenciaAnterior !== null &&
       Math.abs(potenciaActual - potenciaAnterior) >= 0.5;
 
-    // Si hubo cambio de potencia, NO es anomalía de fraude/avería
     if (huboCAMBIO_POTENCIA) {
       continue; // Saltar este periodo
     }
 
-    // CRITERIO 1: Descenso mes-a-mes muy fuerte (≤ -40%)
-    const esDescensoMuyFuerte =
-      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -40;
-
-    // CRITERIO 2: Consumo extremadamente bajo (<= 10 kWh) cuando el promedio global es alto (>100 kWh)
-    const esConsumoExtremadamenteBajo = actual.consumoActivaTotal <= 10 && promedioGlobal > 100;
-
-    // CRITERIO 3: Descenso moderado (≤ -30%) + consumo muy por debajo del promedio del mes (< -50%)
-    const esDescensoModerado =
-      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -30;
-    const promedioMes = promediosPorMes.get(actual.mes);
-    const esMuyBajoVsHistoricoMes =
-      promedioMes && promedioMes > 0
-        ? ((actual.consumoActivaTotal - promedioMes) / promedioMes) * 100 < -50
-        : false;
-
-    // CRITERIO 4: Z-Score muy bajo (< -2.5) respecto al promedio global
+    // Z-Score Global para este periodo
     const desviacionDelPromedio = actual.consumoActivaTotal - promedioGlobal;
     const zScoreGlobal = desviacionGlobal > 0 ? desviacionDelPromedio / desviacionGlobal : 0;
-    const esMuyBajoVsGlobal = zScoreGlobal < -2.5;
 
-    // Es anomalía si cumple CUALQUIERA de estos casos:
-    // - Descenso muy fuerte mes-a-mes (≤ -40%)
-    // - Consumo extremadamente bajo (<= 10 kWh)
-    // - Descenso moderado (≤ -30%) Y muy por debajo del promedio del mes (< -50%)
-    // - Z-Score muy bajo (< -2.5) Y descenso mes-a-mes significativo (≤ -25%)
-    const esAnomalia =
-      esDescensoMuyFuerte ||
-      esConsumoExtremadamenteBajo ||
-      (esDescensoModerado && esMuyBajoVsHistoricoMes) ||
-      (esMuyBajoVsGlobal &&
-        actual.variacionPorcentual !== null &&
-        actual.variacionPorcentual <= -25);
+    // Variación vs promedio histórico del mes
+    const promedioMes = promediosPorMes.get(actual.mes);
+    const variacionVsHistoricoMes =
+      promedioMes && promedioMes > 0
+        ? ((actual.consumoActivaTotal - promedioMes) / promedioMes) * 100
+        : null;
 
-    if (esAnomalia) {
+    // 🎯 PRIORIDAD 1: Consumo CERO o extremadamente bajo (≤ 15 kWh)
+    // Este es el indicador más claro de anomalía (fraude/avería)
+    if (actual.consumoActivaTotal <= 15) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
+    // 🎯 PRIORIDAD 2: Descenso mes-a-mes muy fuerte (≤ -50%)
+    const esDescensoMuyFuerte =
+      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -50;
+
+    if (esDescensoMuyFuerte) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
+    // 🎯 PRIORIDAD 2.5: Consumo muy bajo vs baseline (≤ 60% del promedio histórico)
+    // Detecta anomalías moderadas que se mantienen sostenidas
+    const esConsumoMuyBajoVsBaseline = actual.consumoActivaTotal <= promedioBaseline * 0.6;
+
+    if (esConsumoMuyBajoVsBaseline) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
+    // 🎯 PRIORIDAD 2.7: Descenso significativo vs baseline (< 70% Y descenso mes-a-mes)
+    // Para casos donde el consumo no es extremadamente bajo pero sí representa un descenso claro
+    const esConsumoBajoConDescenso =
+      actual.consumoActivaTotal < promedioBaseline * 0.7 &&
+      actual.variacionPorcentual !== null &&
+      actual.variacionPorcentual < -15;
+
+    if (esConsumoBajoConDescenso) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
+    // 🎯 PRIORIDAD 3: Z-Score muy bajo (< -2.5) + consumo bajo vs baseline (< 40%)
+    const esZScoreMuyBajo = zScoreGlobal < -2.5;
+    const esConsumoBajoVsBaseline = actual.consumoActivaTotal < promedioBaseline * 0.4;
+
+    if (esZScoreMuyBajo && esConsumoBajoVsBaseline) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
+    // 🎯 PRIORIDAD 4: Descenso muy fuerte (≤ -40%) + muy por debajo del histórico del mes (< -70%)
+    const esDescensoFuerte =
+      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -40;
+    const esMuyBajoVsHistoricoMes =
+      variacionVsHistoricoMes !== null && variacionVsHistoricoMes < -70;
+
+    if (esDescensoFuerte && esMuyBajoVsHistoricoMes) {
       return {
         periodo: actual.periodo,
         indice: i,
@@ -443,44 +651,6 @@ function calcularTendenciaGlobal(consumos: ConsumoMensual[]): number {
   const pendiente = (n * sumaXY - sumaX * sumaY) / (n * sumaX2 - sumaX * sumaX);
 
   return pendiente; // kWh/mes
-}
-
-/**
- * Cuenta periodos consecutivos con descenso a partir de un índice
- */
-function contarPeriodosConsecutivosDescenso(
-  consumos: ConsumoMensual[],
-  indiceInicio: number
-): number {
-  let consecutivos = 0;
-
-  for (let i = indiceInicio; i < consumos.length; i++) {
-    const variacion = consumos[i].variacionPorcentual;
-
-    // Considerar descenso si:
-    // 1. Variación negativa
-    // 2. O consumo muy bajo (< 100 kWh)
-    const esDescenso =
-      (variacion !== null && variacion < 0) || consumos[i].consumoActivaTotal < 100;
-
-    if (esDescenso) {
-      consecutivos++;
-    } else {
-      // Si hay un periodo sin descenso, rompe la racha
-      // PERO permitir 1 periodo de "recuperación" antes de romper
-      if (
-        i + 1 < consumos.length &&
-        consumos[i + 1].variacionPorcentual !== null &&
-        consumos[i + 1].variacionPorcentual! < 0
-      ) {
-        consecutivos++; // Incluir este periodo como parte de la tendencia
-        continue;
-      }
-      break;
-    }
-  }
-
-  return consecutivos;
 }
 
 /**

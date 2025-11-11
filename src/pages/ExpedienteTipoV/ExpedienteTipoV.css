@@ -48,6 +48,11 @@
   }
 }
 
+/* 🎯 Sección de Detección de Anomalías */
+.expediente-deteccion-section {
+  margin-bottom: 2rem;
+}
+
 .expediente-header-section {
   background: var(--color-primary);
   padding: 2.5rem 2rem;

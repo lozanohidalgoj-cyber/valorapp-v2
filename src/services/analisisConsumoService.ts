@@ -723,6 +723,26 @@ export const analizarComportamientoMensual = (
     }
   });
 
+  // 🌍 CÁLCULO GLOBAL: Promedio y desviación estándar de TODO el histórico
+  const consumosTotales = datos
+    .map((r) => r.consumoTotal)
+    .filter((c): c is number => c !== null && Number.isFinite(c));
+
+  const promedioGlobalConsumoTotal =
+    consumosTotales.length > 0
+      ? consumosTotales.reduce((sum, val) => sum + val, 0) / consumosTotales.length
+      : 0;
+
+  const varianzaGlobal =
+    consumosTotales.length > 0
+      ? consumosTotales.reduce(
+          (sum, val) => sum + Math.pow(val - promedioGlobalConsumoTotal, 2),
+          0
+        ) / consumosTotales.length
+      : 0;
+
+  const desviacionGlobal = Math.sqrt(varianzaGlobal);
+
   // Umbrales de clasificación de comportamiento (basados en análisis estadístico)
   const UMBRALES = {
     DESCENSO_FUERTE: -40, // Descenso fuerte (anomalía) - variaciones críticas
@@ -731,6 +751,8 @@ export const analizarComportamientoMensual = (
     VARIACION_INUSUAL: 60, // Variación histórica inusual (±60% respecto al promedio)
     AUMENTO_SIGNIFICATIVO: 50, // Aumento de consumo significativo
     SIN_CAMBIO: 5, // Sin cambio (±5%)
+    ZSCORE_BAJO: -2.0, // Z-Score bajo indica consumo muy inferior al promedio global
+    ZSCORE_MUY_BAJO: -2.5, // Z-Score muy bajo indica consumo crítico
   };
 
   ordenados.forEach((registro, indice) => {
@@ -757,6 +779,12 @@ export const analizarComportamientoMensual = (
         ? null
         : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
           100;
+
+    // 🌍 Z-Score Global: Mide cuántas desviaciones estándar está el consumo del promedio global
+    const zScoreGlobal =
+      desviacionGlobal > 0 && registro.consumoTotal !== null
+        ? (registro.consumoTotal - promedioGlobalConsumoTotal) / desviacionGlobal
+        : 0;
 
     // Obtener variación mes-a-mes comparando CONSUMO TOTAL (no promedio diario)
     const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
@@ -797,10 +825,19 @@ export const analizarComportamientoMensual = (
     else if (cambioPotenciaActivo) {
       comportamiento = 'Cambio de potencia';
     }
-    // Prioridad 3: Clasificar descensos y aumentos por variación mes-a-mes
+    // Prioridad 3: Clasificar descensos y aumentos usando CONTEXTO GLOBAL
     else if (variacionMesMes !== null) {
+      // 🌍 CRITERIO GLOBAL: Consumo muy bajo respecto al promedio global (Z-Score < -2.5)
+      const esConsumoMuyBajoGlobal = zScoreGlobal < UMBRALES.ZSCORE_MUY_BAJO;
+      const esConsumoBajoGlobal = zScoreGlobal < UMBRALES.ZSCORE_BAJO;
+
       if (variacionMesMes < UMBRALES.DESCENSO_FUERTE) {
         // < -40%
+        comportamiento = 'Descenso fuerte (anomalía)';
+      }
+      // 🌍 NUEVO: Detectar descenso fuerte si Z-Score muy bajo incluso sin variación mes-a-mes extrema
+      else if (esConsumoMuyBajoGlobal && variacionMesMes < UMBRALES.DESCENSO_MODERADO) {
+        // Z-Score < -2.5 Y descenso > -20%
         comportamiento = 'Descenso fuerte (anomalía)';
       } else if (variacionMesMes < UMBRALES.DESCENSO_MODERADO) {
         // -40% a -20%
@@ -812,8 +849,22 @@ export const analizarComportamientoMensual = (
         // -10% a 0% (descensos menores)
         comportamiento = 'Descenso leve';
       } else if (variacionMesMes <= UMBRALES.SIN_CAMBIO) {
-        // 0% a +5% - PERO verificar si hay descenso desde máximo histórico
-        if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
+        // 0% a +5% - Verificar contexto global Y máximo histórico
+
+        // 🌍 PRIORIDAD 1: Z-Score muy bajo indica anomalía incluso sin cambio mes-a-mes
+        if (esConsumoMuyBajoGlobal) {
+          comportamiento = 'Descenso fuerte (anomalía)';
+        }
+        // 🌍 PRIORIDAD 2: Z-Score bajo + descenso desde máximo histórico
+        else if (
+          esConsumoBajoGlobal &&
+          variacionDesdeMaximo !== null &&
+          variacionDesdeMaximo < UMBRALES.DESCENSO_MODERADO
+        ) {
+          comportamiento = 'Descenso moderado';
+        }
+        // Verificar descenso desde máximo histórico del mes
+        else if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
           comportamiento = 'Descenso fuerte (anomalía)';
         } else if (
           variacionDesdeMaximo !== null &&
@@ -829,8 +880,22 @@ export const analizarComportamientoMensual = (
         // >= +50%
         comportamiento = 'Aumento de consumo';
       } else {
-        // +5% a +50% (aumentos moderados) - PERO verificar descenso desde máximo
-        if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
+        // +5% a +50% (aumentos moderados) - PERO verificar descenso global/histórico
+
+        // 🌍 PRIORIDAD 1: Z-Score muy bajo sobrescribe aumento aparente
+        if (esConsumoMuyBajoGlobal) {
+          comportamiento = 'Descenso fuerte (anomalía)';
+        }
+        // 🌍 PRIORIDAD 2: Z-Score bajo + descenso desde máximo
+        else if (
+          esConsumoBajoGlobal &&
+          variacionDesdeMaximo !== null &&
+          variacionDesdeMaximo < UMBRALES.DESCENSO_MODERADO
+        ) {
+          comportamiento = 'Descenso moderado';
+        }
+        // Verificar descenso desde máximo histórico
+        else if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
           comportamiento = 'Descenso fuerte (anomalía)';
         } else if (
           variacionDesdeMaximo !== null &&

@@ -10,6 +10,51 @@
 import { memo, useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import type { ConsumoMensual, DerivacionData } from '../../types';
 import { formatearNumero, calcularColorHeatMap } from '../../utils';
+
+/**
+ * Calcula el color para la métrica de detección de anomalías
+ * Usa la misma paleta que calcularColorHeatMap: Rojo → Amarillo → Verde
+ * Incluye detección de cambios de potencia
+ */
+const calcularColorAnomalia = (consumoPromedioDiario: number, baseline: number): string => {
+  if (consumoPromedioDiario === 0 || baseline === 0) {
+    return 'rgb(255, 0, 0)'; // Rojo para cero consumo
+  }
+
+  const porcentajeVsBaseline = (consumoPromedioDiario / baseline) * 100;
+
+  // Mapear porcentaje a rango 0-1 para usar la misma lógica que calcularColorHeatMap
+  // 0% = 0 (rojo), 100% = 0.5 (amarillo), 200% = 1 (verde)
+  let normalizado: number;
+
+  if (porcentajeVsBaseline <= 100) {
+    // 0-100%: mapear a 0-0.5 (rojo a amarillo)
+    normalizado = (porcentajeVsBaseline / 100) * 0.5;
+  } else {
+    // 100-200%: mapear a 0.5-1 (amarillo a verde)
+    const exceso = Math.min(porcentajeVsBaseline - 100, 100); // máximo 100% exceso
+    normalizado = 0.5 + (exceso / 100) * 0.5;
+  }
+
+  // Misma lógica que calcularColorHeatMap
+  let r, g, b;
+
+  if (normalizado < 0.5) {
+    // Rojo → Amarillo (0 a 0.5)
+    const t = normalizado * 2; // 0 a 1
+    r = 255;
+    g = Math.round(255 * t);
+    b = 0;
+  } else {
+    // Amarillo → Verde (0.5 a 1)
+    const t = (normalizado - 0.5) * 2; // 0 a 1
+    r = Math.round(255 * (1 - t));
+    g = 255;
+    b = 0;
+  }
+
+  return `rgb(${r}, ${g}, ${b})`;
+};
 import {
   extraerConsumoActiva,
   extraerPromedioActiva,
@@ -24,7 +69,12 @@ interface HeatMapConsumoProps {
   onCellClick?: (periodo: string) => void;
 }
 
-type HeatmapMetricId = 'consumoActiva' | 'promedioActiva' | 'maximetro' | 'energiaReconstruida';
+type HeatmapMetricId =
+  | 'consumoActiva'
+  | 'promedioActiva'
+  | 'maximetro'
+  | 'energiaReconstruida'
+  | 'deteccionAnomalias';
 
 interface HeatmapMetricConfig {
   id: HeatmapMetricId;
@@ -47,6 +97,15 @@ interface DetalleActivo {
 
 // ✅ USAR EXTRACTORES VALIDADOS DEL SERVICIO
 const METRICAS: HeatmapMetricConfig[] = [
+  {
+    id: 'deteccionAnomalias',
+    titulo: '🎯 Detección de Anomalías',
+    descripcion: 'Análisis de anomalías basado en consumo promedio diario',
+    unidad: 'kWh/día',
+    motivoClave: 'variacion_consumo_activa',
+    decimales: 1,
+    extractor: (dato: ConsumoMensual) => dato.consumoPromedioDiario,
+  },
   {
     id: 'consumoActiva',
     titulo: 'Consumo de E. Activa',
@@ -155,7 +214,8 @@ const HeatMapConsumoComponent = ({
   const matrixRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
   const [scaledHeight, setScaledHeight] = useState<number | undefined>(undefined);
-  const [metricaSeleccionada, setMetricaSeleccionada] = useState<HeatmapMetricId>('consumoActiva');
+  const [metricaSeleccionada, setMetricaSeleccionada] =
+    useState<HeatmapMetricId>('deteccionAnomalias');
   const [detalleActivo, setDetalleActivo] = useState<DetalleActivo | null>(null);
 
   useEffect(() => {
@@ -215,6 +275,23 @@ const HeatMapConsumoComponent = ({
       promedio: valores.reduce((acc, val) => acc + val, 0) / valores.length,
     };
   }, [datos, metricaActual]);
+
+  // Calcular baseline para detección de anomalías
+  const baselineAnomalias = useMemo(() => {
+    if (metricaSeleccionada !== 'deteccionAnomalias' || datos.length < 3) {
+      return 0;
+    }
+
+    const periodoBaseline = Math.min(12, Math.floor(datos.length * 0.3));
+    const datosBaseline = datos.slice(0, periodoBaseline);
+    const promediosBaseline = datosBaseline
+      .map((d) => d.consumoPromedioDiario)
+      .filter((p) => p > 0);
+
+    if (promediosBaseline.length === 0) return 0;
+
+    return promediosBaseline.reduce((sum, val) => sum + val, 0) / promediosBaseline.length;
+  }, [datos, metricaSeleccionada]);
 
   const detallesMap = detallesPorPeriodo ?? {};
 
@@ -316,37 +393,102 @@ const HeatMapConsumoComponent = ({
                     {metricaActual.unidad}
                   </span>
                 </div>
+                {metricaSeleccionada === 'deteccionAnomalias' && (
+                  <div className="heatmap-chip heatmap-chip--baseline">
+                    <span className="chip-label">🎯 Baseline</span>
+                    <span className="chip-value">
+                      {formatearNumero(baselineAnomalias, 1)} {metricaActual.unidad}
+                    </span>
+                  </div>
+                )}
               </div>
               <div className="integrated-row legend-variacion-inline">
-                <span className="legend-inline-title">📊 Código de Colores - Variación:</span>
-                <div className="legend-inline-items">
-                  <span className="legend-inline-item">
-                    <span className="legend-inline-box" style={{ background: '#66bb6a' }}></span>
-                    Estable (±5%)
-                  </span>
-                  <span className="legend-inline-item">
-                    <span className="legend-inline-box" style={{ background: '#ffca28' }}></span>
-                    Leve (5-10%)
-                  </span>
-                  <span className="legend-inline-item">
-                    <span className="legend-inline-box" style={{ background: '#ffa726' }}></span>
-                    Moderada (10-20%)
-                  </span>
-                  <span className="legend-inline-item">
-                    <span className="legend-inline-box" style={{ background: '#ff5722' }}></span>
-                    Alta (20-40%)
-                  </span>
-                  <span className="legend-inline-item intensity-inline">
-                    <span
-                      className="legend-inline-bar"
-                      style={{
-                        background:
-                          'linear-gradient(to right, rgb(255,0,0), rgb(255,255,0), rgb(0,255,0))',
-                      }}
-                    ></span>{' '}
-                    Intensidad: Bajo → Medio → Alto
-                  </span>
-                </div>
+                {metricaSeleccionada === 'deteccionAnomalias' ? (
+                  <>
+                    <span className="legend-inline-title">🎯 Código de Colores - Anomalías:</span>
+                    <div className="legend-inline-items">
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: 'rgb(255, 0, 0)' }}
+                        ></span>
+                        Crítico (0-25%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: 'rgb(255, 128, 0)' }}
+                        ></span>
+                        Bajo (25-75%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: 'rgb(255, 255, 0)' }}
+                        ></span>
+                        Normal (75-125%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: 'rgb(128, 255, 0)' }}
+                        ></span>
+                        Elevado (125-175%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: 'rgb(0, 255, 0)' }}
+                        ></span>
+                        Muy alto (&gt;175%)
+                      </span>
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <span className="legend-inline-title">📊 Código de Colores - Variación:</span>
+                    <div className="legend-inline-items">
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: '#66bb6a' }}
+                        ></span>
+                        Estable (±5%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: '#ffca28' }}
+                        ></span>
+                        Leve (5-10%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: '#ffa726' }}
+                        ></span>
+                        Moderada (10-20%)
+                      </span>
+                      <span className="legend-inline-item">
+                        <span
+                          className="legend-inline-box"
+                          style={{ background: '#ff5722' }}
+                        ></span>
+                        Alta (20-40%)
+                      </span>
+                      <span className="legend-inline-item intensity-inline">
+                        <span
+                          className="legend-inline-bar"
+                          style={{
+                            background:
+                              'linear-gradient(to right, rgb(255,0,0), rgb(255,255,0), rgb(0,255,0))',
+                          }}
+                        ></span>{' '}
+                        Intensidad: Bajo → Medio → Alto
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             </div>
             <div className="matrix-corner"></div>
@@ -374,16 +516,56 @@ const HeatMapConsumoComponent = ({
                     }
 
                     const valor = metricaActual.extractor(dato);
-                    const color = calcularColorHeatMap(
-                      valor,
-                      resumenMetricas.minimo,
-                      resumenMetricas.maximo
-                    );
-                    const tooltipLineas = [
-                      `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
-                      `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
-                      `${dato.dias} días facturados`,
-                    ];
+
+                    // Obtener dato del periodo anterior para información del tooltip
+                    const periodoAnterior = `${mes === 1 ? año - 1 : año}-${mes === 1 ? 12 : mes - 1}`;
+                    const datoAnterior = mapaPorPeriodo.get(periodoAnterior);
+
+                    // Usar colores especiales para detección de anomalías
+                    const color =
+                      metricaSeleccionada === 'deteccionAnomalias'
+                        ? calcularColorAnomalia(valor, baselineAnomalias)
+                        : calcularColorHeatMap(
+                            valor,
+                            resumenMetricas.minimo,
+                            resumenMetricas.maximo
+                          );
+
+                    // Tooltip personalizado para detección de anomalías
+                    const tooltipLineas =
+                      metricaSeleccionada === 'deteccionAnomalias'
+                        ? (() => {
+                            const lineasBase = [
+                              `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
+                              `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
+                              `Baseline: ${formatearNumero(baselineAnomalias, 1)} kWh/día`,
+                              `Variación: ${formatearNumero((valor / baselineAnomalias - 1) * 100, 0)}%`,
+                              `${dato.dias} días facturados`,
+                            ];
+
+                            // Agregar información de cambio de potencia si se detecta
+                            if (
+                              datoAnterior &&
+                              dato.potenciaPromedio !== null &&
+                              datoAnterior.potenciaPromedio !== null
+                            ) {
+                              const cambioPotencia = Math.abs(
+                                dato.potenciaPromedio - datoAnterior.potenciaPromedio
+                              );
+                              if (cambioPotencia >= 0.5) {
+                                lineasBase.push(
+                                  `⚡ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
+                                );
+                              }
+                            }
+
+                            return lineasBase;
+                          })()
+                        : [
+                            `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
+                            `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
+                            `${dato.dias} días facturados`,
+                          ];
 
                     return (
                       <div
