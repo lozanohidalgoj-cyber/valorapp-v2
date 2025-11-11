@@ -70,7 +70,11 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     const ordenados = [...datos].sort((a, b) => a.periodo.localeCompare(b.periodo));
     const resultado = new Map<
       string,
-      { variacionHistorica: number | null; comportamiento: string }
+      {
+        variacionHistorica: number | null;
+        comportamiento: string;
+        ceroEsperado: boolean;
+      }
     >();
     let totalZerosPrevios = 0;
     let consecutivosZeros = 0;
@@ -105,10 +109,13 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
       let comportamiento = 'Normal';
 
+      let ceroEsperadoPersistente = false;
+
       if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
         comportamiento = 'Cero sospechoso';
       } else if (consumoEsCero) {
         comportamiento = 'Cero esperado estacional';
+        ceroEsperadoPersistente = true;
       } else if (
         consumoPromedioAnterior !== null &&
         consumoPromedioAnterior !== 0 &&
@@ -134,6 +141,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
       resultado.set(registro.periodo, {
         variacionHistorica,
         comportamiento,
+        ceroEsperado: ceroEsperadoPersistente,
       });
 
       if (consumoEsCero) {
@@ -141,6 +149,45 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
         totalZerosPrevios += 1;
       } else {
         consecutivosZeros = 0;
+      }
+    });
+
+    const mesesConConsumo = new Map<number, number>();
+    const mesesCero = new Map<number, number>();
+
+    ordenados.forEach((registro) => {
+      const conteoConsumo = mesesConConsumo.get(registro.mes) ?? 0;
+      const conteoCeros = mesesCero.get(registro.mes) ?? 0;
+
+      if (registro.consumoTotal === 0) {
+        mesesCero.set(registro.mes, conteoCeros + 1);
+      } else {
+        mesesConConsumo.set(registro.mes, conteoConsumo + 1);
+      }
+    });
+
+    resultado.forEach((valor, periodo) => {
+      const registro = ordenados.find((item) => item.periodo === periodo);
+      if (!registro) {
+        return;
+      }
+
+      const totalConsumoMes = mesesConConsumo.get(registro.mes) ?? 0;
+      const totalCerosMes = mesesCero.get(registro.mes) ?? 0;
+      const totalPeriodosMes = totalConsumoMes + totalCerosMes;
+
+      if (
+        valor.ceroEsperado &&
+        totalConsumoMes >= 1 &&
+        totalCerosMes >= totalConsumoMes &&
+        totalPeriodosMes >= 3
+      ) {
+        const nuevoValor = resultado.get(periodo);
+        if (nuevoValor) {
+          nuevoValor.comportamiento = 'Estacionalidad – uso temporal';
+          nuevoValor.ceroEsperado = true;
+          resultado.set(periodo, nuevoValor);
+        }
       }
     });
 
