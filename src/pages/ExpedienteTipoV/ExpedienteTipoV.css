@@ -1324,6 +1324,10 @@
   font-weight: 700;
 }
 
+.expediente-table-analisis td.expediente-table-analisis__columna-promedio {
+  text-align: center;
+}
+
 .expediente-anomalias__row--potencia-subida {
   background-color: rgba(255, 49, 132, 0.16) !important;
 }

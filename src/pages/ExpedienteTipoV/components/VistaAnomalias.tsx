@@ -68,13 +68,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     return mapa;
   }, [datos]);
-  const motivosLegibles: Record<string, string> = {
-    variacion_consumo_activa: 'Variación consumo activa',
-    variacion_promedio_activa: 'Variación promedio activa',
-    variacion_energia_reconstruida: 'Variación energía reconstruida',
-    variacion_maximetro: 'Variación maxímetro',
-  };
-
   const obtenerClaseFilaPotencia = (variacion: number | null): string => {
     if (variacion === null || variacion === 0) {
       return '';
@@ -145,8 +138,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   <th>Días</th>
                   <th>Consumo Promedio Diario (kWh)</th>
                   <th>Variación %</th>
-                  <th>Tipo</th>
-                  <th>Motivos</th>
                 </tr>
               </thead>
               <tbody>
@@ -200,7 +191,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                           : 'N/A'}
                       </td>
                       <td>{registro.dias}</td>
-                      <td>
+                      <td className="expediente-table-analisis__columna-promedio">
                         {consumoPromedioDiario !== null
                           ? formatearNumero(consumoPromedioDiario, 2)
                           : 'N/A'}
@@ -209,16 +200,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {registro.variacionPorcentual === null
                           ? 'N/A'
                           : `${formatearNumero(registro.variacionPorcentual)}%`}
-                      </td>
-                      <td className="expediente-anomalias__tipo">
-                        {registro.tipoVariacion ?? 'N/A'}
-                      </td>
-                      <td>
-                        {registro.motivosAnomalia.length === 0
-                          ? 'Sin detalle'
-                          : registro.motivosAnomalia
-                              .map((motivo) => motivosLegibles[motivo] ?? motivo)
-                              .join(', ')}
                       </td>
                     </tr>
                   );
