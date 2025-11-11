@@ -366,40 +366,6 @@ export const ExpedienteTipoV = () => {
 
         {modoVista === 'analisis' && resultadoAnalisis && (
           <div className="expediente-analisis-container">
-            {vistaActual !== 'mensual' && (
-              <div className="expediente-analisis-resumen">
-                <div className="analisis-resumen-card">
-                  <span className="resumen-label">Total Consumo</span>
-                  <span className="resumen-valor">
-                    {resultadoAnalisis.resumen.consumoTotalGeneral.toFixed(2)} kWh
-                  </span>
-                </div>
-                <div className="analisis-resumen-card">
-                  <span className="resumen-label">Total Facturas</span>
-                  <span className="resumen-valor">{resultadoAnalisis.resumen.totalFacturas}</span>
-                </div>
-                <div className="analisis-resumen-card">
-                  <span className="resumen-label">Periodo</span>
-                  <span className="resumen-valor">
-                    {resultadoAnalisis.periodoTotal.fechaInicio} -{' '}
-                    {resultadoAnalisis.periodoTotal.fechaFin}
-                  </span>
-                </div>
-                <div className="analisis-resumen-card">
-                  <span className="resumen-label">Promedio Anual</span>
-                  <span className="resumen-valor">
-                    {resultadoAnalisis.resumen.promedioAnual.toFixed(2)} kWh
-                  </span>
-                </div>
-                <div className="analisis-resumen-card">
-                  <span className="resumen-label">Anomalías Detectadas</span>
-                  <span className="resumen-valor anomalia-badge">
-                    {resultadoAnalisis.resumen.anomaliasDetectadas}
-                  </span>
-                </div>
-              </div>
-            )}
-
             <div className="expediente-tabs">
               <button
                 className={`expediente-tab ${vistaActual === 'anual' ? 'active' : ''}`}
