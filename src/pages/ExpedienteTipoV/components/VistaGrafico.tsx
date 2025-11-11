@@ -4,7 +4,8 @@
 
 import { useMemo } from 'react';
 import { Download } from 'lucide-react';
-import type { ConsumoMensual } from '../../../types';
+import type { AnalisisPeriodoConsumo, ConsumoMensual } from '../../../types';
+import { analizarComportamientoMensual } from '../../../services/analisisConsumoService';
 
 interface VistaGraficoProps {
   comparativaMensual: ConsumoMensual[];
@@ -31,19 +32,33 @@ const obtenerEtiquetaMes = (periodo: string): string => {
   });
 };
 
+const esBajaDeConsumo = (analisis: AnalisisPeriodoConsumo | null | undefined): boolean => {
+  if (!analisis) {
+    return false;
+  }
+  return (
+    analisis.comportamiento === 'Descenso brusco mes a mes' ||
+    analisis.comportamiento === 'Cero sospechoso'
+  );
+};
+
 export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoProps) => {
   const datosVacios = comparativaMensual.length === 0;
 
   const gradientId = useMemo(() => `grafico-area-${Math.random().toString(36).slice(2, 9)}`, []);
+  const analisisPorPeriodo = useMemo(
+    () => analizarComportamientoMensual(comparativaMensual),
+    [comparativaMensual]
+  );
 
-  const { maxConsumo, minConsumo, promedioConsumo, totalAnomalias, totalMeses, graficoConfig } =
+  const { maxConsumo, minConsumo, promedioConsumo, totalBajasConsumo, totalMeses, graficoConfig } =
     useMemo(() => {
       if (comparativaMensual.length === 0) {
         return {
           maxConsumo: 0,
           minConsumo: 0,
           promedioConsumo: 0,
-          totalAnomalias: 0,
+          totalBajasConsumo: 0,
           totalMeses: 0,
           graficoConfig: null,
         };
@@ -53,7 +68,10 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
       const maximo = Math.max(...consumos);
       const minimo = Math.min(...consumos);
       const promedio = consumos.reduce((acc, val) => acc + val, 0) / consumos.length;
-      const anomaliasDetectadas = comparativaMensual.filter((m) => m.esAnomalia).length;
+      const bajasDetectadas = comparativaMensual.reduce((acumulado, mes) => {
+        const analisis = analisisPorPeriodo.get(mes.periodo);
+        return esBajaDeConsumo(analisis) ? acumulado + 1 : acumulado;
+      }, 0);
       const meses = comparativaMensual.length;
 
       const rango = Math.max(maximo - minimo, 1);
@@ -69,11 +87,15 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
         const x = paddingX + avanceX * (width - paddingX * 2);
         const valorNormalizado = (mes.consumoTotal - minimo) / rango;
         const y = height - paddingY - valorNormalizado * areaHeight;
+        const analisis = analisisPorPeriodo.get(mes.periodo);
+        const bajaConsumo = esBajaDeConsumo(analisis);
         return {
           x,
           y,
           mes,
           etiqueta: obtenerEtiquetaMes(mes.periodo),
+          bajaConsumo,
+          comportamiento: analisis?.comportamiento ?? 'Sin cambios destacados',
         };
       });
 
@@ -101,7 +123,7 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
         maxConsumo: maximo,
         minConsumo: minimo,
         promedioConsumo: promedio,
-        totalAnomalias: anomaliasDetectadas,
+        totalBajasConsumo: bajasDetectadas,
         totalMeses: meses,
         graficoConfig: {
           width,
@@ -115,7 +137,7 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
           gridLines,
         },
       };
-    }, [comparativaMensual]);
+    }, [analisisPorPeriodo, comparativaMensual]);
 
   if (datosVacios || !graficoConfig) {
     return (
@@ -135,7 +157,9 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
       <div className="grafico-header">
         <div>
           <h3>📈 Evolución del Consumo Mensual</h3>
-          <p>Tendencia de consumo activo con referencia al promedio y anomalías destacadas</p>
+          <p>
+            Tendencia de consumo activo con referencia al promedio y bajas de consumo destacadas
+          </p>
         </div>
         <span className="grafico-tag" aria-label={`Meses analizados: ${totalMeses}`}>
           {totalMeses} meses
@@ -199,14 +223,16 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
           {graficoConfig.puntos.map((punto, indice) => (
             <g key={`${punto.mes.periodo}-${indice}`} className="grafico-punto-grupo">
               <circle
-                className={`grafico-punto ${punto.mes.esAnomalia ? 'grafico-punto--anomalia' : ''}`}
+                className={`grafico-punto ${punto.bajaConsumo ? 'grafico-punto--anomalia' : ''}`}
                 cx={punto.x}
                 cy={punto.y}
-                r={punto.mes.esAnomalia ? 1.2 : 0.8}
+                r={punto.bajaConsumo ? 1.2 : 0.8}
               >
-                <title>{`${punto.etiqueta}: ${formatearNumero(punto.mes.consumoTotal)} kWh`}</title>
+                <title>
+                  {`${punto.etiqueta}: ${formatearNumero(punto.mes.consumoTotal)} kWh • ${punto.comportamiento}`}
+                </title>
               </circle>
-              {punto.mes.esAnomalia && (
+              {punto.bajaConsumo && (
                 <circle className="grafico-punto-onda" cx={punto.x} cy={punto.y} r={2.6} />
               )}
             </g>
@@ -226,7 +252,7 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
         {graficoConfig.puntos.map((punto) => (
           <span
             key={`label-${punto.mes.periodo}`}
-            className={`grafico-eje-x-item ${punto.mes.esAnomalia ? 'grafico-eje-x-item--anomalia' : ''}`}
+            className={`grafico-eje-x-item ${punto.bajaConsumo ? 'grafico-eje-x-item--anomalia' : ''}`}
           >
             <strong>{punto.etiqueta}</strong>
             <small>{formatearNumero(punto.mes.consumoTotal)} kWh</small>
@@ -248,8 +274,8 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
           <span className="stat-value">{formatearNumero(promedioConsumo)} kWh</span>
         </div>
         <div className="stat-card anomalia-card">
-          <span className="stat-label">⚠️ Anomalías</span>
-          <span className="stat-value">{totalAnomalias}</span>
+          <span className="stat-label">⚠️ Bajas de consumo</span>
+          <span className="stat-value">{totalBajasConsumo}</span>
         </div>
       </div>
 
@@ -260,7 +286,7 @@ export const VistaGrafico = ({ comparativaMensual, onExportar }: VistaGraficoPro
         </div>
         <div className="leyenda-item">
           <span className="leyenda-icono leyenda-icono--anomalia" aria-hidden="true" />
-          <span>Anomalía detectada (±40%)</span>
+          <span>Baja de consumo destacada</span>
         </div>
       </div>
 

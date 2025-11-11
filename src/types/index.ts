@@ -244,6 +244,20 @@ export interface ConsumoMensual {
 }
 
 /**
+ * Resultado del análisis de comportamiento para un periodo mensual
+ */
+export interface AnalisisPeriodoConsumo {
+  /** Variación histórica respecto al promedio del mismo mes en otros años */
+  variacionHistorica: number | null;
+  /** Variación global respecto al promedio de toda la serie */
+  variacionGlobal: number | null;
+  /** Comportamiento detectado (ej. Descenso brusco, Cambio de potencia) */
+  comportamiento: string;
+  /** Indica si los ceros observados son esperados por estacionalidad */
+  ceroEsperado: boolean;
+}
+
+/**
  * Resultado completo del análisis de consumo
  */
 export interface ResultadoAnalisis {

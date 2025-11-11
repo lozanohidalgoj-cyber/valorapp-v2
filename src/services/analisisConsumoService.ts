@@ -6,7 +6,13 @@
  * - Comparativa mensual: Evolución mes a mes con detección de anomalías (umbral 40%)
  */
 
-import type { DerivacionData, ConsumoAnual, ConsumoMensual, ResultadoAnalisis } from '../types';
+import type {
+  DerivacionData,
+  ConsumoAnual,
+  ConsumoMensual,
+  ResultadoAnalisis,
+  AnalisisPeriodoConsumo,
+} from '../types';
 import {
   convertirNumeroEspañol,
   extraerAñoDeFormato,
@@ -413,3 +419,200 @@ export const analizarConsumoCompleto = (datos: DerivacionData[]): ResultadoAnali
 
 // Re-exportar formatearNumero para retrocompatibilidad
 export { formatearNumero };
+
+const COMPORTAMIENTOS_NO_ANOMALIA = new Set([
+  'Normal',
+  'Sin cambio',
+  'Estacionalidad – uso temporal',
+  'Cero esperado estacional',
+]);
+
+/**
+ * Analiza una serie de consumos mensuales y determina el comportamiento por periodo
+ * replicando la lógica empleada en la vista de anomalías.
+ * @param datos Serie mensual de consumos
+ * @returns Mapa periodo -> análisis detectado
+ */
+export const analizarComportamientoMensual = (
+  datos: ConsumoMensual[]
+): Map<string, AnalisisPeriodoConsumo> => {
+  const compararPorPeriodo = (a: ConsumoMensual, b: ConsumoMensual) => {
+    if (a.año === b.año) {
+      return a.mes - b.mes;
+    }
+    return a.año - b.año;
+  };
+
+  const promedioHistoricoPorMes = new Map<number, number>();
+  const acumulados = new Map<number, { suma: number; cantidad: number }>();
+
+  datos.forEach((registro) => {
+    if (!Number.isFinite(registro.consumoPromedioDiario)) {
+      return;
+    }
+
+    const actual = acumulados.get(registro.mes) ?? { suma: 0, cantidad: 0 };
+    acumulados.set(registro.mes, {
+      suma: actual.suma + registro.consumoPromedioDiario,
+      cantidad: actual.cantidad + 1,
+    });
+  });
+
+  acumulados.forEach((valor, mes) => {
+    if (valor.cantidad > 0) {
+      promedioHistoricoPorMes.set(mes, valor.suma / valor.cantidad);
+    }
+  });
+
+  const consumos = datos
+    .map((registro) => (registro.dias > 0 ? registro.consumoTotal / registro.dias : null))
+    .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor));
+
+  const promedioGlobalConsumoDiario =
+    consumos.length === 0
+      ? null
+      : consumos.reduce((acumulado, valor) => acumulado + valor, 0) / consumos.length;
+
+  const ordenados = [...datos].sort(compararPorPeriodo);
+  const registrosPorPeriodo = new Map<string, ConsumoMensual>();
+  const resultado = new Map<string, AnalisisPeriodoConsumo>();
+  let totalZerosPrevios = 0;
+  let consecutivosZeros = 0;
+  let cambioPotenciaActivo = false;
+
+  ordenados.forEach((registro, indice) => {
+    registrosPorPeriodo.set(registro.periodo, registro);
+    const consumoPromedioActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+    const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
+    const variacionHistorica =
+      promedioHistorico === null || promedioHistorico === 0 || consumoPromedioActual === null
+        ? null
+        : ((consumoPromedioActual - promedioHistorico) / promedioHistorico) * 100;
+    const variacionGlobal =
+      promedioGlobalConsumoDiario === null ||
+      promedioGlobalConsumoDiario === 0 ||
+      consumoPromedioActual === null
+        ? null
+        : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
+          100;
+    const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
+    const consumoPromedioAnterior =
+      anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
+    const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
+
+    const consumoEsCero = registro.consumoTotal === 0;
+    const habiaCeroAntes = totalZerosPrevios > 0;
+    const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
+    const variacionPosterior = siguiente?.variacionPorcentual;
+    const incrementoPosterior =
+      consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
+    const potenciaActual = registro.potenciaPromedio;
+    const potenciaPeriodoAnterior =
+      indice > 0 ? ordenados[indice - 1].potenciaPromedio : potenciaActual;
+
+    if (indice > 0 && potenciaActual !== potenciaPeriodoAnterior) {
+      cambioPotenciaActivo = true;
+    }
+
+    let comportamiento = 'Normal';
+    let ceroEsperadoPersistente = false;
+
+    if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
+      comportamiento = 'Cero sospechoso';
+    } else if (consumoEsCero) {
+      comportamiento = 'Cero esperado estacional';
+      ceroEsperadoPersistente = true;
+    } else if (
+      consumoPromedioAnterior !== null &&
+      consumoPromedioAnterior !== 0 &&
+      consumoPromedioActual !== null
+    ) {
+      const variacionMes =
+        ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
+      if (variacionMes <= -30) {
+        comportamiento = 'Descenso brusco mes a mes';
+      }
+    }
+
+    if (comportamiento === 'Normal' && cambioPotenciaActivo) {
+      comportamiento = 'Cambio de potencia';
+    } else if (comportamiento === 'Normal' && variacionGlobal !== null) {
+      if (variacionGlobal <= -30) {
+        comportamiento = 'Descenso brusco mes a mes';
+      } else if (variacionGlobal >= 30) {
+        comportamiento = 'Aumento de consumo';
+      } else if (Math.abs(variacionGlobal) <= 5) {
+        comportamiento = 'Sin cambio';
+      }
+    }
+
+    resultado.set(registro.periodo, {
+      variacionHistorica,
+      variacionGlobal,
+      comportamiento,
+      ceroEsperado: ceroEsperadoPersistente,
+    });
+
+    if (consumoEsCero) {
+      consecutivosZeros += 1;
+      totalZerosPrevios += 1;
+    } else {
+      consecutivosZeros = 0;
+    }
+  });
+
+  const mesesConConsumo = new Map<number, number>();
+  const mesesCero = new Map<number, number>();
+
+  ordenados.forEach((registro) => {
+    const conteoConsumo = mesesConConsumo.get(registro.mes) ?? 0;
+    const conteoCeros = mesesCero.get(registro.mes) ?? 0;
+
+    if (registro.consumoTotal === 0) {
+      mesesCero.set(registro.mes, conteoCeros + 1);
+    } else {
+      mesesConConsumo.set(registro.mes, conteoConsumo + 1);
+    }
+  });
+
+  resultado.forEach((valor, periodo) => {
+    const registro = registrosPorPeriodo.get(periodo);
+    if (!registro) {
+      return;
+    }
+
+    const totalConsumoMes = mesesConConsumo.get(registro.mes) ?? 0;
+    const totalCerosMes = mesesCero.get(registro.mes) ?? 0;
+    const totalPeriodosMes = totalConsumoMes + totalCerosMes;
+
+    if (
+      valor.ceroEsperado &&
+      totalConsumoMes >= 1 &&
+      totalCerosMes >= totalConsumoMes &&
+      totalPeriodosMes >= 3
+    ) {
+      const nuevoValor = resultado.get(periodo);
+      if (nuevoValor) {
+        nuevoValor.comportamiento = 'Estacionalidad – uso temporal';
+        nuevoValor.ceroEsperado = true;
+        resultado.set(periodo, nuevoValor);
+      }
+    }
+  });
+
+  return resultado;
+};
+
+/**
+ * Determina si un comportamiento detectado debe marcarse como anomalía.
+ * @param analisis Resultado del análisis por periodo
+ * @returns Verdadero si el comportamiento es anómalo
+ */
+export const esComportamientoAnomalo = (
+  analisis: AnalisisPeriodoConsumo | null | undefined
+): boolean => {
+  if (!analisis) {
+    return false;
+  }
+  return !COMPORTAMIENTOS_NO_ANOMALIA.has(analisis.comportamiento);
+};

@@ -6,7 +6,11 @@ import { useMemo } from 'react';
 import { AlertTriangle, Download } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo } from '../../../components';
-import { formatearNumero } from '../../../services/analisisConsumoService';
+import {
+  formatearNumero,
+  analizarComportamientoMensual,
+  esComportamientoAnomalo,
+} from '../../../services/analisisConsumoService';
 
 interface VistaAnomaliasProps {
   datos: ConsumoMensual[];
@@ -15,7 +19,6 @@ interface VistaAnomaliasProps {
 }
 
 export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaAnomaliasProps) => {
-  const totalAnomalias = datos.filter((registro) => registro.esAnomalia).length;
   const compararPorPeriodo = (a: ConsumoMensual, b: ConsumoMensual) => {
     if (a.año === b.año) {
       return a.mes - b.mes;
@@ -74,158 +77,13 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     return promedios;
   }, [datos]);
-  const promedioGlobalConsumoDiario = useMemo(() => {
-    const consumos = datos
-      .map((registro) => (registro.dias > 0 ? registro.consumoTotal / registro.dias : null))
-      .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor));
-
-    if (consumos.length === 0) {
-      return null;
-    }
-
-    const suma = consumos.reduce((acumulado, valor) => acumulado + valor, 0);
-    return suma / consumos.length;
-  }, [datos]);
-  const analisisPorPeriodo = useMemo(() => {
-    const ordenados = [...datos].sort(compararPorPeriodo);
-    const registrosPorPeriodo = new Map<string, ConsumoMensual>();
-    const resultado = new Map<
-      string,
-      {
-        variacionHistorica: number | null;
-        variacionGlobal: number | null;
-        comportamiento: string;
-        ceroEsperado: boolean;
-      }
-    >();
-    let totalZerosPrevios = 0;
-    let consecutivosZeros = 0;
-    let cambioPotenciaActivo = false;
-
-    ordenados.forEach((registro, indice) => {
-      registrosPorPeriodo.set(registro.periodo, registro);
-      const consumoPromedioActual =
-        registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
-      const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
-      const variacionHistorica =
-        promedioHistorico === null || promedioHistorico === 0 || consumoPromedioActual === null
-          ? null
-          : ((consumoPromedioActual - promedioHistorico) / promedioHistorico) * 100;
-      const variacionGlobal =
-        promedioGlobalConsumoDiario === null ||
-        promedioGlobalConsumoDiario === 0 ||
-        consumoPromedioActual === null
-          ? null
-          : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
-            100;
-      const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
-      const consumoPromedioAnterior =
-        anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
-      const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
-
-      const consumoEsCero = registro.consumoTotal === 0;
-      const habiaCeroAntes = totalZerosPrevios > 0;
-      const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
-      const variacionPosterior = siguiente?.variacionPorcentual;
-      const incrementoPosterior =
-        consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
-      const potenciaActual = registro.potenciaPromedio;
-      const potenciaPeriodoAnterior =
-        indice > 0 ? ordenados[indice - 1].potenciaPromedio : potenciaActual;
-
-      if (indice > 0 && potenciaActual !== potenciaPeriodoAnterior) {
-        cambioPotenciaActivo = true;
-      }
-
-      let comportamiento = 'Normal';
-
-      let ceroEsperadoPersistente = false;
-
-      if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
-        comportamiento = 'Cero sospechoso';
-      } else if (consumoEsCero) {
-        comportamiento = 'Cero esperado estacional';
-        ceroEsperadoPersistente = true;
-      } else if (
-        consumoPromedioAnterior !== null &&
-        consumoPromedioAnterior !== 0 &&
-        consumoPromedioActual !== null
-      ) {
-        const variacionMes =
-          ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
-        if (variacionMes <= -30) {
-          comportamiento = 'Descenso brusco mes a mes';
-        }
-      }
-
-      if (comportamiento === 'Normal' && cambioPotenciaActivo) {
-        comportamiento = 'Cambio de potencia';
-      } else if (comportamiento === 'Normal' && variacionGlobal !== null) {
-        if (variacionGlobal <= -30) {
-          comportamiento = 'Descenso brusco mes a mes';
-        } else if (variacionGlobal >= 30) {
-          comportamiento = 'Aumento de consumo';
-        } else if (Math.abs(variacionGlobal) <= 5) {
-          comportamiento = 'Sin cambio';
-        }
-      }
-
-      resultado.set(registro.periodo, {
-        variacionHistorica,
-        variacionGlobal,
-        comportamiento,
-        ceroEsperado: ceroEsperadoPersistente,
-      });
-
-      if (consumoEsCero) {
-        consecutivosZeros += 1;
-        totalZerosPrevios += 1;
-      } else {
-        consecutivosZeros = 0;
-      }
-    });
-
-    const mesesConConsumo = new Map<number, number>();
-    const mesesCero = new Map<number, number>();
-
-    ordenados.forEach((registro) => {
-      const conteoConsumo = mesesConConsumo.get(registro.mes) ?? 0;
-      const conteoCeros = mesesCero.get(registro.mes) ?? 0;
-
-      if (registro.consumoTotal === 0) {
-        mesesCero.set(registro.mes, conteoCeros + 1);
-      } else {
-        mesesConConsumo.set(registro.mes, conteoConsumo + 1);
-      }
-    });
-
-    resultado.forEach((valor, periodo) => {
-      const registro = registrosPorPeriodo.get(periodo);
-      if (!registro) {
-        return;
-      }
-
-      const totalConsumoMes = mesesConConsumo.get(registro.mes) ?? 0;
-      const totalCerosMes = mesesCero.get(registro.mes) ?? 0;
-      const totalPeriodosMes = totalConsumoMes + totalCerosMes;
-
-      if (
-        valor.ceroEsperado &&
-        totalConsumoMes >= 1 &&
-        totalCerosMes >= totalConsumoMes &&
-        totalPeriodosMes >= 3
-      ) {
-        const nuevoValor = resultado.get(periodo);
-        if (nuevoValor) {
-          nuevoValor.comportamiento = 'Estacionalidad – uso temporal';
-          nuevoValor.ceroEsperado = true;
-          resultado.set(periodo, nuevoValor);
-        }
-      }
-    });
-
-    return resultado;
-  }, [datos, promedioGlobalConsumoDiario, promedioHistoricoPorMes]);
+  const analisisPorPeriodo = useMemo(() => analizarComportamientoMensual(datos), [datos]);
+  const totalAnomalias = useMemo(() => {
+    return datos.reduce((acumulado, registro) => {
+      const analisis = analisisPorPeriodo.get(registro.periodo);
+      return esComportamientoAnomalo(analisis) ? acumulado + 1 : acumulado;
+    }, 0);
+  }, [analisisPorPeriodo, datos]);
   const coloresPorPotencia = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.14)', text: 'var(--color-primary)' },
@@ -509,9 +367,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   const potenciaPromedio = registro.potenciaPromedio;
                   const variacionPotencia = registro.variacionPotenciaPorcentual;
                   const claseFilaPotencia = obtenerClaseFilaPotencia(variacionPotencia);
-                  const claseAnomalia = registro.esAnomalia
-                    ? 'expediente-anomalias__row--anomalia'
-                    : '';
                   const estiloPeriodo = coloresPorAnio.get(registro.año);
                   const potenciaClave =
                     potenciaPromedio !== null ? Number(potenciaPromedio.toFixed(2)) : null;
@@ -521,6 +376,8 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   const analisis = analisisPorPeriodo.get(registro.periodo);
                   const variacionHistorica = analisis?.variacionHistorica ?? null;
                   const comportamientoDetectado = analisis?.comportamiento ?? 'Normal';
+                  const esAnomalia = esComportamientoAnomalo(analisis);
+                  const claseAnomalia = esAnomalia ? 'expediente-anomalias__row--anomalia' : '';
 
                   return (
                     <tr
