@@ -21,6 +21,7 @@ import './HeatMapConsumo.css';
 interface HeatMapConsumoProps {
   datos: ConsumoMensual[];
   detallesPorPeriodo?: Record<string, DerivacionData[]>;
+  onCellClick?: (periodo: string) => void;
 }
 
 type HeatmapMetricId = 'consumoActiva' | 'promedioActiva' | 'maximetro' | 'energiaReconstruida';
@@ -145,7 +146,11 @@ const NOMBRES_MESES_LARGO = [
   'diciembre',
 ];
 
-const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoProps) => {
+const HeatMapConsumoComponent = ({
+  datos,
+  detallesPorPeriodo,
+  onCellClick,
+}: HeatMapConsumoProps) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const matrixRef = useRef<HTMLDivElement>(null);
   const [scale, setScale] = useState(1);
@@ -217,14 +222,21 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
     if (!dato) return;
     const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
     const registros = detallesMap[periodo] || [];
-    setDetalleActivo({
-      periodo,
-      año,
-      mes: mesIndex + 1,
-      registros,
-      valor: metricaActual.extractor(dato),
-      metrica: metricaActual,
-    });
+
+    // Si hay callback para hacer scroll, llamarlo
+    if (onCellClick) {
+      onCellClick(periodo);
+    } else {
+      // Comportamiento por defecto: mostrar modal
+      setDetalleActivo({
+        periodo,
+        año,
+        mes: mesIndex + 1,
+        registros,
+        valor: metricaActual.extractor(dato),
+        metrica: metricaActual,
+      });
+    }
   };
 
   const cerrarDetalle = () => setDetalleActivo(null);

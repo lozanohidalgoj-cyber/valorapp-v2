@@ -2,7 +2,7 @@
  * Vista de anomalías detectadas en la comparativa mensual
  */
 
-import { useMemo } from 'react';
+import { useMemo, useRef } from 'react';
 import { AlertTriangle, Download } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo } from '../../../components';
@@ -19,6 +19,43 @@ interface VistaAnomaliasProps {
 }
 
 export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaAnomaliasProps) => {
+  const tableRef = useRef<HTMLTableElement>(null);
+
+  const handleScrollToPeriodo = (periodo: string) => {
+    if (!tableRef.current) return;
+
+    // Buscar la fila con el periodo
+    const row = tableRef.current.querySelector(`[data-periodo="${periodo}"]`) as HTMLElement;
+    if (!row) {
+      console.warn(`No se encontró fila con periodo: ${periodo}`);
+      return;
+    }
+
+    // Hacer scroll del elemento dentro de su contenedor padre más cercano scrolleable
+    // Primero, scroll en el contenedor de la tabla
+    const tableWrapper = tableRef.current.closest(
+      '.expediente-anomalias__table-wrapper'
+    ) as HTMLElement;
+    if (tableWrapper) {
+      const rowTop = row.offsetTop;
+      const rowHeight = row.offsetHeight;
+      const containerHeight = tableWrapper.clientHeight;
+
+      // Calcular posición para centrar la fila
+      const scrollTo = rowTop - containerHeight / 2 + rowHeight / 2;
+      tableWrapper.scrollTo({ top: scrollTo, behavior: 'smooth' });
+    }
+
+    // También hacer scroll del viewport en caso de que no esté visible
+    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
+
+    // Highlight temporal
+    row.classList.add('expediente-anomalias__row--highlighted');
+    setTimeout(() => {
+      row.classList.remove('expediente-anomalias__row--highlighted');
+    }, 3000);
+  };
+
   const compararPorPeriodo = (a: ConsumoMensual, b: ConsumoMensual) => {
     if (a.año === b.año) {
       return a.mes - b.mes;
@@ -239,7 +276,11 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     <div className="expediente-anomalias">
       <div className="expediente-heatmap-section expediente-anomalias__heatmap">
         <div className="expediente-heatmap-wrapper">
-          <HeatMapConsumo datos={datos} detallesPorPeriodo={detallesPorPeriodo} />
+          <HeatMapConsumo
+            datos={datos}
+            detallesPorPeriodo={detallesPorPeriodo}
+            onCellClick={handleScrollToPeriodo}
+          />
         </div>
       </div>
 
@@ -288,7 +329,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
           )}
 
           <div className="expediente-anomalias__table-wrapper">
-            <table className="expediente-table expediente-table-analisis">
+            <table className="expediente-table expediente-table-analisis" ref={tableRef}>
               <thead>
                 <tr>
                   <th>Periodo</th>
@@ -324,6 +365,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   return (
                     <tr
                       key={registro.periodo}
+                      data-periodo={registro.periodo}
                       className={`expediente-anomalias__row ${claseFilaPotencia} ${claseAnomalia}`.trim()}
                     >
                       <td
