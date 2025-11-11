@@ -234,6 +234,43 @@ export const clasificarExpediente = (
   });
 
   // 3. ENCONTRAR INICIO DE ANOMALÍA usando análisis global
+  // 2.5. ANALIZAR TENDENCIAS (≥3 descensos consecutivos / recuperación)
+  const ordenados = [...consumosMensuales].sort((a, b) => a.año - b.año || a.mes - b.mes);
+  const variaciones = ordenados.map((c) =>
+    typeof c.variacionPorcentual === 'number' ? c.variacionPorcentual : null
+  );
+  let inicioBloqueDescenso = -1;
+  let finBloqueDescenso = -1;
+  let longitudBloque = 0;
+  for (let i = 0; i < variaciones.length; i++) {
+    const v = variaciones[i];
+    if (v !== null && v < 0) {
+      if (inicioBloqueDescenso === -1) inicioBloqueDescenso = i;
+      finBloqueDescenso = i;
+      longitudBloque++;
+      if (longitudBloque >= 3) break;
+    } else {
+      inicioBloqueDescenso = -1;
+      finBloqueDescenso = -1;
+      longitudBloque = 0;
+    }
+  }
+  let recuperacionConfirmada = false;
+  if (longitudBloque >= 3) {
+    const startEval = finBloqueDescenso + 1;
+    for (let i = startEval; i < variaciones.length; i++) {
+      const v = variaciones[i];
+      if (v !== null && v >= 0) {
+        const v1 = variaciones[i];
+        const v2 = i + 1 < variaciones.length ? variaciones[i + 1] : null;
+        if (v1 !== null && v1 > 0 && v2 !== null && v2 > 0) {
+          recuperacionConfirmada = true;
+        }
+        break;
+      }
+    }
+  }
+
   const inicioAnomalia = encontrarInicioAnomalia(
     consumosMensuales,
     promedioGlobal,
@@ -320,10 +357,17 @@ export const clasificarExpediente = (
   // - Debe haber inicio de anomalía detectado
   // - Al menos 3 periodos TOTALES (no necesariamente consecutivos) con consumo bajo
   // - Consumo promedio post-anomalía significativamente inferior al promedio global (≤ -20%)
-  if (inicioAnomalia) {
+  if (inicioAnomalia || (longitudBloque >= 3 && !recuperacionConfirmada)) {
+    // Preferir inicio por tendencia si existe bloque de ≥3 descensos y NO hay recuperación confirmada
+    const usarInicioPorTendencia = longitudBloque >= 3 && !recuperacionConfirmada;
+    const inicioPeriodo = usarInicioPorTendencia
+      ? ordenados[inicioBloqueDescenso].periodo
+      : inicioAnomalia!.periodo;
+    const indiceInicio = usarInicioPorTendencia ? inicioBloqueDescenso : inicioAnomalia!.indice;
+
     // Consumo promedio DESPUÉS del inicio de la anomalía
     const consumosDespuesAnomalia = consumosMensuales
-      .slice(inicioAnomalia.indice)
+      .slice(indiceInicio)
       .map((c) => c.consumoActivaTotal);
     const promedioDespuesAnomalia =
       consumosDespuesAnomalia.reduce((sum, val) => sum + val, 0) / consumosDespuesAnomalia.length;
@@ -332,7 +376,7 @@ export const clasificarExpediente = (
     const variacionVsGlobal = ((promedioDespuesAnomalia - promedioGlobal) / promedioGlobal) * 100;
 
     // 🌍 NUEVO: Contar periodos con consumo significativamente bajo (no necesariamente consecutivos)
-    const periodosConConsumoBajo = consumosMensuales.slice(inicioAnomalia.indice).filter((c) => {
+    const periodosConConsumoBajo = consumosMensuales.slice(indiceInicio).filter((c) => {
       const zScore =
         desviacionGlobal > 0 ? (c.consumoActivaTotal - promedioGlobal) / desviacionGlobal : 0;
       // Consumo bajo si Z-Score < -1.5 O consumo < 50% del promedio global
@@ -355,10 +399,16 @@ export const clasificarExpediente = (
 
     if (esDescensoSostenido) {
       confianza = 90;
-      detalle.push(`Inicio de anomalía detectado en: ${inicioAnomalia.periodo}`);
-      detalle.push(`Consumo previo: ${inicioAnomalia.consumoPrevio?.toFixed(0)} kWh`);
-      detalle.push(`Consumo al inicio: ${inicioAnomalia.consumo?.toFixed(0)} kWh`);
-      detalle.push(`Variación inicial: ${inicioAnomalia.variacion?.toFixed(1)}%`);
+      detalle.push(`Inicio de anomalía detectado en: ${inicioPeriodo}`);
+      if (usarInicioPorTendencia) {
+        detalle.push(
+          `Regla de tendencia: ≥3 descensos consecutivos (recuperación confirmada: ${recuperacionConfirmada ? 'sí' : 'no'})`
+        );
+      } else if (inicioAnomalia) {
+        detalle.push(`Consumo previo: ${inicioAnomalia.consumoPrevio?.toFixed(0)} kWh`);
+        detalle.push(`Consumo al inicio: ${inicioAnomalia.consumo?.toFixed(0)} kWh`);
+        detalle.push(`Variación inicial: ${inicioAnomalia.variacion?.toFixed(1)}%`);
+      }
       detalle.push(
         `${periodosConConsumoBajo} periodos con consumo significativamente bajo detectados`
       );
@@ -368,11 +418,11 @@ export const clasificarExpediente = (
 
       return {
         clasificacion: 'Descenso sostenido',
-        inicioPeriodoAnomalia: inicioAnomalia.periodo,
-        inicioFechaAnomalia: new Date(inicioAnomalia.periodo + '-01'),
-        consumoInicio: inicioAnomalia.consumo,
-        consumoPrevio: inicioAnomalia.consumoPrevio,
-        variacionInicio: inicioAnomalia.variacion,
+        inicioPeriodoAnomalia: inicioPeriodo,
+        inicioFechaAnomalia: new Date(inicioPeriodo + '-01'),
+        consumoInicio: inicioAnomalia?.consumo ?? null,
+        consumoPrevio: inicioAnomalia?.consumoPrevio ?? null,
+        variacionInicio: inicioAnomalia?.variacion ?? null,
         periodosConAnomalia,
         cambiosPotencia,
         periodosConCeroEsperado,

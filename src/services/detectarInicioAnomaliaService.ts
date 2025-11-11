@@ -364,6 +364,80 @@ const getNombreMes = (mes: number): string => {
   return meses[mes - 1] || '';
 };
 
+/**
+ * Analiza la serie de variaciones mes-a-mes para identificar:
+ * - Bloques de descensos consecutivos (variación < 0)
+ * - Inicio de recuperación (cambio de signo: negativo → positivo o cero)
+ * - Recuperación confirmada (≥2 aumentos consecutivos: variación > 0)
+ */
+const analizarTendencias = (comparativa: ConsumoMensual[]) => {
+  const ordenada = [...comparativa].sort((a, b) => a.año - b.año || a.mes - b.mes);
+  const variaciones: Array<number | null> = ordenada.map((c) => {
+    // Usar la variaciónPorcentual ya calculada en generarComparativaMensual
+    // Puede ser null para el primer mes
+    return typeof c.variacionPorcentual === 'number' ? c.variacionPorcentual : null;
+  });
+
+  // Encontrar primer bloque de ≥3 descensos consecutivos (variación < 0)
+  let inicioBloqueDescenso = -1;
+  let finBloqueDescenso = -1;
+  let longitudBloque = 0;
+
+  for (let i = 0; i < variaciones.length; i++) {
+    const v = variaciones[i];
+    if (v !== null && v < 0) {
+      if (inicioBloqueDescenso === -1) inicioBloqueDescenso = i;
+      finBloqueDescenso = i;
+      longitudBloque++;
+      if (longitudBloque >= 3) {
+        // Tomamos el primer bloque que cumpla
+        break;
+      }
+    } else {
+      // Se rompió la racha; resetear
+      inicioBloqueDescenso = -1;
+      finBloqueDescenso = -1;
+      longitudBloque = 0;
+    }
+  }
+
+  // Buscar inicio de recuperación (cambio de signo de negativo a >= 0) y recuperación confirmada (≥2 aumentos > 0)
+  let indiceInicioRecuperacion = -1;
+  let recuperacionConfirmada = false;
+
+  if (longitudBloque >= 3) {
+    // Empezar a evaluar a partir del mes siguiente al final del bloque
+    const startEval = finBloqueDescenso + 1;
+
+    // Buscar el primer cambio a variación >= 0
+    for (let i = startEval; i < variaciones.length; i++) {
+      const v = variaciones[i];
+      if (v !== null && v >= 0) {
+        indiceInicioRecuperacion = i;
+        // Verificar si hay dos aumentos consecutivos (> 0) desde aquí
+        const v1 = variaciones[i];
+        const v2 = i + 1 < variaciones.length ? variaciones[i + 1] : null;
+        if (v1 !== null && v1 > 0 && v2 !== null && v2 > 0) {
+          recuperacionConfirmada = true;
+        }
+        break;
+      }
+    }
+  }
+
+  return {
+    tieneBloqueDescenso: longitudBloque >= 3,
+    inicioBloqueDescenso,
+    finBloqueDescenso,
+    longitudBloque,
+    indiceInicioRecuperacion,
+    recuperacionConfirmada,
+    periodoInicioBloque: longitudBloque >= 3 ? ordenada[inicioBloqueDescenso].periodo : undefined,
+    periodoInicioRecuperacion:
+      indiceInicioRecuperacion >= 0 ? ordenada[indiceInicioRecuperacion].periodo : undefined,
+  } as const;
+};
+
 // ============================================================================
 // 🔍 DETECTOR PRINCIPAL
 // ============================================================================
@@ -403,6 +477,40 @@ export const detectarInicioAnomalia = (comparativa: ConsumoMensual[]): Resultado
     if (a.año !== b.año) return a.año - b.año;
     return a.mes - b.mes;
   });
+
+  // REGLA 0: INTERPRETACIÓN DE TENDENCIA
+  // =====================================
+  // ≥ 3 descensos consecutivos → inicio de anomalía en el primer mes del bloque
+  // Cambio de signo negativo→positivo → inicio de recuperación
+  // ≥ 2 aumentos consecutivos tras descensos → recuperación confirmada
+  const tendencia = analizarTendencias(comparativaOrdenada);
+  if (tendencia.tieneBloqueDescenso) {
+    const periodoInicio = tendencia.periodoInicioBloque!;
+    const [anioInicio, mesInicio] = periodoInicio.split('-').map(Number);
+
+    // Si hay recuperación confirmada posteriormente, NO declarar anomalía por tendencia
+    // (se permite que otras reglas determinen si hubo anomalía puntual)
+    if (!tendencia.recuperacionConfirmada) {
+      return {
+        clasificacion: 'anomalia_detectada',
+        mensaje: `Determinación del descenso en ${getNombreMes(mesInicio)} ${anioInicio}`,
+        periodoInicio,
+        periodoLegible: `${getNombreMes(mesInicio)} ${anioInicio}`,
+        razon:
+          'Tendencia descendente sostenida: ≥ 3 descensos consecutivos (variación mes a mes < 0)',
+        confianza: 88,
+        detalles: {
+          tipo: 'tendencia_descendente_sostenida',
+          inicioBloqueIndice: tendencia.inicioBloqueDescenso,
+          finBloqueIndice: tendencia.finBloqueDescenso,
+          longitudBloque: tendencia.longitudBloque,
+          inicioRecuperacionIndice: tendencia.indiceInicioRecuperacion,
+          recuperacionConfirmada: tendencia.recuperacionConfirmada,
+        },
+      };
+    }
+    // Si hubo recuperación confirmada, seguimos con el resto de reglas sin marcar inicio por tendencia
+  }
 
   // REGLA 1: DESCENSO BRUSCO (mes a mes, ≥30%)
   // ============================================
