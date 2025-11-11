@@ -235,9 +235,6 @@ const HeatMapConsumoComponent = ({
   const [fechaActa, setFechaActa] = useState<FechaActa | null>(null);
   const [eventosAplicados, setEventosAplicados] = useState<{ [key: string]: string }>({});
 
-  // Estado para controlar el modo de marcado
-  const esModoMarcado = Boolean(fechaActa?.fecha || cambioTitular?.fecha);
-
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current || !matrixRef.current) return;
@@ -264,48 +261,6 @@ const HeatMapConsumoComponent = ({
       window.removeEventListener('resize', updateScale);
     };
   }, [datos]);
-
-  // UseEffect para cursor personalizado en modo marcado
-  useEffect(() => {
-    if (!esModoMarcado) return;
-
-    const cursor = document.createElement('div');
-    cursor.className = 'custom-cursor-neon';
-    cursor.style.cssText = `
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 20px;
-      height: 20px;
-      background: var(--color-secondary);
-      border-radius: 50%;
-      pointer-events: none;
-      z-index: 9999;
-      transform: translate(-50%, -50%);
-      animation: neon-pulse 1.5s ease-in-out infinite;
-      box-shadow: 
-        0 0 10px var(--color-secondary),
-        0 0 20px var(--color-secondary),
-        0 0 30px rgba(255, 49, 132, 0.5),
-        inset 0 0 10px rgba(255, 255, 255, 0.8);
-    `;
-
-    document.body.appendChild(cursor);
-
-    const handleMouseMove = (e: MouseEvent) => {
-      cursor.style.left = e.clientX + 'px';
-      cursor.style.top = e.clientY + 'px';
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      if (cursor.parentNode) {
-        cursor.parentNode.removeChild(cursor);
-      }
-    };
-  }, [esModoMarcado]);
 
   const metricaActual = useMemo(
     () => METRICAS.find((metrica) => metrica.id === metricaSeleccionada) ?? METRICAS[0],
@@ -362,22 +317,6 @@ const HeatMapConsumoComponent = ({
 
     const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
 
-    // Si hay una fecha de acta o cambio de titular con fecha, marcar evento
-    if (fechaActa?.fecha || cambioTitular?.fecha) {
-      const nuevosEventos = { ...eventosTemp };
-
-      if (fechaActa?.fecha) {
-        nuevosEventos[periodo] = `ACTA: ${fechaActa.fecha}`;
-      }
-
-      if (cambioTitular?.fecha) {
-        nuevosEventos[periodo] = `CAMBIO: ${cambioTitular.fecha}`;
-      }
-
-      setEventosTemp(nuevosEventos);
-      return;
-    }
-
     // No abrir modal en la vista de detección de anomalías
     if (metricaSeleccionada === 'deteccionAnomalias') {
       return;
@@ -405,7 +344,13 @@ const HeatMapConsumoComponent = ({
 
   // Funciones para manejo de eventos
   const aplicarEventos = () => {
-    setEventosAplicados({ ...eventosAplicados, ...eventosTemp });
+    // Usar callback para asegurar el estado más actualizado
+    setEventosAplicados((prevEventosAplicados) => {
+      const nuevosEventosAplicados = { ...prevEventosAplicados, ...eventosTemp };
+      return nuevosEventosAplicados;
+    });
+
+    // Limpiar eventos temporales y estados
     setEventosTemp({});
     setCambioTitular(null);
     setFechaActa(null);
@@ -450,10 +395,7 @@ const HeatMapConsumoComponent = ({
           className="matrix-scale"
           style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
         >
-          <div
-            className={`heatmap-matrix heatmap-matrix--integrated ${esModoMarcado ? 'heatmap-matrix--modo-marcado' : ''}`}
-            ref={matrixRef}
-          >
+          <div className="heatmap-matrix heatmap-matrix--integrated" ref={matrixRef}>
             <div
               className="matrix-integrated-header"
               style={{ gridColumn: `1 / span ${años.length + 1}` }}
@@ -792,9 +734,30 @@ const HeatMapConsumoComponent = ({
               id="fecha-acta"
               type="date"
               value={fechaActa?.fecha || ''}
-              onChange={(e) =>
-                setFechaActa(e.target.value ? { fecha: e.target.value, activo: true } : null)
-              }
+              onChange={(e) => {
+                const fecha = e.target.value;
+                if (fecha) {
+                  setFechaActa({ fecha, activo: true });
+                  // Agregar automáticamente al mapa como evento temporal
+                  const periodo = fecha.substring(0, 7); // "2024-01-15" -> "2024-01"
+                  setEventosTemp((prev) => ({
+                    ...prev,
+                    [periodo]: `ACTA: ${fecha}`,
+                  }));
+                } else {
+                  setFechaActa(null);
+                  // Remover eventos de acta de eventosTemp
+                  setEventosTemp((prev) => {
+                    const nuevo = { ...prev };
+                    Object.keys(nuevo).forEach((key) => {
+                      if (nuevo[key].startsWith('ACTA:')) {
+                        delete nuevo[key];
+                      }
+                    });
+                    return nuevo;
+                  });
+                }
+              }}
               className={`control-input ${fechaActa?.fecha ? 'control-input--active' : ''}`}
             />
           </div>
@@ -805,9 +768,30 @@ const HeatMapConsumoComponent = ({
               id="cambio-titular"
               type="date"
               value={cambioTitular?.fecha || ''}
-              onChange={(e) =>
-                setCambioTitular(e.target.value ? { fecha: e.target.value, activo: true } : null)
-              }
+              onChange={(e) => {
+                const fecha = e.target.value;
+                if (fecha) {
+                  setCambioTitular({ fecha, activo: true });
+                  // Agregar automáticamente al mapa como evento temporal
+                  const periodo = fecha.substring(0, 7); // "2024-01-15" -> "2024-01"
+                  setEventosTemp((prev) => ({
+                    ...prev,
+                    [periodo]: `CAMBIO: ${fecha}`,
+                  }));
+                } else {
+                  setCambioTitular(null);
+                  // Remover eventos de cambio de titular de eventosTemp
+                  setEventosTemp((prev) => {
+                    const nuevo = { ...prev };
+                    Object.keys(nuevo).forEach((key) => {
+                      if (nuevo[key].startsWith('CAMBIO:')) {
+                        delete nuevo[key];
+                      }
+                    });
+                    return nuevo;
+                  });
+                }
+              }}
               className={`control-input ${cambioTitular?.fecha ? 'control-input--active' : ''}`}
             />
           </div>
@@ -828,9 +812,9 @@ const HeatMapConsumoComponent = ({
 
         {(fechaActa?.fecha || cambioTitular?.fecha) && (
           <div className="modo-marcado-activo">
-            <span className="icono-marcado">👆</span>
-            <strong>Modo marcado activo:</strong>
-            Haz clic en las celdas del mapa para marcar eventos
+            <span className="icono-marcado">✅</span>
+            <strong>Eventos marcados automáticamente:</strong>
+            Las fechas seleccionadas aparecen en el mapa. Haz clic en "Aplicar" para confirmar.
             {fechaActa?.fecha && (
               <span className="evento-tipo">• Fecha de Acta: {fechaActa.fecha}</span>
             )}
