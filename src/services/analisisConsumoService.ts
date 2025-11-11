@@ -425,6 +425,8 @@ const COMPORTAMIENTOS_NO_ANOMALIA = new Set([
   'Sin cambio',
   'Estacionalidad – uso temporal',
   'Cero esperado estacional',
+  'Descenso leve',
+  'Aumento de consumo',
 ]);
 
 /**
@@ -480,24 +482,17 @@ export const analizarComportamientoMensual = (
   let consecutivosZeros = 0;
   let cambioPotenciaActivo = false;
 
-  // Primera pasada: detectar descensos mes a mes
+  // Primera pasada: detectar descensos mes a mes (usando consumo TOTAL)
   const descentosPorIndice = new Map<number, boolean>();
 
   ordenados.forEach((registro, indice) => {
     registrosPorPeriodo.set(registro.periodo, registro);
-    const consumoPromedioActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
     const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
-    const consumoPromedioAnterior =
-      anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
 
-    if (
-      consumoPromedioAnterior !== null &&
-      consumoPromedioAnterior !== 0 &&
-      consumoPromedioActual !== null
-    ) {
+    if (anterior && anterior.consumoTotal !== 0 && registro.consumoTotal !== null) {
       const variacionMes =
-        ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
-      // Marcar descenso si es negativo (cualquier descenso, no solo >= -30%)
+        ((registro.consumoTotal - anterior.consumoTotal) / anterior.consumoTotal) * 100;
+      // Marcar descenso si es negativo
       if (variacionMes < 0) {
         descentosPorIndice.set(indice, true);
       }
@@ -527,7 +522,7 @@ export const analizarComportamientoMensual = (
         ventanaFin = j;
       }
 
-      // Si hay 3 o más descensos en la ventana, marcar todo como sostenido
+      // Si hay 3 o más descensos en la ventana, marcar TODO como sostenido (incluyendo recuperaciones)
       if (descuentosEnVentana >= 3) {
         for (let j = i; j <= ventanaFin; j++) {
           indicesDescentoSostenido.add(j);
@@ -536,14 +531,43 @@ export const analizarComportamientoMensual = (
     }
   }
 
+  // Calcular MÁXIMO histórico por mes (para detectar descensos desde picos)
+  const maximoHistoricoPorMes = new Map<number, number>();
+  datos.forEach((registro) => {
+    const consumoTotal = registro.consumoTotal;
+    const maximoActual = maximoHistoricoPorMes.get(registro.mes) ?? 0;
+    if (consumoTotal > maximoActual) {
+      maximoHistoricoPorMes.set(registro.mes, consumoTotal);
+    }
+  });
+
+  // Umbrales de clasificación de comportamiento (basados en análisis estadístico)
+  const UMBRALES = {
+    DESCENSO_FUERTE: -40, // Descenso fuerte (anomalía) - variaciones críticas
+    DESCENSO_MODERADO: -20, // Descenso moderado - variaciones significativas
+    DESCENSO_LEVE: -10, // Descenso leve - variaciones normales
+    VARIACION_INUSUAL: 60, // Variación histórica inusual (±60% respecto al promedio)
+    AUMENTO_SIGNIFICATIVO: 50, // Aumento de consumo significativo
+    SIN_CAMBIO: 5, // Sin cambio (±5%)
+  };
+
   ordenados.forEach((registro, indice) => {
     registrosPorPeriodo.set(registro.periodo, registro);
     const consumoPromedioActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
     const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
+    const maximoHistorico = maximoHistoricoPorMes.get(registro.mes) ?? null;
+
     const variacionHistorica =
       promedioHistorico === null || promedioHistorico === 0 || consumoPromedioActual === null
         ? null
         : ((consumoPromedioActual - promedioHistorico) / promedioHistorico) * 100;
+
+    // Variación respecto al MÁXIMO histórico del mismo mes
+    const variacionDesdeMaximo =
+      maximoHistorico === null || maximoHistorico === 0 || registro.consumoTotal === null
+        ? null
+        : ((registro.consumoTotal - maximoHistorico) / maximoHistorico) * 100;
+
     const variacionGlobal =
       promedioGlobalConsumoDiario === null ||
       promedioGlobalConsumoDiario === 0 ||
@@ -551,6 +575,16 @@ export const analizarComportamientoMensual = (
         ? null
         : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
           100;
+
+    // Obtener variación mes-a-mes comparando CONSUMO TOTAL (no promedio diario)
+    const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
+    let variacionMesMes: number | null = null;
+    if (anterior && anterior.consumoTotal !== 0 && registro.consumoTotal !== null) {
+      // Comparar consumo TOTAL directamente
+      variacionMesMes =
+        ((registro.consumoTotal - anterior.consumoTotal) / anterior.consumoTotal) * 100;
+    }
+
     const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
 
     const consumoEsCero = registro.consumoTotal === 0;
@@ -570,22 +604,79 @@ export const analizarComportamientoMensual = (
     let comportamiento = 'Normal';
     let ceroEsperadoPersistente = false;
 
+    // Prioridad 1: Detección de ceros
     if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
       comportamiento = 'Cero sospechoso';
     } else if (consumoEsCero) {
       comportamiento = 'Cero esperado estacional';
       ceroEsperadoPersistente = true;
-    } else if (descentosPorIndice.has(indice)) {
-      // Marcar como descenso ANY mes con descenso mes-a-mes (no solo rachas sostenidas)
-      comportamiento = 'Descenso brusco mes a mes';
     }
-
-    if (comportamiento === 'Normal' && cambioPotenciaActivo) {
+    // Prioridad 2: Cambio de potencia
+    else if (cambioPotenciaActivo) {
       comportamiento = 'Cambio de potencia';
-    } else if (comportamiento === 'Normal' && variacionGlobal !== null) {
-      if (variacionGlobal >= 30) {
+    }
+    // Prioridad 3: Clasificar descensos y aumentos por variación mes-a-mes
+    else if (variacionMesMes !== null) {
+      if (variacionMesMes < UMBRALES.DESCENSO_FUERTE) {
+        // < -40%
+        comportamiento = 'Descenso fuerte (anomalía)';
+      } else if (variacionMesMes < UMBRALES.DESCENSO_MODERADO) {
+        // -40% a -20%
+        comportamiento = 'Descenso moderado';
+      } else if (variacionMesMes < UMBRALES.DESCENSO_LEVE) {
+        // -20% a -10%
+        comportamiento = 'Descenso leve';
+      } else if (variacionMesMes < 0) {
+        // -10% a 0% (descensos menores)
+        comportamiento = 'Descenso leve';
+      } else if (variacionMesMes <= UMBRALES.SIN_CAMBIO) {
+        // 0% a +5% - PERO verificar si hay descenso desde máximo histórico
+        if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
+          comportamiento = 'Descenso fuerte (anomalía)';
+        } else if (
+          variacionDesdeMaximo !== null &&
+          variacionDesdeMaximo < UMBRALES.DESCENSO_MODERADO
+        ) {
+          comportamiento = 'Descenso moderado';
+        } else if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_LEVE) {
+          comportamiento = 'Descenso leve';
+        } else {
+          comportamiento = 'Sin cambio';
+        }
+      } else if (variacionMesMes >= UMBRALES.AUMENTO_SIGNIFICATIVO) {
+        // >= +50%
         comportamiento = 'Aumento de consumo';
-      } else if (Math.abs(variacionGlobal) <= 5) {
+      } else {
+        // +5% a +50% (aumentos moderados) - PERO verificar descenso desde máximo
+        if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_FUERTE) {
+          comportamiento = 'Descenso fuerte (anomalía)';
+        } else if (
+          variacionDesdeMaximo !== null &&
+          variacionDesdeMaximo < UMBRALES.DESCENSO_MODERADO
+        ) {
+          comportamiento = 'Descenso moderado';
+        } else if (variacionDesdeMaximo !== null && variacionDesdeMaximo < UMBRALES.DESCENSO_LEVE) {
+          comportamiento = 'Descenso leve';
+        } else {
+          comportamiento = 'Sin cambio';
+        }
+      }
+    }
+    // Prioridad 4: Si no hay variación mes-a-mes, usar variación histórica
+    else if (variacionHistorica !== null) {
+      if (Math.abs(variacionHistorica) >= UMBRALES.VARIACION_INUSUAL) {
+        comportamiento = 'Variación inusual respecto al promedio histórico';
+      } else if (variacionHistorica >= UMBRALES.AUMENTO_SIGNIFICATIVO) {
+        comportamiento = 'Aumento de consumo';
+      } else if (Math.abs(variacionHistorica) <= UMBRALES.SIN_CAMBIO) {
+        comportamiento = 'Sin cambio';
+      }
+    }
+    // Prioridad 5: Usar variación global como último recurso
+    else if (variacionGlobal !== null) {
+      if (variacionGlobal >= UMBRALES.AUMENTO_SIGNIFICATIVO) {
+        comportamiento = 'Aumento de consumo';
+      } else if (Math.abs(variacionGlobal) <= UMBRALES.SIN_CAMBIO) {
         comportamiento = 'Sin cambio';
       }
     }
