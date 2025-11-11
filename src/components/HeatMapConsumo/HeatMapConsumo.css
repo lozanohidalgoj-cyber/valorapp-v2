@@ -608,6 +608,8 @@
   border-radius: 6px;
   font-size: 0.9rem;
   transition: all 0.2s ease;
+  color: var(--color-primary);
+  font-weight: 600;
 }
 
 .control-input:focus {
@@ -667,15 +669,16 @@
 .modo-marcado-activo {
   margin-top: 1rem;
   padding: 0.8rem;
-  background: linear-gradient(135deg, rgba(255, 49, 132, 0.1), rgba(255, 49, 132, 0.05));
-  border: 2px solid var(--color-secondary);
+  background: linear-gradient(135deg, rgba(0, 0, 208, 0.1), rgba(0, 0, 208, 0.05));
+  border: 2px solid var(--color-primary);
   border-radius: 8px;
   text-align: center;
   animation: pulso 2s ease-in-out infinite;
+  color: var(--color-primary);
 }
 
 .modo-marcado-activo strong {
-  color: var(--color-secondary);
+  color: var(--color-primary);
   display: block;
   margin-bottom: 0.3rem;
 }
@@ -695,10 +698,10 @@
 @keyframes pulso {
   0%,
   100% {
-    box-shadow: 0 0 0 0 rgba(255, 49, 132, 0.3);
+    box-shadow: 0 0 0 0 rgba(0, 0, 208, 0.3);
   }
   50% {
-    box-shadow: 0 0 0 8px rgba(255, 49, 132, 0);
+    box-shadow: 0 0 0 8px rgba(0, 0, 208, 0);
   }
 }
 
