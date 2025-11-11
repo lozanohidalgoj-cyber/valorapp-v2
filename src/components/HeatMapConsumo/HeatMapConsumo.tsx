@@ -297,6 +297,12 @@ const HeatMapConsumoComponent = ({
 
   const handleCellClick = (año: number, mesIndex: number, dato?: ConsumoMensual) => {
     if (!dato) return;
+
+    // No abrir modal en la vista de detección de anomalías
+    if (metricaSeleccionada === 'deteccionAnomalias') {
+      return;
+    }
+
     const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
     const registros = detallesMap[periodo] || [];
 
@@ -615,7 +621,7 @@ const HeatMapConsumoComponent = ({
           </div>
         </div>
       </div>
-      {detalleActivo && (
+      {detalleActivo && metricaSeleccionada !== 'deteccionAnomalias' && (
         <div className="heatmap-modal-backdrop" role="dialog" aria-modal="true">
           <div className="heatmap-modal">
             <div className="heatmap-modal-header">
