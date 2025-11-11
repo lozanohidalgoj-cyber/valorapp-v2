@@ -497,23 +497,39 @@ export const analizarComportamientoMensual = (
     ) {
       const variacionMes =
         ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
-      if (variacionMes <= -30) {
+      // Marcar descenso si es negativo (cualquier descenso, no solo >= -30%)
+      if (variacionMes < 0) {
         descentosPorIndice.set(indice, true);
       }
     }
   });
 
-  // Identificar descensos sostenidos (3+ meses consecutivos)
+  // Identificar descensos sostenidos (3+ meses en ventana de 5 meses, tolerando 1-2 meses de recuperación)
   const indicesDescentoSostenido = new Set<number>();
   for (let i = 0; i < ordenados.length; i++) {
     if (descentosPorIndice.get(i)) {
-      let rachaDescenso = 1;
-      for (let j = i + 1; j < ordenados.length && descentosPorIndice.get(j); j++) {
-        rachaDescenso += 1;
+      // Contar descensos en ventana de hasta 5 meses permitiendo máximo 2 meses sin descenso
+      let descuentosEnVentana = 0;
+      let mesesSinDescenso = 0;
+      let ventanaFin = i;
+
+      for (let j = i; j < Math.min(i + 5, ordenados.length); j++) {
+        if (descentosPorIndice.get(j)) {
+          descuentosEnVentana += 1;
+          mesesSinDescenso = 0; // Reset contador
+        } else {
+          mesesSinDescenso += 1;
+          // Si llegamos a 3 meses sin descenso, salir de la ventana
+          if (mesesSinDescenso >= 3) {
+            break;
+          }
+        }
+        ventanaFin = j;
       }
-      // Si hay 3 o más descensos consecutivos, marcar toda la racha
-      if (rachaDescenso >= 3) {
-        for (let j = i; j < i + rachaDescenso; j++) {
+
+      // Si hay 3 o más descensos en la ventana, marcar todo como sostenido
+      if (descuentosEnVentana >= 3) {
+        for (let j = i; j <= ventanaFin; j++) {
           indicesDescentoSostenido.add(j);
         }
       }
@@ -559,8 +575,8 @@ export const analizarComportamientoMensual = (
     } else if (consumoEsCero) {
       comportamiento = 'Cero esperado estacional';
       ceroEsperadoPersistente = true;
-    } else if (indicesDescentoSostenido.has(indice)) {
-      // Solo marcar como descenso si es parte de una racha sostenida
+    } else if (descentosPorIndice.has(indice)) {
+      // Marcar como descenso ANY mes con descenso mes-a-mes (no solo rachas sostenidas)
       comportamiento = 'Descenso brusco mes a mes';
     }
 
