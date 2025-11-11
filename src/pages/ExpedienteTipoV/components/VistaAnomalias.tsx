@@ -499,12 +499,12 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                 <tr>
                   <th>Periodo</th>
                   <th>Consumo (kWh)</th>
-                  <th>Potencia (kW)</th>
                   <th>Días</th>
                   <th>Consumo Promedio Diario (kWh)</th>
+                  <th>Tipo de comportamiento detectado</th>
+                  <th>Potencia (kW)</th>
                   <th>Promedio Histórico (mismo mes)</th>
                   <th>Variación Histórica (%)</th>
-                  <th>Tipo de comportamiento detectado</th>
                   <th>Variación %</th>
                 </tr>
               </thead>
@@ -547,6 +547,15 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {registro.periodo}
                       </td>
                       <td>{formatearNumero(registro.consumoTotal)}</td>
+                      <td>{registro.dias}</td>
+                      <td className="expediente-table-analisis__columna-promedio">
+                        {consumoPromedioDiario !== null
+                          ? formatearNumero(consumoPromedioDiario, 2)
+                          : 'N/A'}
+                      </td>
+                      <td className="expediente-table-analisis__columna-comportamiento">
+                        {comportamientoDetectado}
+                      </td>
                       <td
                         style={
                           colorPotencia
@@ -562,12 +571,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                           ? `${formatearNumero(potenciaPromedio, 2)} kW`
                           : 'N/A'}
                       </td>
-                      <td>{registro.dias}</td>
-                      <td className="expediente-table-analisis__columna-promedio">
-                        {consumoPromedioDiario !== null
-                          ? formatearNumero(consumoPromedioDiario, 2)
-                          : 'N/A'}
-                      </td>
                       <td className="expediente-table-analisis__columna-promedio">
                         {promedioHistorico === null
                           ? 'Sin histórico'
@@ -577,9 +580,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {variacionHistorica === null
                           ? 'N/A'
                           : `${formatearNumero(variacionHistorica, 2)}%`}
-                      </td>
-                      <td className="expediente-table-analisis__columna-comportamiento">
-                        {comportamientoDetectado}
                       </td>
                       <td>
                         {registro.variacionPorcentual === null
