@@ -698,9 +698,9 @@ const HeatMapConsumoComponent = ({
           </div>
         </div>
 
-        {/* Panel PA a la derecha */}
+        {/* Panel lateral de datos */}
         <div className="heatmap-control-panel">
-          <h3 className="control-panel-title">Datos PA</h3>
+          <h3 className="control-panel-title">Datos</h3>
 
           <div className="control-row">
             <div className="control-group">
@@ -718,17 +718,45 @@ const HeatMapConsumoComponent = ({
             </div>
 
             <div className="control-group">
-              <label htmlFor="cambio-titular">Cambio de Titular:</label>
-              <input
-                id="cambio-titular"
-                type="date"
-                value={cambioTitular?.fecha || ''}
+              <label htmlFor="cambio-titular-toggle">Cambio de titular:</label>
+              <select
+                id="cambio-titular-toggle"
+                value={cambioTitular ? 'si' : 'no'}
                 onChange={(e) => {
-                  const fecha = e.target.value;
-                  setCambioTitular(fecha ? { fecha, activo: true } : null);
+                  const v = e.target.value;
+                  if (v === 'no') {
+                    // Limpiamos el estado y ocultamos fecha
+                    setCambioTitular(null);
+                  } else if (v === 'si' && !cambioTitular) {
+                    // Preparamos objeto sin fecha todavía
+                    setCambioTitular({ fecha: '', activo: true });
+                  }
                 }}
-                className={`control-input ${cambioTitular?.fecha ? 'control-input--active' : ''}`}
-              />
+                className="control-input"
+              >
+                <option value="no">No</option>
+                <option value="si">Sí</option>
+              </select>
+              {cambioTitular ? (
+                <input
+                  id="cambio-titular"
+                  type="date"
+                  value={cambioTitular.fecha || ''}
+                  onChange={(e) => {
+                    const fecha = e.target.value;
+                    setCambioTitular(fecha ? { fecha, activo: true } : { fecha: '', activo: true });
+                  }}
+                  className={`control-input ${cambioTitular.fecha ? 'control-input--active' : ''}`}
+                  style={{ marginTop: '4px' }}
+                />
+              ) : (
+                <div
+                  className="control-placeholder"
+                  style={{ fontSize: '0.8rem', marginTop: '6px', color: '#555' }}
+                >
+                  sin cambio de titular
+                </div>
+              )}
             </div>
           </div>
         </div>
