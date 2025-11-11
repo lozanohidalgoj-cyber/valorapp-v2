@@ -7,7 +7,7 @@
 import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Download } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import {
   exportarVistaAnualExcel,
   exportarComparativaMensualExcel,
@@ -19,7 +19,6 @@ import {
   hayDatosGuardados,
   limpiarDatosGuardados,
 } from '../../services/persistenciaService';
-import { HeatMapConsumo } from '../../components';
 import {
   AlertMessages,
   FileUploadSection,
@@ -29,6 +28,7 @@ import {
   VistaAnual,
   DataTable,
   VistaAnomalias,
+  VistaMensual,
 } from './components';
 import { useFileLoader, useAnalysis } from './hooks';
 import type { DerivacionData, ConsumoAnual, ConsumoMensual } from '../../types';
@@ -406,28 +406,13 @@ export const ExpedienteTipoV = () => {
               />
             )}
 
-            {vistaActual === 'mensual' && (
-              <div className="expediente-heatmap-section">
-                <div className="expediente-heatmap-wrapper">
-                  <HeatMapConsumo
-                    datos={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
-                    detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
-                  />
-                </div>
-                <div className="expediente-export-buttons expediente-export-inline">
-                  <button className="btn-export" onClick={handleExportarComparativaMensual}>
-                    <Download size={16} />
-                    Exportar Comparativa Mensual
-                  </button>
-                  <button
-                    className="btn-export btn-export-complete"
-                    onClick={handleExportarAnalisisCompleto}
-                  >
-                    <Download size={16} />
-                    Exportar Análisis Completo
-                  </button>
-                </div>
-              </div>
+            {vistaActual === 'mensual' && resultadoAnalisis && (
+              <VistaMensual
+                datos={resultadoAnalisis.comparativaMensual as ConsumoMensual[]}
+                detallesPorPeriodo={resultadoAnalisis.detallesPorPeriodo}
+                onExportarComparativa={handleExportarComparativaMensual}
+                onExportarCompleto={handleExportarAnalisisCompleto}
+              />
             )}
 
             {vistaActual === 'listado' && (

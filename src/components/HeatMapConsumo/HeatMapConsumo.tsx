@@ -228,6 +228,8 @@ const HeatMapConsumoComponent = ({
   const [metricaSeleccionada, setMetricaSeleccionada] =
     useState<HeatmapMetricId>('deteccionAnomalias');
   const [detalleActivo, setDetalleActivo] = useState<DetalleActivo | null>(null);
+  const filaSeleccionadaRef = useRef<HTMLTableRowElement>(null);
+  const tablaWrapperRef = useRef<HTMLDivElement>(null);
 
   // Estados para eventos
   const [cambioTitular, setCambioTitular] = useState<CambioTitular | null>(null);
@@ -259,6 +261,23 @@ const HeatMapConsumoComponent = ({
       window.removeEventListener('resize', updateScale);
     };
   }, [datos]);
+
+  // Hacer scroll a la fila seleccionada cuando se abre el modal
+  useEffect(() => {
+    if (detalleActivo && filaSeleccionadaRef.current && tablaWrapperRef.current) {
+      // Esperar a que el DOM se actualice
+      setTimeout(() => {
+        if (filaSeleccionadaRef.current && tablaWrapperRef.current) {
+          const rowTop = filaSeleccionadaRef.current.offsetTop;
+          const wrapperHeight = tablaWrapperRef.current.clientHeight;
+          const rowHeight = filaSeleccionadaRef.current.clientHeight;
+          const scrollTo = rowTop - wrapperHeight / 2 + rowHeight / 2;
+
+          tablaWrapperRef.current.scrollTop = Math.max(0, scrollTo);
+        }
+      }, 50);
+    }
+  }, [detalleActivo]);
 
   const metricaActual = useMemo(
     () => METRICAS.find((metrica) => metrica.id === metricaSeleccionada) ?? METRICAS[0],
@@ -315,27 +334,28 @@ const HeatMapConsumoComponent = ({
 
     const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
 
-    // No abrir modal en la vista de detección de anomalías
+    // Siempre priorizar callback externo si existe (navegación/scroll en tablas)
+    if (onCellClick) {
+      onCellClick(periodo);
+      return;
+    }
+
+    // Si no hay callback, no abrir modal cuando la métrica es de detección de anomalías
     if (metricaSeleccionada === 'deteccionAnomalias') {
       return;
     }
 
     const registros = detallesMap[periodo] || [];
 
-    // Si hay callback para hacer scroll, llamarlo
-    if (onCellClick) {
-      onCellClick(periodo);
-    } else {
-      // Comportamiento por defecto: mostrar modal
-      setDetalleActivo({
-        periodo,
-        año,
-        mes: mesIndex + 1,
-        registros,
-        valor: metricaActual.extractor(dato),
-        metrica: metricaActual,
-      });
-    }
+    // Comportamiento por defecto: mostrar modal
+    setDetalleActivo({
+      periodo,
+      año,
+      mes: mesIndex + 1,
+      registros,
+      valor: metricaActual.extractor(dato),
+      metrica: metricaActual,
+    });
   };
 
   const cerrarDetalle = () => setDetalleActivo(null);
@@ -737,7 +757,7 @@ const HeatMapConsumoComponent = ({
               </span>
               <span>Registros: {detalleActivo.registros.length}</span>
             </div>
-            <div className="heatmap-modal-table-wrapper">
+            <div className="heatmap-modal-table-wrapper" ref={tablaWrapperRef}>
               <table className="heatmap-modal-table">
                 <thead>
                   <tr>
@@ -847,8 +867,19 @@ const HeatMapConsumoComponent = ({
 
                   {detalleActivo.registros.map((registro, index) => {
                     const fila = registro as unknown as Record<string, unknown>;
+
+                    // Resaltar solo la primera fila para indicar el periodo clickeado
+                    const esPrimeraFila = index === 0;
+
                     return (
-                      <tr key={`${detalleActivo.periodo}-${index}`}>
+                      <tr
+                        key={`${detalleActivo.periodo}-${index}`}
+                        ref={esPrimeraFila ? filaSeleccionadaRef : null}
+                        style={{
+                          backgroundColor: esPrimeraFila ? '#fff3cd' : undefined,
+                          fontWeight: esPrimeraFila ? 'bold' : undefined,
+                        }}
+                      >
                         {columnasDetalle.map((columna) => {
                           const valor = fila[columna];
                           return <td key={columna}>{formatearValorDetalle(valor)}</td>;

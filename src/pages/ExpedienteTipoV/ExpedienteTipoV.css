@@ -1614,3 +1614,77 @@
     width: 100%;
   }
 }
+
+/* ============================================================
+   ESTILOS PARA VISTA MENSUAL - TABLA Y RESALTADO
+   ============================================================ */
+
+.expediente-mensual__table-wrapper {
+  margin-top: 3rem;
+  overflow-y: auto;
+  max-height: 600px;
+  border: 1px solid #e0e0e0;
+  border-radius: 8px;
+  background-color: #fafafa;
+}
+
+.expediente-table-mensual {
+  width: 100%;
+  border-collapse: collapse;
+  background-color: white;
+}
+
+.expediente-table-mensual thead {
+  position: sticky;
+  top: 0;
+  background-color: var(--color-primary);
+  z-index: 10;
+}
+
+.expediente-table-mensual thead th {
+  padding: 1rem;
+  text-align: left;
+  font-weight: 700;
+  color: white;
+  font-size: 0.875rem;
+  letter-spacing: 0.5px;
+}
+
+.expediente-table-mensual tbody tr {
+  border-bottom: 1px solid #e0e0e0;
+  transition: background-color 0.2s ease;
+}
+
+.expediente-table-mensual tbody tr:hover {
+  background-color: rgba(0, 0, 208, 0.04);
+}
+
+.expediente-table-mensual tbody td {
+  padding: 0.875rem 1rem;
+  font-size: 0.875rem;
+  color: #333;
+}
+
+.expediente-mensual__row--highlighted {
+  animation: highlightRow 3s ease-out forwards !important;
+  background-color: rgba(255, 193, 7, 0.5) !important;
+  border-left: 4px solid #ffc107 !important;
+  box-shadow:
+    0 0 20px rgba(255, 193, 7, 0.8),
+    inset 0 0 10px rgba(255, 193, 7, 0.3) !important;
+}
+
+@keyframes highlightRow {
+  0% {
+    background-color: rgba(255, 193, 7, 0.8);
+    box-shadow:
+      0 0 30px rgba(255, 193, 7, 1),
+      inset 0 0 15px rgba(255, 193, 7, 0.5);
+  }
+  100% {
+    background-color: rgba(255, 193, 7, 0.2);
+    box-shadow:
+      0 0 5px rgba(255, 193, 7, 0.3),
+      inset 0 0 0px rgba(255, 193, 7, 0);
+  }
+}
