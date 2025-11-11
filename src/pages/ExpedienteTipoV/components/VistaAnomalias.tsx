@@ -25,8 +25,6 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     }
     return a.año - b.año;
   };
-  const crearClavePeriodo = (anio: number, mes: number) =>
-    `${anio}-${mes.toString().padStart(2, '0')}`;
   const coloresPorAnio = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.12)', text: 'var(--color-primary)' },
@@ -132,22 +130,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
       return null;
     }
 
-    const formatearPeriodoLegible = (periodo: string) => {
-      const [anioStr, mesStr] = periodo.split('-');
-      const anio = Number(anioStr);
-      const mes = Number(mesStr);
-
-      if (!Number.isFinite(anio) || !Number.isFinite(mes)) {
-        return periodo;
-      }
-
-      const fecha = new Date(anio, mes - 1, 1);
-      return new Intl.DateTimeFormat('es-ES', {
-        month: 'long',
-        year: 'numeric',
-      }).format(fecha);
-    };
-
+    // 1. Verificar si hay cambio de potencia
     let hayCambioPotencia = false;
     let potenciaAnterior = ordenados[0]?.potenciaPromedio ?? null;
 
@@ -168,116 +151,17 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
       } as const;
     }
 
-    const registrosClave = new Map<string, ConsumoMensual>();
-    ordenados.forEach((registro) => {
-      registrosClave.set(crearClavePeriodo(registro.año, registro.mes), registro);
-    });
-
-    let descensoConsecutivo = 0;
-    let inicioDescenso: string | null = null;
-    let mejorDescenso = 0;
-    let mejorInicio: string | null = null;
-
-    for (const registro of ordenados) {
-      const claveAnterior = crearClavePeriodo(registro.año - 1, registro.mes);
-      const previo = registrosClave.get(claveAnterior);
-
-      if (!previo) {
-        descensoConsecutivo = 0;
-        inicioDescenso = null;
-        continue;
-      }
-
-      const consumoActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
-      const consumoPrevio = previo.dias > 0 ? previo.consumoTotal / previo.dias : null;
-
-      if (consumoActual === null || consumoPrevio === null || consumoPrevio === 0) {
-        descensoConsecutivo = 0;
-        inicioDescenso = null;
-        continue;
-      }
-
-      const variacionInteranual = ((consumoActual - consumoPrevio) / consumoPrevio) * 100;
-
-      if (variacionInteranual <= -10) {
-        if (descensoConsecutivo === 0) {
-          inicioDescenso = registro.periodo;
-        }
-        descensoConsecutivo += 1;
-        if (inicioDescenso && descensoConsecutivo > mejorDescenso) {
-          mejorDescenso = descensoConsecutivo;
-          mejorInicio = inicioDescenso;
-        }
-      } else {
-        descensoConsecutivo = 0;
-        inicioDescenso = null;
-      }
-    }
-
-    if (mejorDescenso >= 3 && mejorInicio) {
-      return {
-        tipo: 'danger',
-        icono: '🔴',
-        mensaje: `Descenso sostenido – inicio de anomalía detectado en ${formatearPeriodoLegible(
-          mejorInicio
-        )}`,
-      } as const;
-    }
-
-    const variacionesMensuales = ordenados
-      .map((registro) => registro.variacionPorcentual)
-      .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor));
-
-    if (variacionesMensuales.length >= 4) {
-      const promedioVariacion =
-        variacionesMensuales.reduce((acumulado, valor) => acumulado + valor, 0) /
-        variacionesMensuales.length;
-      const varianza =
-        variacionesMensuales.reduce((acumulado, valor) => {
-          const diferencia = valor - promedioVariacion;
-          return acumulado + diferencia * diferencia;
-        }, 0) / variacionesMensuales.length;
-      const desviacion = Math.sqrt(varianza);
-
-      if (desviacion > 45) {
-        return {
-          tipo: 'warning',
-          icono: '⚠️',
-          mensaje: 'Anomalía indeterminada',
-        } as const;
-      }
-    }
-
-    if (
-      variacionesMensuales.length > 0 &&
-      variacionesMensuales.every((valor) => Math.abs(valor) <= 40)
-    ) {
-      return {
-        tipo: 'success',
-        icono: '✅',
-        mensaje: 'Sin anomalía: el consumo se mantiene dentro del rango esperado',
-      } as const;
-    }
-
+    // 2. Contar ceros esperados (estacionalidad)
     const registrosCero = ordenados.filter((registro) => registro.consumoTotal === 0);
     if (registrosCero.length > 0) {
       const todosCeroEsperado = registrosCero.every((registro) => {
         const analisis = analisisPorPeriodo.get(registro.periodo);
-        return analisis?.ceroEsperado ?? false;
+        return (
+          analisis?.comportamiento === 'Estacionalidad – uso temporal' || analisis?.ceroEsperado
+        );
       });
 
-      let rachaActual = 0;
-      let rachaMaxima = 0;
-      ordenados.forEach((registro) => {
-        if (registro.consumoTotal === 0) {
-          rachaActual += 1;
-          rachaMaxima = Math.max(rachaMaxima, rachaActual);
-        } else {
-          rachaActual = 0;
-        }
-      });
-
-      if (todosCeroEsperado || rachaMaxima <= 2) {
+      if (todosCeroEsperado) {
         return {
           tipo: 'info',
           icono: '⚪',
@@ -286,10 +170,68 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
       }
     }
 
+    // 3. Detectar descensos sostenidos (3+ meses consecutivos)
+    let rachaDescenso = 0;
+    let inicioDescensoSostenido: string | null = null;
+
+    for (const registro of ordenados) {
+      const analisis = analisisPorPeriodo.get(registro.periodo);
+      if (analisis?.comportamiento === 'Descenso brusco mes a mes') {
+        if (rachaDescenso === 0) {
+          inicioDescensoSostenido = registro.periodo;
+        }
+        rachaDescenso += 1;
+      } else {
+        rachaDescenso = 0;
+      }
+    }
+
+    if (rachaDescenso >= 3 && inicioDescensoSostenido) {
+      const formatearPeriodoLegible = (periodo: string) => {
+        const [anioStr, mesStr] = periodo.split('-');
+        const anio = Number(anioStr);
+        const mes = Number(mesStr);
+
+        if (!Number.isFinite(anio) || !Number.isFinite(mes)) {
+          return periodo;
+        }
+
+        const fecha = new Date(anio, mes - 1, 1);
+        return new Intl.DateTimeFormat('es-ES', {
+          month: 'long',
+          year: 'numeric',
+        }).format(fecha);
+      };
+
+      return {
+        tipo: 'danger',
+        icono: '🔴',
+        mensaje: `Descenso sostenido – inicio de anomalía detectado en ${formatearPeriodoLegible(
+          inicioDescensoSostenido
+        )}`,
+      } as const;
+    }
+
+    // Si no hay descenso sostenido, es sin anomalía
+    // La "anomalía indeterminada" requiere descensos que no forman racha
+    const tieneDescensos = ordenados.some((registro) => {
+      const analisis = analisisPorPeriodo.get(registro.periodo);
+      return analisis?.comportamiento === 'Descenso brusco mes a mes';
+    });
+
+    if (!tieneDescensos) {
+      return {
+        tipo: 'success',
+        icono: '✅',
+        mensaje: 'Sin anomalía',
+      } as const;
+    }
+
+    // 4. Si hay descensos pero NO sostenidos, es anomalía indeterminada
     return {
-      tipo: 'info',
-      icono: 'ℹ️',
-      mensaje: 'Análisis no concluyente: revisa manualmente los consumos registrados',
+      tipo: 'warning',
+      icono: '⚠️',
+      mensaje: 'Anomalía indeterminada',
     } as const;
   }, [analisisPorPeriodo, datos]);
 

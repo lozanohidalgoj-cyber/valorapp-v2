@@ -480,6 +480,46 @@ export const analizarComportamientoMensual = (
   let consecutivosZeros = 0;
   let cambioPotenciaActivo = false;
 
+  // Primera pasada: detectar descensos mes a mes
+  const descentosPorIndice = new Map<number, boolean>();
+
+  ordenados.forEach((registro, indice) => {
+    registrosPorPeriodo.set(registro.periodo, registro);
+    const consumoPromedioActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+    const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
+    const consumoPromedioAnterior =
+      anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
+
+    if (
+      consumoPromedioAnterior !== null &&
+      consumoPromedioAnterior !== 0 &&
+      consumoPromedioActual !== null
+    ) {
+      const variacionMes =
+        ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
+      if (variacionMes <= -30) {
+        descentosPorIndice.set(indice, true);
+      }
+    }
+  });
+
+  // Identificar descensos sostenidos (3+ meses consecutivos)
+  const indicesDescentoSostenido = new Set<number>();
+  for (let i = 0; i < ordenados.length; i++) {
+    if (descentosPorIndice.get(i)) {
+      let rachaDescenso = 1;
+      for (let j = i + 1; j < ordenados.length && descentosPorIndice.get(j); j++) {
+        rachaDescenso += 1;
+      }
+      // Si hay 3 o más descensos consecutivos, marcar toda la racha
+      if (rachaDescenso >= 3) {
+        for (let j = i; j < i + rachaDescenso; j++) {
+          indicesDescentoSostenido.add(j);
+        }
+      }
+    }
+  }
+
   ordenados.forEach((registro, indice) => {
     registrosPorPeriodo.set(registro.periodo, registro);
     const consumoPromedioActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
@@ -495,9 +535,6 @@ export const analizarComportamientoMensual = (
         ? null
         : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
           100;
-    const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
-    const consumoPromedioAnterior =
-      anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
     const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
 
     const consumoEsCero = registro.consumoTotal === 0;
@@ -522,16 +559,9 @@ export const analizarComportamientoMensual = (
     } else if (consumoEsCero) {
       comportamiento = 'Cero esperado estacional';
       ceroEsperadoPersistente = true;
-    } else if (
-      consumoPromedioAnterior !== null &&
-      consumoPromedioAnterior !== 0 &&
-      consumoPromedioActual !== null
-    ) {
-      const variacionMes =
-        ((consumoPromedioActual - consumoPromedioAnterior) / consumoPromedioAnterior) * 100;
-      if (variacionMes <= -30) {
-        comportamiento = 'Descenso brusco mes a mes';
-      }
+    } else if (indicesDescentoSostenido.has(indice)) {
+      // Solo marcar como descenso si es parte de una racha sostenida
+      comportamiento = 'Descenso brusco mes a mes';
     }
 
     if (comportamiento === 'Normal' && cambioPotenciaActivo) {
