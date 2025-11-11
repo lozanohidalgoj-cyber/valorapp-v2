@@ -95,6 +95,17 @@ interface DetalleActivo {
   metrica: HeatmapMetricConfig;
 }
 
+// Interfaces para eventos
+interface CambioTitular {
+  fecha: string;
+  activo: boolean;
+}
+
+interface FechaActa {
+  fecha: string;
+  activo: boolean;
+}
+
 // ✅ USAR EXTRACTORES VALIDADOS DEL SERVICIO
 const METRICAS: HeatmapMetricConfig[] = [
   {
@@ -218,6 +229,12 @@ const HeatMapConsumoComponent = ({
     useState<HeatmapMetricId>('deteccionAnomalias');
   const [detalleActivo, setDetalleActivo] = useState<DetalleActivo | null>(null);
 
+  // Estados para eventos
+  const [eventosTemp, setEventosTemp] = useState<{ [key: string]: string }>({});
+  const [cambioTitular, setCambioTitular] = useState<CambioTitular | null>(null);
+  const [fechaActa, setFechaActa] = useState<FechaActa | null>(null);
+  const [eventosAplicados, setEventosAplicados] = useState<{ [key: string]: string }>({});
+
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current || !matrixRef.current) return;
@@ -298,12 +315,32 @@ const HeatMapConsumoComponent = ({
   const handleCellClick = (año: number, mesIndex: number, dato?: ConsumoMensual) => {
     if (!dato) return;
 
+    const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
+
+    // Si hay una fecha de acta o cambio de titular activo, marcar evento
+    if (
+      (fechaActa?.activo && fechaActa?.fecha) ||
+      (cambioTitular?.activo && cambioTitular?.fecha)
+    ) {
+      const nuevosEventos = { ...eventosTemp };
+
+      if (fechaActa?.activo && fechaActa?.fecha) {
+        nuevosEventos[periodo] = `ACTA: ${fechaActa.fecha}`;
+      }
+
+      if (cambioTitular?.activo && cambioTitular?.fecha) {
+        nuevosEventos[periodo] = `CAMBIO: ${cambioTitular.fecha}`;
+      }
+
+      setEventosTemp(nuevosEventos);
+      return;
+    }
+
     // No abrir modal en la vista de detección de anomalías
     if (metricaSeleccionada === 'deteccionAnomalias') {
       return;
     }
 
-    const periodo = `${año}-${String(mesIndex + 1).padStart(2, '0')}`;
     const registros = detallesMap[periodo] || [];
 
     // Si hay callback para hacer scroll, llamarlo
@@ -323,6 +360,21 @@ const HeatMapConsumoComponent = ({
   };
 
   const cerrarDetalle = () => setDetalleActivo(null);
+
+  // Funciones para manejo de eventos
+  const aplicarEventos = () => {
+    setEventosAplicados({ ...eventosAplicados, ...eventosTemp });
+    setEventosTemp({});
+    setCambioTitular(null);
+    setFechaActa(null);
+  };
+
+  const limpiarEventos = () => {
+    setEventosTemp({});
+    setEventosAplicados({});
+    setCambioTitular(null);
+    setFechaActa(null);
+  };
 
   const columnasDetalle = useMemo(() => {
     if (!detalleActivo) return [] as string[];
@@ -573,17 +625,32 @@ const HeatMapConsumoComponent = ({
                             `${dato.dias} días facturados`,
                           ];
 
+                    const periodo = `${año}-${String(mes).padStart(2, '0')}`;
+                    const eventoTemp = eventosTemp[periodo];
+                    const eventoAplicado = eventosAplicados[periodo];
+                    const tieneEvento = eventoTemp || eventoAplicado;
+
+                    const claseCelda = `matrix-cell matrix-value${
+                      eventoTemp ? ' matrix-cell--evento-temp' : ''
+                    }${eventoAplicado ? ' matrix-cell--evento-aplicado' : ''}`;
+
                     return (
                       <div
                         key={`c-${año}-${mes}`}
-                        className="matrix-cell matrix-value"
+                        className={claseCelda}
                         style={{ backgroundColor: color }}
-                        title={tooltipLineas.join('\n')}
+                        title={[
+                          ...tooltipLineas,
+                          tieneEvento ? `📝 ${eventoTemp || eventoAplicado}` : null,
+                        ]
+                          .filter(Boolean)
+                          .join('\n')}
                         onClick={() => handleCellClick(año, mesIdx, dato)}
                       >
                         <span className="matrix-consumo">
                           {formatearNumero(valor, metricaActual.decimales ?? 0)}
                         </span>
+                        {tieneEvento && <span className="evento-indicator">📝</span>}
                       </div>
                     );
                   })}
@@ -668,6 +735,74 @@ const HeatMapConsumoComponent = ({
           </div>
         </div>
       )}
+
+      {/* Panel de Control de Eventos */}
+      <div className="heatmap-control-panel">
+        <h3 className="control-panel-title">📝 Control de Eventos</h3>
+
+        <div className="control-row">
+          <div className="control-group">
+            <label htmlFor="fecha-acta">Fecha de Acta:</label>
+            <input
+              id="fecha-acta"
+              type="date"
+              value={fechaActa?.fecha || ''}
+              onChange={(e) =>
+                setFechaActa(e.target.value ? { fecha: e.target.value, activo: true } : null)
+              }
+              className="control-input"
+            />
+          </div>
+
+          <div className="control-group">
+            <label htmlFor="cambio-titular">Cambio de Titular:</label>
+            <input
+              id="cambio-titular"
+              type="date"
+              value={cambioTitular?.fecha || ''}
+              onChange={(e) =>
+                setCambioTitular(e.target.value ? { fecha: e.target.value, activo: true } : null)
+              }
+              className="control-input"
+            />
+          </div>
+
+          <div className="control-actions">
+            <button
+              onClick={aplicarEventos}
+              className="control-btn control-btn--primary"
+              disabled={Object.keys(eventosTemp).length === 0}
+            >
+              ✅ Aplicar
+            </button>
+            <button onClick={limpiarEventos} className="control-btn control-btn--secondary">
+              🗑️ Limpiar
+            </button>
+          </div>
+        </div>
+
+        {Object.keys(eventosTemp).length > 0 && (
+          <div className="eventos-pendientes">
+            <strong>Eventos pendientes:</strong>
+            {Object.entries(eventosTemp).map(([periodo, evento]) => (
+              <span key={periodo} className="evento-badge evento-badge--temp">
+                {periodo}: {evento}
+              </span>
+            ))}
+          </div>
+        )}
+
+        {Object.keys(eventosAplicados).length > 0 && (
+          <div className="eventos-aplicados">
+            <strong>Eventos aplicados:</strong>
+            {Object.entries(eventosAplicados).map(([periodo, evento]) => (
+              <span key={periodo} className="evento-badge evento-badge--applied">
+                {periodo}: {evento}
+              </span>
+            ))}
+          </div>
+        )}
+      </div>
     </div>
   );
 };
