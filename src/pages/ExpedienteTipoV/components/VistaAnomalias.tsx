@@ -455,14 +455,8 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
         <>
           <div className="expediente-anomalias__header">
             <div>
-              <h3>
-                ⚠️ {totalAnomalias} anomalía{totalAnomalias === 1 ? '' : 's'} detectada
-                {totalAnomalias === 1 ? '' : 's'}
-              </h3>
-              <p>
-                Se listan los periodos con cambios superiores al umbral configurado. Revisa los
-                motivos para priorizar la investigación.
-              </p>
+              <h3>Análisis de consumo</h3>
+              <p>Visualiza los periodos cargados y revisa los indicadores más relevantes.</p>
             </div>
             {onExportar && (
               <button
