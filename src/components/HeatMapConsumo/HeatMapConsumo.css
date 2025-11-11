@@ -57,10 +57,6 @@
   font-size: 0.45rem;
   line-height: 1;
 }
-.heatmap-chip--anomalia {
-  border-color: var(--color-secondary);
-  background: linear-gradient(135deg, #fff, #ffe6f1);
-}
 .chip-label {
   font-weight: 600;
   color: #444;
@@ -68,9 +64,6 @@
 .chip-value {
   font-weight: 700;
   color: var(--color-primary);
-}
-.heatmap-chip--anomalia .chip-value {
-  color: var(--color-secondary);
 }
 .heatmap-legend {
   display: flex;
@@ -260,39 +253,6 @@
   text-align: center;
   width: 100%;
   word-break: break-word;
-}
-.matrix-alert {
-  position: absolute;
-  top: 1px;
-  right: 2px;
-  font-size: 0.34rem;
-  background: #fff;
-  border-radius: 50%;
-  padding: 1px 2px;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.2);
-  animation: pulseAlert 1.8s infinite ease-in-out;
-}
-@keyframes pulseAlert {
-  0%,
-  100% {
-    transform: scale(1);
-  }
-  50% {
-    transform: scale(1.25);
-  }
-}
-.matrix-anomalia {
-  outline: 2px solid var(--color-secondary);
-  box-shadow: 0 0 0 2px rgba(255, 49, 132, 0.25);
-  position: relative;
-}
-.matrix-anomalia::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 4px;
-  box-shadow: 0 0 8px 2px rgba(255, 49, 132, 0.3);
-  pointer-events: none;
 }
 .heatmap-legend-variacion {
   margin-top: 0.1rem;
@@ -586,128 +546,4 @@
 .heatmap-modal-table-wrapper::-webkit-scrollbar-track {
   background: rgba(0, 0, 0, 0.08);
   border-radius: 999px;
-}
-
-/* ============================================================================ */
-/* 🔍 ESTILOS PARA DETECCIÓN DE ANOMALÍA */
-/* ============================================================================ */
-
-.anomalia-banner {
-  width: 100%;
-  margin: 0.6rem 0;
-  padding: 0.8rem 1rem;
-  border-radius: 6px;
-  border-left: 4px solid;
-  background-color: rgba(255, 255, 255, 0.9);
-  font-size: 0.85rem;
-  animation: slideInDown 0.3s ease-out;
-}
-
-@keyframes slideInDown {
-  from {
-    opacity: 0;
-    transform: translateY(-10px);
-  }
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-/* Variante: Sin Anomalía */
-.anomalia-banner--sin_anomalia {
-  border-left-color: #66bb6a;
-  background-color: #f0f9ff;
-  background: linear-gradient(135deg, #f0f9ff, #e8f5e9);
-}
-
-.anomalia-banner--sin_anomalia .anomalia-titulo {
-  color: #2e7d32;
-  font-weight: 600;
-}
-
-/* Variante: Anomalía Detectada */
-.anomalia-banner--anomalia_detectada {
-  border-left-color: #ef5350;
-  background-color: #fff3e0;
-  background: linear-gradient(135deg, #fff3e0, #ffebee);
-}
-
-.anomalia-banner--anomalia_detectada .anomalia-titulo {
-  color: #d32f2f;
-  font-weight: 700;
-}
-
-/* Variante: Período Indeterminado */
-.anomalia-banner--periodo_indeterminado {
-  border-left-color: #ffa726;
-  background-color: #fef5e7;
-  background: linear-gradient(135deg, #fef5e7, #fff8e1);
-}
-
-.anomalia-banner--periodo_indeterminado .anomalia-titulo {
-  color: #f57c00;
-  font-weight: 600;
-}
-
-/* Estructura del Banner */
-.anomalia-header {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  margin-bottom: 0.5rem;
-}
-
-.anomalia-header::first-letter {
-  font-size: 1.2rem;
-}
-
-.anomalia-titulo {
-  font-size: 0.9rem;
-  line-height: 1.3;
-}
-
-.anomalia-detalles {
-  margin-left: 1.5rem;
-  padding-left: 0.5rem;
-  border-left: 1px solid rgba(0, 0, 0, 0.1);
-}
-
-.anomalia-detalles p {
-  margin: 0.3rem 0;
-  font-size: 0.8rem;
-  color: #555;
-  line-height: 1.4;
-}
-
-.anomalia-razon {
-  font-weight: 500;
-  color: #333 !important;
-}
-
-.anomalia-periodo {
-  color: #666 !important;
-  font-size: 0.78rem;
-}
-
-.anomalia-confianza {
-  color: #777 !important;
-  font-size: 0.78rem;
-  font-style: italic;
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .anomalia-banner {
-    padding: 0.6rem 0.8rem;
-    font-size: 0.8rem;
-  }
-
-  .anomalia-detalles {
-    margin-left: 1rem;
-  }
-
-  .anomalia-detalles p {
-    font-size: 0.75rem;
-  }
 }

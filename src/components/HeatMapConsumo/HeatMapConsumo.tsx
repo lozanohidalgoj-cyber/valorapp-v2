@@ -16,10 +16,6 @@ import {
   extraerMaximetro,
   extraerEnergiaReconstruida,
 } from '../../services/extractorMetricasService';
-import {
-  detectarInicioAnomalia,
-  type ResultadoDeteccionInicio,
-} from '../../services/detectarInicioAnomaliaService';
 import './HeatMapConsumo.css';
 
 interface HeatMapConsumoProps {
@@ -156,7 +152,6 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
   const [scaledHeight, setScaledHeight] = useState<number | undefined>(undefined);
   const [metricaSeleccionada, setMetricaSeleccionada] = useState<HeatmapMetricId>('consumoActiva');
   const [detalleActivo, setDetalleActivo] = useState<DetalleActivo | null>(null);
-  const [resultadoAnomalia, setResultadoAnomalia] = useState<ResultadoDeteccionInicio | null>(null);
 
   useEffect(() => {
     const updateScale = () => {
@@ -183,14 +178,6 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
       ro.disconnect();
       window.removeEventListener('resize', updateScale);
     };
-  }, [datos]);
-
-  // 🔍 Detectar anomalía al cargar datos
-  useEffect(() => {
-    if (datos.length > 0) {
-      const resultado = detectarInicioAnomalia(datos);
-      setResultadoAnomalia(resultado);
-    }
   }, [datos]);
 
   const metricaActual = useMemo(
@@ -317,35 +304,7 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
                     {metricaActual.unidad}
                   </span>
                 </div>
-                <div className="heatmap-chip heatmap-chip--anomalia">
-                  <span className="chip-label">⚠️ Anomalías</span>
-                  <span className="chip-value">{datos.filter((d) => d.esAnomalia).length}</span>
-                </div>
               </div>
-              {/* 🔍 RESULTADO DE DETECCIÓN DE ANOMALÍA */}
-              {resultadoAnomalia && (
-                <div
-                  className={`anomalia-banner anomalia-banner--${resultadoAnomalia.clasificacion}`}
-                >
-                  <div className="anomalia-header">
-                    {resultadoAnomalia.clasificacion === 'sin_anomalia' && '✅'}
-                    {resultadoAnomalia.clasificacion === 'anomalia_detectada' && '⚠️'}
-                    {resultadoAnomalia.clasificacion === 'periodo_indeterminado' && '❓'}
-                    <span className="anomalia-titulo">{resultadoAnomalia.mensaje}</span>
-                  </div>
-                  <div className="anomalia-detalles">
-                    <p className="anomalia-razon">📍 {resultadoAnomalia.razon}</p>
-                    {resultadoAnomalia.periodoInicio && (
-                      <p className="anomalia-periodo">
-                        <strong>Periodo:</strong> {resultadoAnomalia.periodoLegible}
-                      </p>
-                    )}
-                    <p className="anomalia-confianza">
-                      🎯 Confianza: <strong>{resultadoAnomalia.confianza}%</strong>
-                    </p>
-                  </div>
-                </div>
-              )}
               <div className="integrated-row legend-variacion-inline">
                 <span className="legend-inline-title">📊 Código de Colores - Variación:</span>
                 <div className="legend-inline-items">
@@ -364,10 +323,6 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
                   <span className="legend-inline-item">
                     <span className="legend-inline-box" style={{ background: '#ff5722' }}></span>
                     Alta (20-40%)
-                  </span>
-                  <span className="legend-inline-item">
-                    <span className="legend-inline-box" style={{ background: '#ff1744' }}></span>⚠️
-                    &gt;40%
                   </span>
                   <span className="legend-inline-item intensity-inline">
                     <span
@@ -412,32 +367,23 @@ const HeatMapConsumoComponent = ({ datos, detallesPorPeriodo }: HeatMapConsumoPr
                       resumenMetricas.minimo,
                       resumenMetricas.maximo
                     );
-                    const esAnomalia = metricaActual.motivoClave
-                      ? dato.motivosAnomalia.includes(metricaActual.motivoClave)
-                      : dato.esAnomalia;
                     const tooltipLineas = [
                       `${NOMBRES_MESES_LARGO[mes - 1]} ${año}`,
                       `${formatearNumero(valor, metricaActual.decimales ?? 0)} ${metricaActual.unidad}`,
-                      `${dato.registros} registros`,
+                      `${dato.dias} días facturados`,
                     ];
-                    if (dato.variacionPorcentual !== null) {
-                      tooltipLineas.push(
-                        `Variación: ${formatearNumero(dato.variacionPorcentual, 2)} %`
-                      );
-                    }
 
                     return (
                       <div
                         key={`c-${año}-${mes}`}
-                        className={`matrix-cell matrix-value ${esAnomalia ? 'matrix-anomalia' : ''}`}
+                        className="matrix-cell matrix-value"
                         style={{ backgroundColor: color }}
-                        title={`${tooltipLineas.join('\n')}${esAnomalia ? '\n⚠️ Anomalía detectada' : ''}`}
+                        title={tooltipLineas.join('\n')}
                         onClick={() => handleCellClick(año, mesIdx, dato)}
                       >
                         <span className="matrix-consumo">
                           {formatearNumero(valor, metricaActual.decimales ?? 0)}
                         </span>
-                        {esAnomalia && <span className="matrix-alert">⚠️</span>}
                       </div>
                     );
                   })}
