@@ -5,7 +5,7 @@
  */
 
 import { memo } from 'react';
-import { ArrowLeft, Download, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2 } from 'lucide-react';
 
 /**
  * Props del componente SaldoATRHeader
@@ -15,8 +15,6 @@ interface SaldoATRHeaderProps {
   onVolver: () => void;
   /** Total de registros cargados (opcional) */
   totalRegistros?: number;
-  /** Callback para exportar datos (opcional) */
-  onExportar?: () => void;
   /** Callback para limpiar datos (opcional) */
   onLimpiarDatos?: () => void;
   /** Callback para anular facturas complementarias */
@@ -34,7 +32,6 @@ interface SaldoATRHeaderProps {
 const SaldoATRHeaderComponent = ({
   onVolver,
   totalRegistros,
-  onExportar,
   onLimpiarDatos,
   onAnularFC,
   onAnalizar,
@@ -84,16 +81,7 @@ const SaldoATRHeaderComponent = ({
             Análisis de Consumo
           </button>
         )}
-        {onExportar && (
-          <button
-            onClick={onExportar}
-            className="saldoatr-export-btn-header"
-            title="Exportar datos a Excel"
-          >
-            <Download size={20} />
-            Exportar Excel
-          </button>
-        )}
+        {/* Botón de exportación eliminado según requerimiento */}
         {onLimpiarDatos && (
           <button
             onClick={onLimpiarDatos}

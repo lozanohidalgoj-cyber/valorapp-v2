@@ -381,14 +381,13 @@ export const SaldoATR = () => {
   const displayError = loadError || importError || customError;
   const successMessage = customSuccess ?? success;
   const columnasListado = columnasAnalisis.length > 0 ? columnasAnalisis : headers;
-  const puedeExportar = resultadoAnalisis !== null && registrosDerivacion.length > 0;
+  // Eliminado botón de exportación en header; variable previa puedeExportar ya no se utiliza
 
   return (
     <div className="saldoatr-container">
       <SaldoATRHeader
         onVolver={handleVolver}
         totalRegistros={rows.length}
-        onExportar={puedeExportar ? handleExportarAnalisisCompleto : undefined}
         onLimpiarDatos={handleLimpiarDatos}
         onAnularFC={handleAnularFC}
         onAnalizar={handleAnalisisConsumo}
