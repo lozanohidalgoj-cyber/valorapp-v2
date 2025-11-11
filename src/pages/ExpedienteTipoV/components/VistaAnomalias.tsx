@@ -163,6 +163,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   <th>Días</th>
                   <th>Consumo Promedio Diario (kWh)</th>
                   <th>Promedio Histórico (mismo mes)</th>
+                  <th>Variación Histórica (%)</th>
                   <th>Variación %</th>
                 </tr>
               </thead>
@@ -182,6 +183,12 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   const colorPotencia =
                     potenciaClave !== null ? coloresPorPotencia.get(potenciaClave) : undefined;
                   const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
+                  const variacionHistorica =
+                    promedioHistorico === null ||
+                    promedioHistorico === 0 ||
+                    consumoPromedioDiario === null
+                      ? null
+                      : ((consumoPromedioDiario - promedioHistorico) / promedioHistorico) * 100;
 
                   return (
                     <tr
@@ -227,6 +234,11 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {promedioHistorico === null
                           ? 'Sin histórico'
                           : formatearNumero(promedioHistorico, 2)}
+                      </td>
+                      <td className="expediente-table-analisis__columna-promedio">
+                        {variacionHistorica === null
+                          ? 'N/A'
+                          : `${formatearNumero(variacionHistorica, 2)}%`}
                       </td>
                       <td>
                         {registro.variacionPorcentual === null
