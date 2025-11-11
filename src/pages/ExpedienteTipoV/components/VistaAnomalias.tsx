@@ -16,6 +16,14 @@ interface VistaAnomaliasProps {
 
 export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaAnomaliasProps) => {
   const totalAnomalias = datos.filter((registro) => registro.esAnomalia).length;
+  const compararPorPeriodo = (a: ConsumoMensual, b: ConsumoMensual) => {
+    if (a.año === b.año) {
+      return a.mes - b.mes;
+    }
+    return a.año - b.año;
+  };
+  const crearClavePeriodo = (anio: number, mes: number) =>
+    `${anio}-${mes.toString().padStart(2, '0')}`;
   const coloresPorAnio = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.12)', text: 'var(--color-primary)' },
@@ -66,12 +74,26 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     return promedios;
   }, [datos]);
+  const promedioGlobalConsumoDiario = useMemo(() => {
+    const consumos = datos
+      .map((registro) => (registro.dias > 0 ? registro.consumoTotal / registro.dias : null))
+      .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor));
+
+    if (consumos.length === 0) {
+      return null;
+    }
+
+    const suma = consumos.reduce((acumulado, valor) => acumulado + valor, 0);
+    return suma / consumos.length;
+  }, [datos]);
   const analisisPorPeriodo = useMemo(() => {
-    const ordenados = [...datos].sort((a, b) => a.periodo.localeCompare(b.periodo));
+    const ordenados = [...datos].sort(compararPorPeriodo);
+    const registrosPorPeriodo = new Map<string, ConsumoMensual>();
     const resultado = new Map<
       string,
       {
         variacionHistorica: number | null;
+        variacionGlobal: number | null;
         comportamiento: string;
         ceroEsperado: boolean;
       }
@@ -81,6 +103,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     let cambioPotenciaActivo = false;
 
     ordenados.forEach((registro, indice) => {
+      registrosPorPeriodo.set(registro.periodo, registro);
       const consumoPromedioActual =
         registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
       const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
@@ -88,6 +111,13 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
         promedioHistorico === null || promedioHistorico === 0 || consumoPromedioActual === null
           ? null
           : ((consumoPromedioActual - promedioHistorico) / promedioHistorico) * 100;
+      const variacionGlobal =
+        promedioGlobalConsumoDiario === null ||
+        promedioGlobalConsumoDiario === 0 ||
+        consumoPromedioActual === null
+          ? null
+          : ((consumoPromedioActual - promedioGlobalConsumoDiario) / promedioGlobalConsumoDiario) *
+            100;
       const anterior = indice > 0 ? ordenados[indice - 1] : undefined;
       const consumoPromedioAnterior =
         anterior && anterior.dias > 0 ? anterior.consumoTotal / anterior.dias : null;
@@ -130,16 +160,19 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
       if (comportamiento === 'Normal' && cambioPotenciaActivo) {
         comportamiento = 'Cambio de potencia';
-      } else if (comportamiento === 'Normal' && registro.variacionPorcentual !== null) {
-        if (registro.variacionPorcentual > 0) {
+      } else if (comportamiento === 'Normal' && variacionGlobal !== null) {
+        if (variacionGlobal <= -30) {
+          comportamiento = 'Descenso brusco mes a mes';
+        } else if (variacionGlobal >= 30) {
           comportamiento = 'Aumento de consumo';
-        } else if (registro.variacionPorcentual === 0) {
+        } else if (Math.abs(variacionGlobal) <= 5) {
           comportamiento = 'Sin cambio';
         }
       }
 
       resultado.set(registro.periodo, {
         variacionHistorica,
+        variacionGlobal,
         comportamiento,
         ceroEsperado: ceroEsperadoPersistente,
       });
@@ -167,7 +200,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     });
 
     resultado.forEach((valor, periodo) => {
-      const registro = ordenados.find((item) => item.periodo === periodo);
+      const registro = registrosPorPeriodo.get(periodo);
       if (!registro) {
         return;
       }
@@ -192,7 +225,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     });
 
     return resultado;
-  }, [datos, promedioHistoricoPorMes]);
+  }, [datos, promedioGlobalConsumoDiario, promedioHistoricoPorMes]);
   const coloresPorPotencia = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.14)', text: 'var(--color-primary)' },
@@ -231,6 +264,176 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
   const hayDatos = datos.length > 0;
   const hayAnomalias = totalAnomalias > 0;
+  const resumenGeneral = useMemo(() => {
+    if (datos.length === 0) {
+      return null;
+    }
+
+    const ordenados = [...datos].sort(compararPorPeriodo);
+    if (ordenados.length === 0) {
+      return null;
+    }
+
+    const formatearPeriodoLegible = (periodo: string) => {
+      const [anioStr, mesStr] = periodo.split('-');
+      const anio = Number(anioStr);
+      const mes = Number(mesStr);
+
+      if (!Number.isFinite(anio) || !Number.isFinite(mes)) {
+        return periodo;
+      }
+
+      const fecha = new Date(anio, mes - 1, 1);
+      return new Intl.DateTimeFormat('es-ES', {
+        month: 'long',
+        year: 'numeric',
+      }).format(fecha);
+    };
+
+    let hayCambioPotencia = false;
+    let potenciaAnterior = ordenados[0]?.potenciaPromedio ?? null;
+
+    for (let i = 1; i < ordenados.length; i += 1) {
+      const potenciaActual = ordenados[i].potenciaPromedio;
+      if (potenciaActual !== potenciaAnterior) {
+        hayCambioPotencia = true;
+        break;
+      }
+      potenciaAnterior = potenciaActual;
+    }
+
+    if (hayCambioPotencia) {
+      return {
+        tipo: 'warning',
+        icono: '⚠️',
+        mensaje: 'No objetivo por cambio de potencia',
+      } as const;
+    }
+
+    const registrosClave = new Map<string, ConsumoMensual>();
+    ordenados.forEach((registro) => {
+      registrosClave.set(crearClavePeriodo(registro.año, registro.mes), registro);
+    });
+
+    let descensoConsecutivo = 0;
+    let inicioDescenso: string | null = null;
+    let mejorDescenso = 0;
+    let mejorInicio: string | null = null;
+
+    for (const registro of ordenados) {
+      const claveAnterior = crearClavePeriodo(registro.año - 1, registro.mes);
+      const previo = registrosClave.get(claveAnterior);
+
+      if (!previo) {
+        descensoConsecutivo = 0;
+        inicioDescenso = null;
+        continue;
+      }
+
+      const consumoActual = registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+      const consumoPrevio = previo.dias > 0 ? previo.consumoTotal / previo.dias : null;
+
+      if (consumoActual === null || consumoPrevio === null || consumoPrevio === 0) {
+        descensoConsecutivo = 0;
+        inicioDescenso = null;
+        continue;
+      }
+
+      const variacionInteranual = ((consumoActual - consumoPrevio) / consumoPrevio) * 100;
+
+      if (variacionInteranual <= -10) {
+        if (descensoConsecutivo === 0) {
+          inicioDescenso = registro.periodo;
+        }
+        descensoConsecutivo += 1;
+        if (inicioDescenso && descensoConsecutivo > mejorDescenso) {
+          mejorDescenso = descensoConsecutivo;
+          mejorInicio = inicioDescenso;
+        }
+      } else {
+        descensoConsecutivo = 0;
+        inicioDescenso = null;
+      }
+    }
+
+    if (mejorDescenso >= 3 && mejorInicio) {
+      return {
+        tipo: 'danger',
+        icono: '🔴',
+        mensaje: `Descenso sostenido – inicio de anomalía detectado en ${formatearPeriodoLegible(
+          mejorInicio
+        )}`,
+      } as const;
+    }
+
+    const variacionesMensuales = ordenados
+      .map((registro) => registro.variacionPorcentual)
+      .filter((valor): valor is number => typeof valor === 'number' && Number.isFinite(valor));
+
+    if (variacionesMensuales.length >= 4) {
+      const promedioVariacion =
+        variacionesMensuales.reduce((acumulado, valor) => acumulado + valor, 0) /
+        variacionesMensuales.length;
+      const varianza =
+        variacionesMensuales.reduce((acumulado, valor) => {
+          const diferencia = valor - promedioVariacion;
+          return acumulado + diferencia * diferencia;
+        }, 0) / variacionesMensuales.length;
+      const desviacion = Math.sqrt(varianza);
+
+      if (desviacion > 45) {
+        return {
+          tipo: 'warning',
+          icono: '⚠️',
+          mensaje: 'Anomalía indeterminada',
+        } as const;
+      }
+    }
+
+    if (
+      variacionesMensuales.length > 0 &&
+      variacionesMensuales.every((valor) => Math.abs(valor) <= 40)
+    ) {
+      return {
+        tipo: 'success',
+        icono: '✅',
+        mensaje: 'Sin anomalía: el consumo se mantiene dentro del rango esperado',
+      } as const;
+    }
+
+    const registrosCero = ordenados.filter((registro) => registro.consumoTotal === 0);
+    if (registrosCero.length > 0) {
+      const todosCeroEsperado = registrosCero.every((registro) => {
+        const analisis = analisisPorPeriodo.get(registro.periodo);
+        return analisis?.ceroEsperado ?? false;
+      });
+
+      let rachaActual = 0;
+      let rachaMaxima = 0;
+      ordenados.forEach((registro) => {
+        if (registro.consumoTotal === 0) {
+          rachaActual += 1;
+          rachaMaxima = Math.max(rachaMaxima, rachaActual);
+        } else {
+          rachaActual = 0;
+        }
+      });
+
+      if (todosCeroEsperado || rachaMaxima <= 2) {
+        return {
+          tipo: 'info',
+          icono: '⚪',
+          mensaje: 'No anomalía – 0 esperado',
+        } as const;
+      }
+    }
+
+    return {
+      tipo: 'info',
+      icono: 'ℹ️',
+      mensaje: 'Análisis no concluyente: revisa manualmente los consumos registrados',
+    } as const;
+  }, [analisisPorPeriodo, datos]);
 
   return (
     <div className="expediente-anomalias">
@@ -272,6 +475,16 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
               </button>
             )}
           </div>
+
+          {resumenGeneral && (
+            <div
+              className={`expediente-anomalias__alert expediente-anomalias__alert--${resumenGeneral.tipo}`}
+              role="status"
+            >
+              <span className="expediente-anomalias__alert-icon">{resumenGeneral.icono}</span>
+              <span>{resumenGeneral.mensaje}</span>
+            </div>
+          )}
 
           {!hayAnomalias && (
             <div className="expediente-anomalias__note">

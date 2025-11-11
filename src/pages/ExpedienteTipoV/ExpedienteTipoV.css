@@ -1356,6 +1356,46 @@
   color: var(--color-secondary);
 }
 
+.expediente-anomalias__alert {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.85rem 1.1rem;
+  border-radius: 0.85rem;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  margin-bottom: 1rem;
+  font-weight: 600;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.08);
+}
+
+.expediente-anomalias__alert-icon {
+  font-size: 1.35rem;
+}
+
+.expediente-anomalias__alert--warning {
+  background: color-mix(in srgb, var(--color-secondary) 10%, white);
+  border-color: color-mix(in srgb, var(--color-secondary) 40%, transparent);
+  color: color-mix(in srgb, var(--color-secondary) 65%, #1f2937);
+}
+
+.expediente-anomalias__alert--danger {
+  background: color-mix(in srgb, #ef4444 12%, white);
+  border-color: color-mix(in srgb, #ef4444 45%, transparent);
+  color: #b91c1c;
+}
+
+.expediente-anomalias__alert--success {
+  background: color-mix(in srgb, var(--color-primary) 8%, white);
+  border-color: color-mix(in srgb, var(--color-primary) 35%, transparent);
+  color: var(--color-primary);
+}
+
+.expediente-anomalias__alert--info {
+  background: rgba(59, 130, 246, 0.08);
+  border-color: rgba(59, 130, 246, 0.25);
+  color: #1d4ed8;
+}
+
 .expediente-anomalias__tipo {
   text-transform: capitalize;
 }
