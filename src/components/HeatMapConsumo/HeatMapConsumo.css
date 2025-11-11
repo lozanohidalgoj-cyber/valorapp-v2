@@ -786,3 +786,60 @@
   justify-content: center;
   pointer-events: none;
 }
+
+/* =========================================
+   CURSOR MODO MARCADO - CÍRCULO NEÓN FUCSIA
+   ========================================= */
+.heatmap-matrix--modo-marcado {
+  cursor: none !important;
+}
+
+.heatmap-matrix--modo-marcado * {
+  cursor: none !important;
+}
+
+.heatmap-matrix--modo-marcado:hover {
+  position: relative;
+}
+
+.heatmap-matrix--modo-marcado::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 20px;
+  height: 20px;
+  background: var(--color-secondary);
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 9999;
+  transform: translate(-50%, -50%);
+  animation: neon-pulse 1.5s ease-in-out infinite;
+  box-shadow:
+    0 0 10px var(--color-secondary),
+    0 0 20px var(--color-secondary),
+    0 0 30px rgba(255, 49, 132, 0.5),
+    inset 0 0 10px rgba(255, 255, 255, 0.8);
+}
+
+@keyframes neon-pulse {
+  0%,
+  100% {
+    transform: translate(-50%, -50%) scale(1);
+    opacity: 1;
+    box-shadow:
+      0 0 10px var(--color-secondary),
+      0 0 20px var(--color-secondary),
+      0 0 30px rgba(255, 49, 132, 0.5),
+      inset 0 0 10px rgba(255, 255, 255, 0.8);
+  }
+  50% {
+    transform: translate(-50%, -50%) scale(1.2);
+    opacity: 0.8;
+    box-shadow:
+      0 0 15px var(--color-secondary),
+      0 0 30px var(--color-secondary),
+      0 0 45px rgba(255, 49, 132, 0.8),
+      inset 0 0 15px rgba(255, 255, 255, 0.9);
+  }
+}

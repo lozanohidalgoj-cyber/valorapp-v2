@@ -235,6 +235,9 @@ const HeatMapConsumoComponent = ({
   const [fechaActa, setFechaActa] = useState<FechaActa | null>(null);
   const [eventosAplicados, setEventosAplicados] = useState<{ [key: string]: string }>({});
 
+  // Estado para controlar el modo de marcado
+  const esModoMarcado = Boolean(fechaActa?.fecha || cambioTitular?.fecha);
+
   useEffect(() => {
     const updateScale = () => {
       if (!containerRef.current || !matrixRef.current) return;
@@ -261,6 +264,48 @@ const HeatMapConsumoComponent = ({
       window.removeEventListener('resize', updateScale);
     };
   }, [datos]);
+
+  // UseEffect para cursor personalizado en modo marcado
+  useEffect(() => {
+    if (!esModoMarcado) return;
+
+    const cursor = document.createElement('div');
+    cursor.className = 'custom-cursor-neon';
+    cursor.style.cssText = `
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 20px;
+      height: 20px;
+      background: var(--color-secondary);
+      border-radius: 50%;
+      pointer-events: none;
+      z-index: 9999;
+      transform: translate(-50%, -50%);
+      animation: neon-pulse 1.5s ease-in-out infinite;
+      box-shadow: 
+        0 0 10px var(--color-secondary),
+        0 0 20px var(--color-secondary),
+        0 0 30px rgba(255, 49, 132, 0.5),
+        inset 0 0 10px rgba(255, 255, 255, 0.8);
+    `;
+
+    document.body.appendChild(cursor);
+
+    const handleMouseMove = (e: MouseEvent) => {
+      cursor.style.left = e.clientX + 'px';
+      cursor.style.top = e.clientY + 'px';
+    };
+
+    document.addEventListener('mousemove', handleMouseMove);
+
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      if (cursor.parentNode) {
+        cursor.parentNode.removeChild(cursor);
+      }
+    };
+  }, [esModoMarcado]);
 
   const metricaActual = useMemo(
     () => METRICAS.find((metrica) => metrica.id === metricaSeleccionada) ?? METRICAS[0],
@@ -405,7 +450,10 @@ const HeatMapConsumoComponent = ({
           className="matrix-scale"
           style={{ transform: `scale(${scale})`, transformOrigin: 'center center' }}
         >
-          <div className="heatmap-matrix heatmap-matrix--integrated" ref={matrixRef}>
+          <div
+            className={`heatmap-matrix heatmap-matrix--integrated ${esModoMarcado ? 'heatmap-matrix--modo-marcado' : ''}`}
+            ref={matrixRef}
+          >
             <div
               className="matrix-integrated-header"
               style={{ gridColumn: `1 / span ${años.length + 1}` }}
