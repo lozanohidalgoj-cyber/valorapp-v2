@@ -537,9 +537,7 @@ export const analizarComportamientoMensual = (
     if (comportamiento === 'Normal' && cambioPotenciaActivo) {
       comportamiento = 'Cambio de potencia';
     } else if (comportamiento === 'Normal' && variacionGlobal !== null) {
-      if (variacionGlobal <= -30) {
-        comportamiento = 'Descenso brusco mes a mes';
-      } else if (variacionGlobal >= 30) {
+      if (variacionGlobal >= 30) {
         comportamiento = 'Aumento de consumo';
       } else if (Math.abs(variacionGlobal) <= 5) {
         comportamiento = 'Sin cambio';
