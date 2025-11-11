@@ -41,6 +41,31 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     return mapa;
   }, [datos]);
+  const promedioHistoricoPorMes = useMemo(() => {
+    const acumulados = new Map<number, { suma: number; cantidad: number }>();
+
+    datos.forEach((registro) => {
+      if (!Number.isFinite(registro.consumoPromedioDiario)) {
+        return;
+      }
+
+      const actual = acumulados.get(registro.mes) ?? { suma: 0, cantidad: 0 };
+      acumulados.set(registro.mes, {
+        suma: actual.suma + registro.consumoPromedioDiario,
+        cantidad: actual.cantidad + 1,
+      });
+    });
+
+    const promedios = new Map<number, number>();
+
+    acumulados.forEach((valor, mes) => {
+      if (valor.cantidad > 0) {
+        promedios.set(mes, valor.suma / valor.cantidad);
+      }
+    });
+
+    return promedios;
+  }, [datos]);
   const coloresPorPotencia = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.14)', text: 'var(--color-primary)' },
@@ -137,6 +162,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                   <th>Potencia (kW)</th>
                   <th>Días</th>
                   <th>Consumo Promedio Diario (kWh)</th>
+                  <th>Promedio Histórico (mismo mes)</th>
                   <th>Variación %</th>
                 </tr>
               </thead>
@@ -155,6 +181,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                     potenciaPromedio !== null ? Number(potenciaPromedio.toFixed(2)) : null;
                   const colorPotencia =
                     potenciaClave !== null ? coloresPorPotencia.get(potenciaClave) : undefined;
+                  const promedioHistorico = promedioHistoricoPorMes.get(registro.mes) ?? null;
 
                   return (
                     <tr
@@ -195,6 +222,11 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
                         {consumoPromedioDiario !== null
                           ? formatearNumero(consumoPromedioDiario, 2)
                           : 'N/A'}
+                      </td>
+                      <td className="expediente-table-analisis__columna-promedio">
+                        {promedioHistorico === null
+                          ? 'Sin histórico'
+                          : formatearNumero(promedioHistorico, 2)}
                       </td>
                       <td>
                         {registro.variacionPorcentual === null
