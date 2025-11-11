@@ -5,12 +5,13 @@
 import { useMemo, useRef } from 'react';
 import { AlertTriangle, Download } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
-import { HeatMapConsumo } from '../../../components';
+import { HeatMapConsumo, BannerClasificacionExpediente } from '../../../components';
 import {
   formatearNumero,
   analizarComportamientoMensual,
   esComportamientoAnomalo,
 } from '../../../services/analisisConsumoService';
+import { clasificarExpediente } from '../../../services/clasificadorExpedienteService';
 
 interface VistaAnomaliasProps {
   datos: ConsumoMensual[];
@@ -91,13 +92,14 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     const acumulados = new Map<number, { suma: number; cantidad: number }>();
 
     datos.forEach((registro) => {
-      if (!Number.isFinite(registro.consumoPromedioDiario)) {
+      // Usar consumoTotal en lugar de consumoPromedioDiario
+      if (!Number.isFinite(registro.consumoTotal)) {
         return;
       }
 
       const actual = acumulados.get(registro.mes) ?? { suma: 0, cantidad: 0 };
       acumulados.set(registro.mes, {
-        suma: actual.suma + registro.consumoPromedioDiario,
+        suma: actual.suma + registro.consumoTotal, // ✅ CONSUMO TOTAL
         cantidad: actual.cantidad + 1,
       });
     });
@@ -106,7 +108,7 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
 
     acumulados.forEach((valor, mes) => {
       if (valor.cantidad > 0) {
-        promedios.set(mes, valor.suma / valor.cantidad);
+        promedios.set(mes, valor.suma / valor.cantidad); // Promedio del CONSUMO TOTAL de ese mes
       }
     });
 
@@ -272,6 +274,19 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
     } as const;
   }, [analisisPorPeriodo, datos]);
 
+  // Clasificación global del expediente
+  const clasificacionExpediente = useMemo(() => {
+    if (datos.length === 0) return null;
+    return clasificarExpediente(datos);
+  }, [datos]);
+
+  // Handler para ir al inicio de la anomalía
+  const handleIrInicioAnomalia = () => {
+    if (clasificacionExpediente?.inicioPeriodoAnomalia) {
+      handleScrollToPeriodo(clasificacionExpediente.inicioPeriodoAnomalia);
+    }
+  };
+
   return (
     <div className="expediente-anomalias">
       <div className="expediente-heatmap-section expediente-anomalias__heatmap">
@@ -283,6 +298,16 @@ export const VistaAnomalias = ({ datos, detallesPorPeriodo, onExportar }: VistaA
           />
         </div>
       </div>
+
+      {/* Banner de Clasificación Global del Expediente */}
+      {clasificacionExpediente && (
+        <BannerClasificacionExpediente
+          resultado={clasificacionExpediente}
+          onIrInicio={
+            clasificacionExpediente.inicioPeriodoAnomalia ? handleIrInicioAnomalia : undefined
+          }
+        />
+      )}
 
       {!hayDatos ? (
         <div className="expediente-anomalias__empty">

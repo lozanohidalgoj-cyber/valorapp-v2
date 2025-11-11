@@ -43,7 +43,7 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
   });
 
   // Calcular métricas por año
-  return Object.keys(datosPorAño)
+  const consumosPorAño = Object.keys(datosPorAño)
     .map(Number)
     .sort((a, b) => a - b)
     .map((año) => {
@@ -90,7 +90,138 @@ const generarVistaAnual = (datos: DerivacionData[]): ConsumoAnual[] => {
         promedioConsumoPorDia,
       };
     });
+
+  return consumosPorAño;
 };
+
+// ==================== FUNCIONES AUXILIARES PARA MÉTRICAS ADICIONALES ====================
+
+/**
+ * Calcula el Z-Score (desviaciones estándar) de un consumo respecto a los últimos 6 meses
+ * @param consumos - Array de consumos mensuales ordenados cronológicamente
+ * @param indiceActual - Índice del mes a analizar
+ * @returns Z-Score o null si no hay suficientes datos
+ */
+function calcularZScore(consumos: number[], indiceActual: number): number | null {
+  if (indiceActual < 2) return null; // Necesitamos al menos 3 datos históricos
+
+  // Tomar hasta 6 meses previos (sin incluir el actual)
+  const inicio = Math.max(0, indiceActual - 6);
+  const historicos = consumos.slice(inicio, indiceActual);
+
+  if (historicos.length < 2) return null;
+
+  // Calcular media
+  const media = historicos.reduce((sum, val) => sum + val, 0) / historicos.length;
+
+  // Calcular desviación estándar
+  const varianza =
+    historicos.reduce((sum, val) => sum + Math.pow(val - media, 2), 0) / historicos.length;
+  const desviacion = Math.sqrt(varianza);
+
+  if (desviacion === 0) return 0; // Consumo totalmente estable
+
+  // Calcular Z-Score
+  const consumoActual = consumos[indiceActual];
+  const zScore = (consumoActual - media) / desviacion;
+
+  return zScore;
+}
+
+/**
+ * Calcula el índice estacional (consumo actual / promedio histórico del mes * 100)
+ * @param consumoActual - Consumo del periodo actual
+ * @param promedioHistorico - Promedio histórico del mes
+ * @returns Índice estacional (100 = normal) o null si no hay histórico
+ */
+function calcularIndiceEstacional(
+  consumoActual: number,
+  promedioHistorico: number | null
+): number | null {
+  if (!promedioHistorico || promedioHistorico === 0) return null;
+  return (consumoActual / promedioHistorico) * 100;
+}
+
+/**
+ * Calcula la tendencia en kWh/mes sobre los últimos 3 meses
+ * @param consumos - Array de consumos mensuales
+ * @param indiceActual - Índice del mes actual
+ * @returns Tendencia en kWh/mes o null si no hay suficientes datos
+ */
+function calcularTendencia3M(consumos: number[], indiceActual: number): number | null {
+  if (indiceActual < 2) return null; // Necesitamos al menos 3 meses
+
+  const consumoActual = consumos[indiceActual];
+  const consumoHace3Meses = consumos[indiceActual - 2];
+
+  // Tendencia = (consumoActual - consumoHace3Meses) / 3
+  const tendencia = (consumoActual - consumoHace3Meses) / 3;
+
+  return tendencia;
+}
+
+/**
+ * Calcula días transcurridos desde la última anomalía
+ * @param comparativa - Array de consumos mensuales
+ * @param indiceActual - Índice del periodo actual
+ * @returns Número de días desde última anomalía o null si no hay anomalías previas
+ */
+function calcularDiasDesdeAnomalia(
+  comparativa: Partial<ConsumoMensual>[],
+  indiceActual: number
+): number | null {
+  // Buscar hacia atrás la última anomalía
+  for (let i = indiceActual - 1; i >= 0; i--) {
+    if (comparativa[i].esAnomalia) {
+      // Calcular días entre periodos (aproximado)
+      const diasTranscurridos = (indiceActual - i) * 30; // Aproximación
+      return diasTranscurridos;
+    }
+  }
+
+  return null; // No hay anomalías previas
+}
+
+/**
+ * Calcula el ratio Consumo/Potencia
+ * @param consumoTotal - Consumo total en kWh
+ * @param potencia - Potencia contratada en kW
+ * @param dias - Número de días del periodo
+ * @returns Ratio entre 0 y 1, o null si no hay potencia
+ */
+function calcularRatioConsumoPotencia(
+  consumoTotal: number,
+  potencia: number | null,
+  dias: number
+): number | null {
+  if (!potencia || potencia === 0 || dias === 0) return null;
+
+  // Ratio = consumoTotal / (potencia * dias * 24)
+  const consumoMaximoPosible = potencia * dias * 24;
+  const ratio = consumoTotal / consumoMaximoPosible;
+
+  return ratio;
+}
+
+/**
+ * Calcula el coeficiente de variación histórico (desviación estándar / media * 100)
+ * @param consumos - Array de todos los consumos históricos
+ * @returns Coeficiente de variación en % o null si no hay suficientes datos
+ */
+function calcularCoeficienteVariacion(consumos: number[]): number | null {
+  if (consumos.length < 3) return null;
+
+  const media = consumos.reduce((sum, val) => sum + val, 0) / consumos.length;
+  if (media === 0) return null;
+
+  const varianza =
+    consumos.reduce((sum, val) => sum + Math.pow(val - media, 2), 0) / consumos.length;
+  const desviacion = Math.sqrt(varianza);
+
+  const cv = (desviacion / media) * 100;
+
+  return cv;
+}
 
 /**
  * Genera la comparativa mensual con detección de anomalías
@@ -272,15 +403,11 @@ const generarComparativaMensual = (
       const agregadoAnterior = datosPorMes[periodoAnterior];
       const metricasAnteriores = obtenerMetricas(agregadoAnterior);
       const consumoAnterior = metricasAnteriores.consumoActivaTotal;
-      const diasAnteriores = agregadoAnterior.sumaDias;
-      const consumoPromedioDiarioAnterior =
-        diasAnteriores > 0 ? consumoAnterior / diasAnteriores : null;
 
-      if (consumoPromedioDiarioAnterior !== null && consumoPromedioDiarioAnterior > 0) {
-        variacionPorcentual =
-          ((consumoPromedioDiario - consumoPromedioDiarioAnterior) /
-            consumoPromedioDiarioAnterior) *
-          100;
+      // Calcular variación porcentual usando CONSUMO TOTAL (no promedio diario)
+      // Esto es consistente con la lógica de detección de anomalías
+      if (consumoAnterior > 0) {
+        variacionPorcentual = ((consumoReferencia - consumoAnterior) / consumoAnterior) * 100;
 
         if (variacionPorcentual > 5) {
           tipoVariacion = 'aumento';
@@ -337,6 +464,20 @@ const generarComparativaMensual = (
       }
     }
 
+    // ==== NUEVAS MÉTRICAS ADICIONALES ====
+    // Necesitamos calcularlas después del bucle principal para tener acceso a todos los datos
+    // Por ahora retornamos null, se calcularán en un segundo paso
+    const zScore: number | null = null;
+    const indiceEstacional: number | null = null;
+    const tendencia3M: number | null = null;
+    const diasDesdeAnomalia: number | null = null;
+    const ratioConsumoPotencia = calcularRatioConsumoPotencia(
+      consumoReferencia,
+      potenciaPromedio,
+      dias
+    );
+    const coeficienteVariacion: number | null = null;
+
     return {
       año,
       mes,
@@ -355,7 +496,48 @@ const generarComparativaMensual = (
       tipoVariacion,
       motivosAnomalia,
       registros: agrupado.registros.length,
+      zScore,
+      indiceEstacional,
+      tendencia3M,
+      diasDesdeAnomalia,
+      ratioConsumoPotencia,
+      coeficienteVariacion,
     };
+  });
+
+  // ==== SEGUNDO PASO: CALCULAR MÉTRICAS QUE REQUIEREN TODA LA SERIE ====
+  const consumosTotales = comparativaMensual.map((c) => c.consumoActivaTotal);
+  const coeficienteVariacionGlobal = calcularCoeficienteVariacion(consumosTotales);
+
+  // Calcular promedios históricos por mes (para índice estacional)
+  const promediosPorMes = new Map<number, number>();
+  const acumuladosPorMes = new Map<number, { suma: number; cantidad: number }>();
+
+  comparativaMensual.forEach((c) => {
+    const actual = acumuladosPorMes.get(c.mes) ?? { suma: 0, cantidad: 0 };
+    acumuladosPorMes.set(c.mes, {
+      suma: actual.suma + c.consumoActivaTotal,
+      cantidad: actual.cantidad + 1,
+    });
+  });
+
+  acumuladosPorMes.forEach((valor, mes) => {
+    if (valor.cantidad > 1) {
+      // Solo si hay al menos 2 años
+      promediosPorMes.set(mes, valor.suma / valor.cantidad);
+    }
+  });
+
+  // Actualizar cada registro con las métricas calculadas
+  comparativaMensual.forEach((registro, index) => {
+    registro.zScore = calcularZScore(consumosTotales, index);
+    registro.indiceEstacional = calcularIndiceEstacional(
+      registro.consumoActivaTotal,
+      promediosPorMes.get(registro.mes) ?? null
+    );
+    registro.tendencia3M = calcularTendencia3M(consumosTotales, index);
+    registro.diasDesdeAnomalia = calcularDiasDesdeAnomalia(comparativaMensual, index);
+    registro.coeficienteVariacion = coeficienteVariacionGlobal;
   });
 
   const detallesPorPeriodo: Record<string, DerivacionData[]> = {};

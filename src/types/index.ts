@@ -241,6 +241,18 @@ export interface ConsumoMensual {
   motivosAnomalia: string[];
   /** Registros aportados al periodo */
   registros: number;
+  /** Z-Score (desviaciones estándar respecto a la media móvil de 6 meses) */
+  zScore: number | null;
+  /** Índice estacional (consumo actual / promedio histórico del mes * 100) */
+  indiceEstacional: number | null;
+  /** Tendencia en kWh/mes (calculada sobre 3 meses) */
+  tendencia3M: number | null;
+  /** Días transcurridos desde la última anomalía */
+  diasDesdeAnomalia: number | null;
+  /** Ratio Consumo/Potencia (consumo / (potencia * dias * 24)) */
+  ratioConsumoPotencia: number | null;
+  /** Coeficiente de variación histórico (%) */
+  coeficienteVariacion: number | null;
 }
 
 /**
@@ -255,6 +267,44 @@ export interface AnalisisPeriodoConsumo {
   comportamiento: string;
   /** Indica si los ceros observados son esperados por estacionalidad */
   ceroEsperado: boolean;
+}
+
+/**
+ * Clasificación global del expediente
+ */
+export type ClasificacionExpediente =
+  | 'No anomalía - 0 esperado'
+  | 'Sin anomalía'
+  | 'Anomalía indeterminada'
+  | 'Descenso sostenido'
+  | 'No objetivo por cambio de potencia';
+
+/**
+ * Resultado de la clasificación global del expediente
+ */
+export interface ResultadoClasificacionExpediente {
+  /** Clasificación global del expediente */
+  clasificacion: ClasificacionExpediente;
+  /** Periodo donde inició la anomalía (YYYY-MM) */
+  inicioPeriodoAnomalia: string | null;
+  /** Fecha exacta donde inició la anomalía */
+  inicioFechaAnomalia: Date | null;
+  /** Consumo total del periodo donde inició */
+  consumoInicio: number | null;
+  /** Consumo previo al inicio de la anomalía */
+  consumoPrevio: number | null;
+  /** Variación porcentual en el inicio */
+  variacionInicio: number | null;
+  /** Número de periodos con anomalía */
+  periodosConAnomalia: number;
+  /** Número de cambios de potencia detectados */
+  cambiosPotencia: number;
+  /** Periodos con consumo cero esperado */
+  periodosConCeroEsperado: number;
+  /** Detalle adicional (razones de la clasificación) */
+  detalle: string[];
+  /** Nivel de confianza de la clasificación (0-100) */
+  confianza: number;
 }
 
 /**
