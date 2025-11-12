@@ -107,10 +107,8 @@ export const VistaMensual = ({
           </thead>
           <tbody>
             {ordenados.map((registro) => {
-              // Calcular días del mes (28-31 según mes/año)
-              const diasDelMes = new Date(registro.año, registro.mes, 0).getDate();
-              const consumoPromedioDiario =
-                diasDelMes > 0 ? registro.consumoTotal / diasDelMes : null;
+              // Usar el campo ya calculado en el servicio
+              const consumoPromedioDiario = registro.consumoPromedioDiario;
 
               return (
                 <tr
@@ -122,9 +120,7 @@ export const VistaMensual = ({
                   <td>{formatearNumero(registro.consumoTotal)}</td>
                   <td>{registro.dias}</td>
                   <td>
-                    {consumoPromedioDiario !== null
-                      ? formatearNumero(consumoPromedioDiario, 2)
-                      : 'N/A'}
+                    {consumoPromedioDiario > 0 ? formatearNumero(consumoPromedioDiario, 2) : 'N/A'}
                   </td>
                   <td>
                     {registro.variacionPorcentual === null

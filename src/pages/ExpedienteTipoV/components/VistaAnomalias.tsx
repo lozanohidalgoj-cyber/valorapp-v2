@@ -379,10 +379,8 @@ export const VistaAnomalias = ({
               </thead>
               <tbody>
                 {datos.map((registro) => {
-                  // Calcular días del mes (28-31 según mes/año)
-                  const diasDelMes = new Date(registro.año, registro.mes, 0).getDate();
-                  const consumoPromedioDiario =
-                    diasDelMes > 0 ? registro.consumoTotal / diasDelMes : null;
+                  // Usar el campo ya calculado en el servicio
+                  const consumoPromedioDiario = registro.consumoPromedioDiario;
                   const potenciaPromedio = registro.potenciaPromedio;
                   const variacionPotencia = registro.variacionPotenciaPorcentual;
                   const claseFilaPotencia = obtenerClaseFilaPotencia(variacionPotencia);
@@ -504,7 +502,7 @@ export const VistaAnomalias = ({
                       <td>{formatearNumero(registro.consumoTotal)}</td>
                       <td>{registro.dias}</td>
                       <td className="expediente-table-analisis__columna-promedio">
-                        {consumoPromedioDiario !== null
+                        {consumoPromedioDiario > 0
                           ? formatearNumero(consumoPromedioDiario, 2)
                           : 'N/A'}
                       </td>
