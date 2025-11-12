@@ -135,7 +135,9 @@ export const BannerClasificacionExpediente = ({
         {resultado.periodosConCeroEsperado > 0 && (
           <div className="banner-clasificacion__estadistica">
             <span className="banner-clasificacion__estadistica-label">
-              Periodos con cero esperado:
+              {resultado.clasificacion === 'No anomalía - 0 esperado'
+                ? 'Periodos con cero esperado:'
+                : 'Periodos con cero por anomalía:'}
             </span>
             <span className="banner-clasificacion__estadistica-valor">
               {resultado.periodosConCeroEsperado}
