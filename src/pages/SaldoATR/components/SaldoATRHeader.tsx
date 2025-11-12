@@ -5,7 +5,7 @@
  */
 
 import { memo } from 'react';
-import { ArrowLeft, Trash2 } from 'lucide-react';
+import { ArrowLeft, Trash2, BarChart2 } from 'lucide-react';
 
 /**
  * Props del componente SaldoATRHeader
@@ -78,7 +78,8 @@ const SaldoATRHeaderComponent = ({
                 : 'Iniciar análisis de consumo'
             }
           >
-            Análisis de Consumo
+            <BarChart2 size={22} />
+            <span className="saldoatr-analisis-btn-header__text">Análisis de Consumo</span>
           </button>
         )}
         {/* Botón de exportación eliminado según requerimiento */}
