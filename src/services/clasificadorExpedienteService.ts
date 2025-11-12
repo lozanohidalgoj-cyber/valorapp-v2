@@ -325,6 +325,35 @@ export const clasificarExpediente = (
     };
   }
 
+  // CASO 2.5: PRIORIDAD MÁXIMA - Cambio de potencia significativo (> 0.5 kW) durante inicio de anomalía
+  // Este caso debe verificarse ANTES que cualquier otra clasificación de anomalía
+  if (cambiosPotencia > 0 && inicioAnomalia) {
+    const cambioPotenciaEnAnomalia = verificarCambioPotenciaEnAnomalia(
+      consumosMensuales,
+      inicioAnomalia.indice
+    );
+    if (cambioPotenciaEnAnomalia) {
+      confianza = 95;
+      detalle.push(`Cambio de potencia detectado en periodo ${inicioAnomalia.periodo}`);
+      detalle.push(`Variación de potencia: ${cambioPotenciaEnAnomalia.variacion.toFixed(2)} kW`);
+      detalle.push('El descenso de consumo coincide con cambio de potencia contratada');
+      detalle.push('⚠️ No se considera anomalía - cambio contractual esperado');
+      return {
+        clasificacion: 'No objetivo por cambio de potencia',
+        inicioPeriodoAnomalia: inicioAnomalia.periodo,
+        inicioFechaAnomalia: new Date(inicioAnomalia.periodo + '-01'),
+        consumoInicio: inicioAnomalia.consumo,
+        consumoPrevio: inicioAnomalia.consumoPrevio,
+        variacionInicio: inicioAnomalia.variacion,
+        periodosConAnomalia,
+        cambiosPotencia,
+        periodosConCeroEsperado,
+        detalle,
+        confianza,
+      };
+    }
+  }
+
   // CASO 3: Descenso sostenido
   // REGLA ACTUALIZADA (v3) – Descenso sostenido progresivo:
   // Detecta tanto descensos abruptos como graduales que muestran deterioro sostenido.
@@ -437,38 +466,6 @@ export const clasificarExpediente = (
       (porcentajeBajos >= 0.7 && cumpleReduccion); // 70%+ periodos bajos con reducción
 
     if (esDescensoSostenido) {
-      // 🔍 VERIFICAR CAMBIO DE POTENCIA ANTES DE CLASIFICAR COMO DESCENSO SOSTENIDO
-      const cambioPotenciaEnAnomalia = verificarCambioPotenciaEnAnomalia(
-        consumosMensuales,
-        indiceInicioAnalisis
-      );
-
-      if (cambioPotenciaEnAnomalia) {
-        confianza = 90;
-        detalle.push(`Cambio de potencia detectado en periodo ${inicioPeriodoFinal}`);
-        detalle.push(`Variación de potencia: ${cambioPotenciaEnAnomalia.variacion.toFixed(2)} kW`);
-        detalle.push('El descenso de consumo coincide con cambio de potencia contratada');
-        return {
-          clasificacion: 'No objetivo por cambio de potencia',
-          inicioPeriodoAnomalia: inicioPeriodoFinal,
-          inicioFechaAnomalia: new Date(inicioPeriodoFinal + '-01'),
-          consumoInicio:
-            inicioAnomalia?.consumo ?? ordenados[indiceInicioAnalisis].consumoActivaTotal ?? null,
-          consumoPrevio:
-            inicioAnomalia?.consumoPrevio ??
-            (indiceInicioAnalisis > 0
-              ? ordenados[indiceInicioAnalisis - 1].consumoActivaTotal
-              : null),
-          variacionInicio: inicioAnomalia?.variacion ?? null,
-          periodosConAnomalia,
-          cambiosPotencia,
-          periodosConCeroEsperado,
-          detalle,
-          confianza,
-        };
-      }
-
-      // Si no hay cambio de potencia, continuar con clasificación de descenso sostenido
       confianza = hayDescensoGlobalSignificativo ? 95 : 90;
       detalle.push(`Inicio de anomalía detectado en: ${inicioPeriodoFinal}`);
 
