@@ -277,7 +277,8 @@ export type ClasificacionExpediente =
   | 'Sin anomalía'
   | 'Anomalía indeterminada'
   | 'Descenso sostenido'
-  | 'No objetivo por cambio de potencia';
+  | 'No objetivo por cambio de potencia'
+  | 'Consumo bajo con picos';
 
 /**
  * Resultado de la clasificación global del expediente
