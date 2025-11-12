@@ -72,12 +72,10 @@ export const BannerClasificacionExpediente = ({
       </div>
 
       {/* Mostrar inicio de anomalía solo para clasificaciones específicas */}
-      {/* NOTA: "Anomalía indeterminada" NO muestra inicio porque no tiene un patrón claro */}
-      {[
-        'Descenso sostenido',
-        'No objetivo por cambio de potencia',
-        'Consumo bajo con picos',
-      ].includes(resultado.clasificacion) &&
+      {/* NOTA: "Anomalía indeterminada" y "No objetivo por cambio de potencia" NO muestran inicio */}
+      {/* - Anomalía indeterminada: no tiene un patrón claro de inicio */}
+      {/* - Cambio de potencia: no es anomalía real, es un cambio contractual */}
+      {['Descenso sostenido', 'Consumo bajo con picos'].includes(resultado.clasificacion) &&
         resultado.inicioPeriodoAnomalia && (
           <div className="banner-clasificacion__inicio">
             <div className="banner-clasificacion__inicio-info">
