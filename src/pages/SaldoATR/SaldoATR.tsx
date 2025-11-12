@@ -37,7 +37,13 @@ import { COLUMN_LETTERS, DEFAULT_HEADERS } from './utils';
 import '../ExpedienteTipoV/ExpedienteTipoV.css';
 import './SaldoATR.css';
 
-const PALABRAS_CLAVE_ANULACION = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'] as const;
+const PALABRAS_CLAVE_ANULACION = [
+  'ANULADA',
+  'ANULADOR',
+  'COMPLEMENTARIA',
+  'SUSTITUIDA',
+  'SUSTITUYENTE',
+] as const;
 const COLUMNAS_REVISION_ANULACION: readonly SaldoATRColumna[] = ['E', 'F', 'K', 'L'];
 const MAX_FACTURAS_DETALLE = 5;
 

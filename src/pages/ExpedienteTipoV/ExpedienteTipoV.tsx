@@ -123,7 +123,13 @@ export const ExpedienteTipoV = () => {
 
     setError(null);
 
-    const palabrasClaveExcluir = ['ANULADA', 'ANULADOR', 'COMPLEMENTARIA', 'SUSTITUIDA'];
+    const palabrasClaveExcluir = [
+      'ANULADA',
+      'ANULADOR',
+      'COMPLEMENTARIA',
+      'SUSTITUIDA',
+      'SUSTITUYENTE',
+    ];
 
     const obtenerIdentificadorFactura = (registro: DerivacionData): string => {
       const numeroFiscal = (registro['Número Fiscal de Factura'] || '').toString().trim();
