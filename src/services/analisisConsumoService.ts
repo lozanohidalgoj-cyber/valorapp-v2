@@ -615,6 +615,12 @@ const COMPORTAMIENTOS_NO_ANOMALIA = new Set([
 /**
  * Analiza una serie de consumos mensuales y determina el comportamiento por periodo
  * replicando la lógica empleada en la vista de anomalías.
+ *
+ * Detección de consumos cero:
+ * - "Cero esperado estacional": Cuando el cero ocurre en meses estacionales (1,7,8,12)
+ *   O cuando el mismo mes tiene historial de ceros en otros años
+ * - "Normal": Para consumos cero sin patrón estacional claro
+ *
  * @param datos Serie mensual de consumos
  * @returns Mapa periodo -> análisis detectado
  */
@@ -661,8 +667,9 @@ export const analizarComportamientoMensual = (
   const ordenados = [...datos].sort(compararPorPeriodo);
   const registrosPorPeriodo = new Map<string, ConsumoMensual>();
   const resultado = new Map<string, AnalisisPeriodoConsumo>();
-  let totalZerosPrevios = 0;
-  let consecutivosZeros = 0;
+  // Variables eliminadas - solo se usaban para "Cero sospechoso"
+  // let totalZerosPrevios = 0;
+  // let consecutivosZeros = 0;
   let cambioPotenciaActivo = false;
 
   // Primera pasada: detectar descensos mes a mes (usando consumo TOTAL)
@@ -744,6 +751,15 @@ export const analizarComportamientoMensual = (
 
   const desviacionGlobal = Math.sqrt(varianzaGlobal);
 
+  // Pre-calcular mapa de ceros por mes (para detección de patrón estacional)
+  const mesesCero = new Map<number, number>();
+  datos.forEach((registro) => {
+    if (registro.consumoTotal === 0) {
+      const conteoCeros = mesesCero.get(registro.mes) ?? 0;
+      mesesCero.set(registro.mes, conteoCeros + 1);
+    }
+  });
+
   // Umbrales de clasificación de comportamiento (basados en análisis estadístico)
   const UMBRALES = {
     DESCENSO_FUERTE: -40, // Descenso fuerte (anomalía) - variaciones críticas
@@ -796,14 +812,16 @@ export const analizarComportamientoMensual = (
         ((registro.consumoTotal - anterior.consumoTotal) / anterior.consumoTotal) * 100;
     }
 
-    const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
+    // Variable comentada - solo se usaba para "Cero sospechoso"
+    // const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
 
     const consumoEsCero = registro.consumoTotal === 0;
-    const habiaCeroAntes = totalZerosPrevios > 0;
-    const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
-    const variacionPosterior = siguiente?.variacionPorcentual;
-    const incrementoPosterior =
-      consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
+    // Variables comentadas - solo se usaban para "Cero sospechoso"
+    // const habiaCeroAntes = totalZerosPrevios > 0;
+    // const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
+    // const variacionPosterior = siguiente?.variacionPorcentual;
+    // const incrementoPosterior =
+    //   consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
     const potenciaActual = registro.potenciaPromedio;
     const potenciaPeriodoAnterior =
       indice > 0 ? ordenados[indice - 1].potenciaPromedio : potenciaActual;
@@ -816,11 +834,21 @@ export const analizarComportamientoMensual = (
     let ceroEsperadoPersistente = false;
 
     // Prioridad 1: Detección de ceros
-    if (consumoEsCero && (!habiaCeroAntes || repetidoMasDeDos || incrementoPosterior)) {
-      comportamiento = 'Cero sospechoso';
-    } else if (consumoEsCero) {
-      comportamiento = 'Cero esperado estacional';
-      ceroEsperadoPersistente = true;
+    if (consumoEsCero) {
+      // Verificar si es un patrón estacional:
+      // - El mismo mes tiene ceros en otros años (histórico) O
+      // - Es un mes típicamente estacional (julio, agosto, diciembre, enero)
+      const esMesEstacional = [1, 7, 8, 12].includes(registro.mes);
+      const tieneCerosHistoricos =
+        mesesCero.get(registro.mes) !== undefined && (mesesCero.get(registro.mes) ?? 0) > 1;
+
+      if (esMesEstacional || tieneCerosHistoricos) {
+        comportamiento = 'Cero esperado estacional';
+        ceroEsperadoPersistente = true;
+      } else {
+        // Cero sin patrón estacional - clasificar como comportamiento normal con consumo nulo
+        comportamiento = 'Normal';
+      }
     }
     // Prioridad 2: Cambio de potencia
     else if (cambioPotenciaActivo) {
@@ -936,24 +964,21 @@ export const analizarComportamientoMensual = (
       ceroEsperado: ceroEsperadoPersistente,
     });
 
-    if (consumoEsCero) {
-      consecutivosZeros += 1;
-      totalZerosPrevios += 1;
-    } else {
-      consecutivosZeros = 0;
-    }
+    // Actualización de contadores eliminada - solo se usaba para "Cero sospechoso"
+    // if (consumoEsCero) {
+    //   consecutivosZeros += 1;
+    //   totalZerosPrevios += 1;
+    // } else {
+    //   consecutivosZeros = 0;
+    // }
   });
 
+  // Calcular mesesConConsumo (ya tenemos mesesCero calculado antes del bucle principal)
   const mesesConConsumo = new Map<number, number>();
-  const mesesCero = new Map<number, number>();
 
   ordenados.forEach((registro) => {
-    const conteoConsumo = mesesConConsumo.get(registro.mes) ?? 0;
-    const conteoCeros = mesesCero.get(registro.mes) ?? 0;
-
-    if (registro.consumoTotal === 0) {
-      mesesCero.set(registro.mes, conteoCeros + 1);
-    } else {
+    if (registro.consumoTotal !== 0) {
+      const conteoConsumo = mesesConConsumo.get(registro.mes) ?? 0;
       mesesConConsumo.set(registro.mes, conteoConsumo + 1);
     }
   });
