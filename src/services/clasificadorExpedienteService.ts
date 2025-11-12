@@ -353,18 +353,43 @@ export const clasificarExpediente = (
   }
 
   // CASO 4: Descenso sostenido
-  // REGLA ACTUALIZADA (v2) – Descenso sostenido:
-  // Antes: criterios laxos (periodos bajos distribuidos + reducción media). Generaba falsos positivos.
-  // Ahora: se exige estructura clara de deterioro para separar patrones irregulares (indeterminados).
-  // DEFINICIÓN:
-  //   1. Existe inicio estimado (por heurística o bloque de ≥3 variaciones negativas seguidas sin recuperación confirmada).
-  //   2. A partir del inicio: racha máxima consecutiva de periodos "bajos" >= RACHA_MINIMA.
-  //   3. Periodos bajos posteriores al inicio representan >= PORCENTAJE_MIN_BAJOS_POST del total post-inicio.
-  //   4. Reducción media respecto al promedio global <= UMBRAL_REDUCCION_PROMEDIO
-  //      (atajo si la reducción es muy fuerte <= UMBRAL_REDUCCION_MUY_FUERTE con racha válida).
-  //   5. "Bajo" = consumo <= FACTOR_CONSUMO_BAJO * promedioGlobal O zScore < ZSCORE_BAJO.
-  // Si falla cualquiera de los puntos → pasa a evaluación de "Anomalía indeterminada" o a otros patrones.
-  if (inicioAnomalia || (longitudBloque >= 3 && !recuperacionConfirmada)) {
+  // REGLA ACTUALIZADA (v3) – Descenso sostenido progresivo:
+  // Detecta tanto descensos abruptos como graduales que muestran deterioro sostenido.
+  // DEFINICIÓN MEJORADA:
+  //   1. Existe inicio estimado (heurística O bloque de descensos) O
+  //   2. Análisis de tendencia global muestra descenso significativo (promedio final < 70% promedio inicial)
+  //   3. A partir del inicio: racha máxima consecutiva de periodos "bajos" >= RACHA_MINIMA O
+  //      mayoría de periodos posteriores son bajos (>= 50%)
+  //   4. Reducción media significativa respecto al promedio global
+  //   5. "Bajo" = consumo <= FACTOR_CONSUMO_BAJO * promedioGlobal O zScore < ZSCORE_BAJO
+
+  // NUEVA LÓGICA: Detectar descenso sostenido incluso sin inicio puntual claro
+  const hayDescensoSostenido = inicioAnomalia || (longitudBloque >= 3 && !recuperacionConfirmada);
+
+  // Análisis de tendencia global para descensos graduales
+  const tercioInicial = Math.floor(consumosMensuales.length / 3);
+  const tercioFinal = Math.floor((consumosMensuales.length * 2) / 3);
+
+  const promedioInicial =
+    tercioInicial > 0
+      ? consumosMensuales
+          .slice(0, tercioInicial)
+          .reduce((sum, c) => sum + c.consumoActivaTotal, 0) / tercioInicial
+      : promedioGlobal;
+
+  const promedioFinal =
+    consumosMensuales.length > tercioFinal
+      ? consumosMensuales.slice(tercioFinal).reduce((sum, c) => sum + c.consumoActivaTotal, 0) /
+        (consumosMensuales.length - tercioFinal)
+      : promedioGlobal;
+
+  const reduccionGlobal =
+    promedioInicial > 0 ? ((promedioFinal - promedioInicial) / promedioInicial) * 100 : 0;
+
+  // Detectar descenso sostenido por tendencia global (sin necesidad de inicio puntual)
+  const hayDescensoGlobalSignificativo = reduccionGlobal <= -30; // Reducción >= 30% entre inicio y final
+
+  if (hayDescensoSostenido || hayDescensoGlobalSignificativo) {
     // Preferir inicio por tendencia si existe bloque de ≥3 descensos y NO hay recuperación confirmada
     const usarInicioPorTendencia = longitudBloque >= 3 && !recuperacionConfirmada;
     const inicioPeriodo = usarInicioPorTendencia
@@ -372,22 +397,31 @@ export const clasificarExpediente = (
       : inicioAnomalia!.periodo;
     const indiceInicio = usarInicioPorTendencia ? inicioBloqueDescenso : inicioAnomalia!.indice;
 
-    // ========= REGLA REFINADA DE DESCENSO SOSTENIDO =========
-    // Nueva definición más estricta para reducir falsos positivos:
-    // 1. Racha mínima de N periodos consecutivos con consumo "bajo" respecto al promedio global.
-    // 2. Al menos X% de los periodos posteriores al inicio están por debajo del factor bajo global.
-    // 3. Reducción media post-inicio <= UMBRAL_REDUCCION_PROMEDIO (o alternativa: reducción muy fuerte).
-    // "Bajo" se define por: consumo <= FACTOR_CONSUMO_BAJO * promedioGlobal  O  zScore < ZSCORE_BAJO
+    // ========= REGLA MEJORADA DE DESCENSO SOSTENIDO (v3) =========
+    // Umbrales relajados para capturar descensos graduales pero sostenidos
     const UMBRALES_DESCENSO = {
-      RACHA_MINIMA: 3,
-      FACTOR_CONSUMO_BAJO: 0.5, // 50% del promedio global
-      ZSCORE_BAJO: -1.5,
-      PORCENTAJE_MIN_BAJOS_POST: 0.6, // 60% de los periodos post inicio deben ser bajos
-      UMBRAL_REDUCCION_PROMEDIO: -20, // -20% vs global
-      UMBRAL_REDUCCION_MUY_FUERTE: -40, // -40% vs global (atajo)
+      RACHA_MINIMA: 2, // Reducido de 3 a 2 para descensos graduales
+      FACTOR_CONSUMO_BAJO: 0.6, // Aumentado de 0.5 a 0.6 (60% del promedio global)
+      ZSCORE_BAJO: -1.0, // Relajado de -1.5 a -1.0
+      PORCENTAJE_MIN_BAJOS_POST: 0.5, // Reducido de 0.6 a 0.5 (50% suficiente)
+      UMBRAL_REDUCCION_PROMEDIO: -15, // Relajado de -20% a -15%
+      UMBRAL_REDUCCION_MUY_FUERTE: -30, // Relajado de -40% a -30%
     } as const;
 
-    const periodosPost = consumosMensuales.slice(indiceInicio);
+    // Si hay descenso global significativo, usar toda la serie desde el primer descenso detectado
+    const indiceInicioAnalisis =
+      hayDescensoGlobalSignificativo && !hayDescensoSostenido
+        ? Math.max(0, tercioInicial) // Empezar desde el primer tercio si es descenso global
+        : indiceInicio;
+
+    const inicioPeriodoFinal =
+      hayDescensoGlobalSignificativo && !hayDescensoSostenido
+        ? tercioInicial < consumosMensuales.length
+          ? consumosMensuales[tercioInicial].periodo
+          : inicioPeriodo
+        : inicioPeriodo;
+
+    const periodosPost = consumosMensuales.slice(indiceInicioAnalisis);
     const consumosDespuesAnomalia = periodosPost.map((c) => c.consumoActivaTotal);
     const promedioDespuesAnomalia =
       consumosDespuesAnomalia.reduce((s, v) => s + v, 0) / consumosDespuesAnomalia.length;
@@ -422,13 +456,23 @@ export const clasificarExpediente = (
     const cumpleReduccion = variacionVsGlobal <= UMBRALES_DESCENSO.UMBRAL_REDUCCION_PROMEDIO;
     const reduccionMuyFuerte = variacionVsGlobal <= UMBRALES_DESCENSO.UMBRAL_REDUCCION_MUY_FUERTE;
 
+    // NUEVA LÓGICA: También aceptar si hay descenso global significativo
     const esDescensoSostenido =
-      (cumpleRacha && cumplePorcentaje && cumpleReduccion) || (cumpleRacha && reduccionMuyFuerte);
+      hayDescensoGlobalSignificativo || // Descenso global del 30%+ es suficiente
+      (cumpleRacha && cumplePorcentaje && cumpleReduccion) ||
+      (cumpleRacha && reduccionMuyFuerte) ||
+      (porcentajeBajos >= 0.7 && cumpleReduccion); // 70%+ periodos bajos con reducción
 
     if (esDescensoSostenido) {
-      confianza = 90;
-      detalle.push(`Inicio de anomalía detectado en: ${inicioPeriodo}`);
-      if (usarInicioPorTendencia) {
+      confianza = hayDescensoGlobalSignificativo ? 95 : 90;
+      detalle.push(`Inicio de anomalía detectado en: ${inicioPeriodoFinal}`);
+
+      if (hayDescensoGlobalSignificativo) {
+        detalle.push(`Descenso global progresivo detectado`);
+        detalle.push(`Promedio inicial (primer tercio): ${promedioInicial.toFixed(0)} kWh`);
+        detalle.push(`Promedio final (último tercio): ${promedioFinal.toFixed(0)} kWh`);
+        detalle.push(`Reducción global: ${reduccionGlobal.toFixed(1)}%`);
+      } else if (usarInicioPorTendencia) {
         detalle.push(
           `Regla de tendencia: ≥3 descensos consecutivos (recuperación confirmada: ${recuperacionConfirmada ? 'sí' : 'no'})`
         );
@@ -437,6 +481,7 @@ export const clasificarExpediente = (
         detalle.push(`Consumo al inicio: ${inicioAnomalia.consumo?.toFixed(0)} kWh`);
         detalle.push(`Variación inicial: ${inicioAnomalia.variacion?.toFixed(1)}%`);
       }
+
       detalle.push(
         `Racha baja máx: ${rachaMax} · Bajos: ${totalBajos}/${bajosFlags.length} (${(porcentajeBajos * 100).toFixed(0)}%)`
       );
@@ -446,13 +491,15 @@ export const clasificarExpediente = (
 
       return {
         clasificacion: 'Descenso sostenido',
-        inicioPeriodoAnomalia: inicioPeriodo,
-        inicioFechaAnomalia: new Date(inicioPeriodo + '-01'),
+        inicioPeriodoAnomalia: inicioPeriodoFinal,
+        inicioFechaAnomalia: new Date(inicioPeriodoFinal + '-01'),
         consumoInicio:
-          inicioAnomalia?.consumo ?? ordenados[indiceInicio].consumoActivaTotal ?? null,
+          inicioAnomalia?.consumo ?? ordenados[indiceInicioAnalisis].consumoActivaTotal ?? null,
         consumoPrevio:
           inicioAnomalia?.consumoPrevio ??
-          (indiceInicio > 0 ? ordenados[indiceInicio - 1].consumoActivaTotal : null),
+          (indiceInicioAnalisis > 0
+            ? ordenados[indiceInicioAnalisis - 1].consumoActivaTotal
+            : null),
         variacionInicio: inicioAnomalia?.variacion ?? null,
         periodosConAnomalia,
         cambiosPotencia,
@@ -663,11 +710,11 @@ function encontrarInicioAnomalia(
       };
     }
 
-    // 🎯 PRIORIDAD 2: Descenso mes-a-mes muy fuerte (≤ -50%)
-    const esDescensoMuyFuerte =
-      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -50;
+    // 🎯 PRIORIDAD 2: Descenso mes-a-mes fuerte (≤ -40%, relajado de -50%)
+    const esDescensoFuerte =
+      actual.variacionPorcentual !== null && actual.variacionPorcentual <= -40;
 
-    if (esDescensoMuyFuerte) {
+    if (esDescensoFuerte) {
       return {
         periodo: actual.periodo,
         indice: i,
@@ -722,13 +769,13 @@ function encontrarInicioAnomalia(
       };
     }
 
-    // 🎯 PRIORIDAD 4: Descenso muy fuerte (≤ -40%) + muy por debajo del histórico del mes (< -70%)
-    const esDescensoFuerte =
+    // 🎯 PRIORIDAD 4: Descenso fuerte + muy por debajo del histórico del mes (< -70%)
+    const esDescensoFuerteVsHistorico =
       actual.variacionPorcentual !== null && actual.variacionPorcentual <= -40;
     const esMuyBajoVsHistoricoMes =
       variacionVsHistoricoMes !== null && variacionVsHistoricoMes < -70;
 
-    if (esDescensoFuerte && esMuyBajoVsHistoricoMes) {
+    if (esDescensoFuerteVsHistorico && esMuyBajoVsHistoricoMes) {
       return {
         periodo: actual.periodo,
         indice: i,
