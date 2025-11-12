@@ -755,6 +755,21 @@ function encontrarInicioAnomalia(
       };
     }
 
+    // 🎯 PRIORIDAD 2.8: Descenso significativo vs promedio histórico del mes (< -50%)
+    // Detecta cuando un mes específico está muy por debajo de su promedio histórico
+    const esDescensoVsHistoricoMes =
+      variacionVsHistoricoMes !== null && variacionVsHistoricoMes <= -50;
+
+    if (esDescensoVsHistoricoMes && promedioMes && promedioMes > 0) {
+      return {
+        periodo: actual.periodo,
+        indice: i,
+        consumo: actual.consumoActivaTotal,
+        consumoPrevio: anterior.consumoActivaTotal,
+        variacion: actual.variacionPorcentual,
+      };
+    }
+
     // 🎯 PRIORIDAD 3: Z-Score muy bajo (< -2.5) + consumo bajo vs baseline (< 40%)
     const esZScoreMuyBajo = zScoreGlobal < -2.5;
     const esConsumoBajoVsBaseline = actual.consumoActivaTotal < promedioBaseline * 0.4;
