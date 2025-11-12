@@ -9,7 +9,7 @@
  * - Ciclo de facturación
  *
  * Retorna clasificación en 3 categorías:
- * 1. "Sin anomalía" - No hay descenso o es estacional
+ * 1. "Anomalía indeterminada" - No hay descenso claro o es estacional
  * 2. "Período indeterminado" - Necesita análisis por horas
  * 3. "Determinación del descenso en [mes/año]" - Inicio detectado
  */
@@ -734,7 +734,7 @@ export const detectarInicioAnomalia = (comparativa: ConsumoMensual[]): Resultado
  */
 export const formatearResultadoDeteccion = (resultado: ResultadoDeteccionInicio): string => {
   if (resultado.clasificacion === 'sin_anomalia') {
-    return `✅ ${resultado.mensaje}`;
+    return `⚠️ Anomalía indeterminada - ${resultado.mensaje}`;
   }
 
   if (resultado.clasificacion === 'anomalia_detectada') {
