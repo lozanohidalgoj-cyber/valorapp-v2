@@ -257,7 +257,7 @@ export const VistaAnomalias = ({
       } as const;
     }
 
-    // Si no hay descenso sostenido, es sin anomalía
+    // Si no hay descenso sostenido, verificar si hay otros descensos
     // La "anomalía indeterminada" requiere descensos que no forman racha
     const tieneDescensos = ordenados.some((registro) => {
       const analisis = analisisPorPeriodo.get(registro.periodo);
@@ -266,9 +266,9 @@ export const VistaAnomalias = ({
 
     if (!tieneDescensos) {
       return {
-        tipo: 'success',
-        icono: '✅',
-        mensaje: 'Sin anomalía',
+        tipo: 'warning',
+        icono: '⚠️',
+        mensaje: 'Anomalía indeterminada',
       } as const;
     }
 
