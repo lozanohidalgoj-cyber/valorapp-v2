@@ -389,7 +389,9 @@ const generarComparativaMensual = (
 
     const consumoReferencia = metricasActuales.consumoActivaTotal;
     const dias = agrupado.sumaDias;
-    const consumoPromedioDiario = dias > 0 ? consumoReferencia / dias : 0;
+    // Calcular días del mes calendario (28-31 días)
+    const diasDelMes = new Date(año, mes, 0).getDate();
+    const consumoPromedioDiario = diasDelMes > 0 ? consumoReferencia / diasDelMes : 0;
     const potenciaPromedio =
       agrupado.registrosPotencia > 0 ? agrupado.sumaPotencia / agrupado.registrosPotencia : null;
 

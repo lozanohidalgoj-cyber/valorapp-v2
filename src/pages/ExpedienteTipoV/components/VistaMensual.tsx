@@ -107,8 +107,10 @@ export const VistaMensual = ({
           </thead>
           <tbody>
             {ordenados.map((registro) => {
+              // Calcular días del mes (28-31 según mes/año)
+              const diasDelMes = new Date(registro.año, registro.mes, 0).getDate();
               const consumoPromedioDiario =
-                registro.dias > 0 ? registro.consumoTotal / registro.dias : null;
+                diasDelMes > 0 ? registro.consumoTotal / diasDelMes : null;
 
               return (
                 <tr
