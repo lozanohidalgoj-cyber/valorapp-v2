@@ -366,7 +366,8 @@ const getNombreMes = (mes: number): string => {
 
 /**
  * Analiza la serie de variaciones mes-a-mes para identificar:
- * - Bloques de descensos consecutivos (variación < 0)
+ * - TODOS los bloques de descensos consecutivos (variación < 0)
+ * - Selecciona el bloque MÁS SIGNIFICATIVO (sin recuperación > con recuperación)
  * - Inicio de recuperación (cambio de signo: negativo → positivo o cero)
  * - Recuperación confirmada (≥2 aumentos consecutivos: variación > 0)
  */
@@ -378,63 +379,120 @@ const analizarTendencias = (comparativa: ConsumoMensual[]) => {
     return typeof c.variacionPorcentual === 'number' ? c.variacionPorcentual : null;
   });
 
-  // Encontrar primer bloque de ≥3 descensos consecutivos (variación < 0)
-  let inicioBloqueDescenso = -1;
-  let finBloqueDescenso = -1;
-  let longitudBloque = 0;
+  // Encontrar TODOS los bloques de ≥3 descensos consecutivos (variación < 0)
+  const bloques: Array<{
+    inicio: number;
+    fin: number;
+    longitud: number;
+    recuperacionConfirmada: boolean;
+    indiceRecuperacion: number;
+  }> = [];
+
+  let inicioActual = -1;
+  let longitudActual = 0;
 
   for (let i = 0; i < variaciones.length; i++) {
     const v = variaciones[i];
     if (v !== null && v < 0) {
-      if (inicioBloqueDescenso === -1) inicioBloqueDescenso = i;
-      finBloqueDescenso = i;
-      longitudBloque++;
-      if (longitudBloque >= 3) {
-        // Tomamos el primer bloque que cumpla
-        break;
-      }
+      if (inicioActual === -1) inicioActual = i;
+      longitudActual++;
     } else {
-      // Se rompió la racha; resetear
-      inicioBloqueDescenso = -1;
-      finBloqueDescenso = -1;
-      longitudBloque = 0;
-    }
-  }
+      // Se rompió la racha
+      if (longitudActual >= 3) {
+        const finBloque = i - 1;
 
-  // Buscar inicio de recuperación (cambio de signo de negativo a >= 0) y recuperación confirmada (≥2 aumentos > 0)
-  let indiceInicioRecuperacion = -1;
-  let recuperacionConfirmada = false;
+        // Buscar recuperación confirmada después de este bloque
+        let recuperacionConfirmada = false;
+        let indiceRecuperacion = -1;
 
-  if (longitudBloque >= 3) {
-    // Empezar a evaluar a partir del mes siguiente al final del bloque
-    const startEval = finBloqueDescenso + 1;
-
-    // Buscar el primer cambio a variación >= 0
-    for (let i = startEval; i < variaciones.length; i++) {
-      const v = variaciones[i];
-      if (v !== null && v >= 0) {
-        indiceInicioRecuperacion = i;
-        // Verificar si hay dos aumentos consecutivos (> 0) desde aquí
-        const v1 = variaciones[i];
-        const v2 = i + 1 < variaciones.length ? variaciones[i + 1] : null;
-        if (v1 !== null && v1 > 0 && v2 !== null && v2 > 0) {
-          recuperacionConfirmada = true;
+        for (let j = i; j < variaciones.length; j++) {
+          const vj = variaciones[j];
+          if (vj !== null && vj >= 0) {
+            indiceRecuperacion = j;
+            // Verificar si hay dos aumentos consecutivos (> 0)
+            const v1 = variaciones[j];
+            const v2 = j + 1 < variaciones.length ? variaciones[j + 1] : null;
+            if (v1 !== null && v1 > 0 && v2 !== null && v2 > 0) {
+              recuperacionConfirmada = true;
+            }
+            break;
+          }
         }
-        break;
+
+        bloques.push({
+          inicio: inicioActual,
+          fin: finBloque,
+          longitud: longitudActual,
+          recuperacionConfirmada,
+          indiceRecuperacion,
+        });
       }
+      inicioActual = -1;
+      longitudActual = 0;
     }
   }
+
+  // Verificar si el último bloque llega hasta el final
+  if (longitudActual >= 3) {
+    bloques.push({
+      inicio: inicioActual,
+      fin: variaciones.length - 1,
+      longitud: longitudActual,
+      recuperacionConfirmada: false,
+      indiceRecuperacion: -1,
+    });
+  }
+
+  if (bloques.length === 0) {
+    return {
+      tieneBloqueDescenso: false,
+      inicioBloqueDescenso: -1,
+      finBloqueDescenso: -1,
+      longitudBloque: 0,
+      indiceInicioRecuperacion: -1,
+      recuperacionConfirmada: false,
+      periodoInicioBloque: undefined,
+      periodoInicioRecuperacion: undefined,
+    } as const;
+  }
+
+  // PRIORIDAD: Seleccionar el bloque MÁS SIGNIFICATIVO
+  // 1. Sin recuperación confirmada (prioridad máxima)
+  // 2. Mayor duración
+  // 3. Más reciente
+  const bloqueSeleccionado = bloques.reduce((mejor, actual) => {
+    // Priorizar bloques SIN recuperación
+    if (!actual.recuperacionConfirmada && mejor.recuperacionConfirmada) {
+      return actual;
+    }
+    if (actual.recuperacionConfirmada && !mejor.recuperacionConfirmada) {
+      return mejor;
+    }
+
+    // Si ambos tienen o no recuperación, preferir el de mayor duración
+    if (actual.longitud > mejor.longitud) {
+      return actual;
+    }
+    if (actual.longitud < mejor.longitud) {
+      return mejor;
+    }
+
+    // Si tienen igual duración, preferir el más reciente
+    return actual.inicio > mejor.inicio ? actual : mejor;
+  });
 
   return {
-    tieneBloqueDescenso: longitudBloque >= 3,
-    inicioBloqueDescenso,
-    finBloqueDescenso,
-    longitudBloque,
-    indiceInicioRecuperacion,
-    recuperacionConfirmada,
-    periodoInicioBloque: longitudBloque >= 3 ? ordenada[inicioBloqueDescenso].periodo : undefined,
+    tieneBloqueDescenso: true,
+    inicioBloqueDescenso: bloqueSeleccionado.inicio,
+    finBloqueDescenso: bloqueSeleccionado.fin,
+    longitudBloque: bloqueSeleccionado.longitud,
+    indiceInicioRecuperacion: bloqueSeleccionado.indiceRecuperacion,
+    recuperacionConfirmada: bloqueSeleccionado.recuperacionConfirmada,
+    periodoInicioBloque: ordenada[bloqueSeleccionado.inicio].periodo,
     periodoInicioRecuperacion:
-      indiceInicioRecuperacion >= 0 ? ordenada[indiceInicioRecuperacion].periodo : undefined,
+      bloqueSeleccionado.indiceRecuperacion >= 0
+        ? ordenada[bloqueSeleccionado.indiceRecuperacion].periodo
+        : undefined,
   } as const;
 };
 
