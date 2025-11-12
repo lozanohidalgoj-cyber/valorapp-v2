@@ -527,6 +527,33 @@ export const clasificarExpediente = (
     // - Hay al menos 2 periodos anómalos respecto al promedio global
     // - Pero NO cumple criterios de descenso sostenido
     if (periodosAnomalosVsGlobal >= 2) {
+      // 🔍 VERIFICAR SI HAY CAMBIO DE POTENCIA (última verificación por si no se detectó antes)
+      const cambioPotenciaEnAnomalia = verificarCambioPotenciaEnAnomalia(
+        consumosMensuales,
+        inicioAnomalia.indice
+      );
+
+      if (cambioPotenciaEnAnomalia) {
+        confianza = 95;
+        detalle.push(`Cambio de potencia detectado en periodo ${inicioAnomalia.periodo}`);
+        detalle.push(`Variación de potencia: ${cambioPotenciaEnAnomalia.variacion.toFixed(2)} kW`);
+        detalle.push('Anomalía indeterminada coincide con cambio de potencia contratada');
+        detalle.push('⚠️ Se reclasifica como No objetivo por cambio de potencia');
+        return {
+          clasificacion: 'No objetivo por cambio de potencia',
+          inicioPeriodoAnomalia: inicioAnomalia.periodo,
+          inicioFechaAnomalia: new Date(inicioAnomalia.periodo + '-01'),
+          consumoInicio: inicioAnomalia.consumo,
+          consumoPrevio: inicioAnomalia.consumoPrevio,
+          variacionInicio: inicioAnomalia.variacion,
+          periodosConAnomalia: periodosAnomalosVsGlobal,
+          cambiosPotencia,
+          periodosConCeroEsperado,
+          detalle,
+          confianza,
+        };
+      }
+
       confianza = 70;
       detalle.push(`${periodosAnomalosVsGlobal} periodos fuera del rango normal de consumo`);
       detalle.push(`Promedio global: ${promedioGlobal.toFixed(0)} kWh`);
