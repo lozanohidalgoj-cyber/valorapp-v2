@@ -28,8 +28,6 @@ export const BannerClasificacionExpediente = ({
         return 'banner-clasificacion--cero-esperado';
       case 'Consumo bajo con picos':
         return 'banner-clasificacion--bajo-con-picos';
-      case 'Sin anomalía':
-        return 'banner-clasificacion--sin-anomalia';
       default:
         return 'banner-clasificacion--neutral';
     }
@@ -48,8 +46,6 @@ export const BannerClasificacionExpediente = ({
         return '🏖️';
       case 'Consumo bajo con picos':
         return '📉';
-      case 'Sin anomalía':
-        return '✅';
       default:
         return '📊';
     }

@@ -274,7 +274,6 @@ export interface AnalisisPeriodoConsumo {
  */
 export type ClasificacionExpediente =
   | 'No anomalía - 0 esperado'
-  | 'Sin anomalía'
   | 'Anomalía indeterminada'
   | 'Descenso sostenido'
   | 'No objetivo por cambio de potencia'

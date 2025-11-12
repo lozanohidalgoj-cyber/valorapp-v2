@@ -140,7 +140,7 @@ export const clasificarExpediente = (
 ): ResultadoClasificacionExpediente => {
   if (!consumosMensuales || consumosMensuales.length === 0) {
     return {
-      clasificacion: 'Sin anomalía',
+      clasificacion: 'Anomalía indeterminada',
       inicioPeriodoAnomalia: null,
       inicioFechaAnomalia: null,
       consumoInicio: null,
@@ -157,7 +157,7 @@ export const clasificarExpediente = (
   // Si hay menos de 3 periodos, no hay suficiente histórico para detectar anomalías
   if (consumosMensuales.length < 3) {
     return {
-      clasificacion: 'Sin anomalía',
+      clasificacion: 'Anomalía indeterminada',
       inicioPeriodoAnomalia: null,
       inicioFechaAnomalia: null,
       consumoInicio: null,
@@ -613,10 +613,10 @@ export const clasificarExpediente = (
     };
   }
 
-  // CASO 6: Sin anomalía (comportamiento normal)
+  // CASO 6: Anomalía indeterminada (comportamiento sin patrones claros de anomalía)
   confianza = 95;
-  detalle.push('No se detectaron anomalías significativas');
-  detalle.push(`${totalPeriodos} periodos analizados con comportamiento normal`);
+  detalle.push('No se detectaron anomalías significativas con patrón claro');
+  detalle.push(`${totalPeriodos} periodos analizados - comportamiento indeterminado`);
 
   if (tendenciaGlobal > 0) {
     detalle.push(`Tendencia al alza: +${tendenciaGlobal.toFixed(0)} kWh/mes`);
@@ -627,7 +627,7 @@ export const clasificarExpediente = (
   }
 
   return {
-    clasificacion: 'Sin anomalía',
+    clasificacion: 'Anomalía indeterminada',
     inicioPeriodoAnomalia: null,
     inicioFechaAnomalia: null,
     consumoInicio: null,
