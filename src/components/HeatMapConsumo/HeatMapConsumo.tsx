@@ -659,7 +659,7 @@ const HeatMapConsumoComponent = ({
                             dato.potenciaPromedio! - datoAnterior.potenciaPromedio!
                           );
                           infoEvento.push(
-                            `❌ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
+                            `⚡ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
                           );
                         }
                         const textoEvento = infoEvento.join(' | ');
@@ -679,7 +679,7 @@ const HeatMapConsumoComponent = ({
                             </span>
                             {tieneCambioPotencia && (
                               <span className="evento-indicator evento-indicator--potencia">
-                                ❌
+                                ⚡
                               </span>
                             )}
                             {tieneFechaActa && <span className="evento-indicator">🏠</span>}
