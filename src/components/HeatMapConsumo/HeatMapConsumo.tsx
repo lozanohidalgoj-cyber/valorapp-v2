@@ -619,6 +619,21 @@ const HeatMapConsumoComponent = ({
 
                         const periodo = `${año}-${String(mes).padStart(2, '0')}`;
 
+                        // Verificar si hay cambio de potencia significativo
+                        const tieneCambioPotencia = (() => {
+                          if (
+                            !datoAnterior ||
+                            dato.potenciaPromedio === null ||
+                            datoAnterior.potenciaPromedio === null
+                          ) {
+                            return false;
+                          }
+                          const cambioPotencia = Math.abs(
+                            dato.potenciaPromedio - datoAnterior.potenciaPromedio
+                          );
+                          return cambioPotencia >= 0.5;
+                        })();
+
                         // Verificar si hay fechas marcadas para este periodo
                         const tieneFechaActa =
                           fechaActa?.activo &&
@@ -628,7 +643,6 @@ const HeatMapConsumoComponent = ({
                           cambioTitular?.activo &&
                           cambioTitular.fecha &&
                           cambioTitular.fecha.startsWith(periodo);
-                        const tieneEvento = tieneFechaActa || tieneCambioTitular;
 
                         const claseCelda = `matrix-cell matrix-value${
                           tieneFechaActa ? ' matrix-cell--evento-temp' : ''
@@ -639,7 +653,15 @@ const HeatMapConsumoComponent = ({
                         if (tieneFechaActa)
                           infoEvento.push(`📝 Fecha de Acta: ${fechaActa?.fecha}`);
                         if (tieneCambioTitular)
-                          infoEvento.push(`� Cambio de Titular: ${cambioTitular?.fecha}`);
+                          infoEvento.push(`👤 Cambio de Titular: ${cambioTitular?.fecha}`);
+                        if (tieneCambioPotencia && datoAnterior) {
+                          const cambioPotencia = Math.abs(
+                            dato.potenciaPromedio! - datoAnterior.potenciaPromedio!
+                          );
+                          infoEvento.push(
+                            `❌ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
+                          );
+                        }
                         const textoEvento = infoEvento.join(' | ');
 
                         return (
@@ -647,7 +669,7 @@ const HeatMapConsumoComponent = ({
                             key={`c-${año}-${mes}`}
                             className={claseCelda}
                             style={{ backgroundColor: color }}
-                            title={[...tooltipLineas, tieneEvento ? textoEvento : null]
+                            title={[...tooltipLineas, infoEvento.length > 0 ? textoEvento : null]
                               .filter(Boolean)
                               .join('\n')}
                             onClick={() => handleCellClick(año, mesIdx, dato)}
@@ -655,6 +677,11 @@ const HeatMapConsumoComponent = ({
                             <span className="matrix-consumo">
                               {formatearNumero(valor, metricaActual.decimales ?? 0)}
                             </span>
+                            {tieneCambioPotencia && (
+                              <span className="evento-indicator evento-indicator--potencia">
+                                ❌
+                              </span>
+                            )}
                             {tieneFechaActa && <span className="evento-indicator">🏠</span>}
                             {tieneCambioTitular && !tieneFechaActa && (
                               <span className="evento-indicator">👤</span>
