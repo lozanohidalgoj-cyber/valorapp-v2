@@ -3,16 +3,13 @@
  * Muestra la clasificación global del expediente en un banner destacado
  */
 
-import {
-  AlertOctagon,
-  AlertTriangle,
-  Wrench,
-  Umbrella,
-  TrendingDown,
-  BarChart3,
-  MapPin,
-} from 'lucide-react';
+import { MapPin } from 'lucide-react';
 import type { ResultadoClasificacionExpediente } from '../../types';
+import {
+  obtenerClaseClasificacion,
+  obtenerIconoClasificacion,
+  formatearFechaClasificacion,
+} from './bannerHelpers';
 import './BannerClasificacionExpediente.css';
 
 interface BannerClasificacionExpedienteProps {
@@ -24,56 +21,12 @@ export const BannerClasificacionExpediente = ({
   resultado,
   onIrInicio,
 }: BannerClasificacionExpedienteProps) => {
-  // Determinar clase CSS según clasificación
-  const obtenerClaseClasificacion = (): string => {
-    switch (resultado.clasificacion) {
-      case 'Descenso sostenido':
-        return 'banner-clasificacion--descenso-sostenido';
-      case 'Anomalía indeterminada':
-        return 'banner-clasificacion--anomalia-indeterminada';
-      case 'No objetivo por cambio de potencia':
-        return 'banner-clasificacion--cambio-potencia';
-      case 'No anomalía - 0 esperado':
-        return 'banner-clasificacion--cero-esperado';
-      case 'Consumo bajo con picos':
-        return 'banner-clasificacion--bajo-con-picos';
-      default:
-        return 'banner-clasificacion--neutral';
-    }
-  };
-
-  // Determinar ícono según clasificación
-  const obtenerIcono = (): React.ReactNode => {
-    const iconProps = { size: 28, strokeWidth: 2 };
-    switch (resultado.clasificacion) {
-      case 'Descenso sostenido':
-        return <AlertOctagon {...iconProps} />;
-      case 'Anomalía indeterminada':
-        return <AlertTriangle {...iconProps} />;
-      case 'No objetivo por cambio de potencia':
-        return <Wrench {...iconProps} />;
-      case 'No anomalía - 0 esperado':
-        return <Umbrella {...iconProps} />;
-      case 'Consumo bajo con picos':
-        return <TrendingDown {...iconProps} />;
-      default:
-        return <BarChart3 {...iconProps} />;
-    }
-  };
-
-  // Formatear fecha
-  const formatearFecha = (fecha: Date | null): string => {
-    if (!fecha) return '-';
-    return new Intl.DateTimeFormat('es-ES', {
-      year: 'numeric',
-      month: 'long',
-    }).format(fecha);
-  };
-
   return (
-    <div className={`banner-clasificacion ${obtenerClaseClasificacion()}`}>
+    <div className={`banner-clasificacion ${obtenerClaseClasificacion(resultado.clasificacion)}`}>
       <div className="banner-clasificacion__header">
-        <span className="banner-clasificacion__icono">{obtenerIcono()}</span>
+        <span className="banner-clasificacion__icono">
+          {obtenerIconoClasificacion(resultado.clasificacion)}
+        </span>
         <h2 className="banner-clasificacion__titulo">{resultado.clasificacion}</h2>
       </div>
 
@@ -87,7 +40,8 @@ export const BannerClasificacionExpediente = ({
             <div className="banner-clasificacion__inicio-info">
               <span className="banner-clasificacion__label">Inicio de anomalía:</span>
               <span className="banner-clasificacion__valor">
-                {formatearFecha(resultado.inicioFechaAnomalia)} ({resultado.inicioPeriodoAnomalia})
+                {formatearFechaClasificacion(resultado.inicioFechaAnomalia)} (
+                {resultado.inicioPeriodoAnomalia})
               </span>
             </div>
 
