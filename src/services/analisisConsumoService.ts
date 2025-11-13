@@ -667,9 +667,6 @@ export const analizarComportamientoMensual = (
   const ordenados = [...datos].sort(compararPorPeriodo);
   const registrosPorPeriodo = new Map<string, ConsumoMensual>();
   const resultado = new Map<string, AnalisisPeriodoConsumo>();
-  // Variables eliminadas - solo se usaban para "Cero sospechoso"
-  // let totalZerosPrevios = 0;
-  // let consecutivosZeros = 0;
   let cambioPotenciaActivo = false;
 
   // Primera pasada: detectar descensos mes a mes (usando consumo TOTAL)
@@ -812,16 +809,7 @@ export const analizarComportamientoMensual = (
         ((registro.consumoTotal - anterior.consumoTotal) / anterior.consumoTotal) * 100;
     }
 
-    // Variable comentada - solo se usaba para "Cero sospechoso"
-    // const siguiente = indice < ordenados.length - 1 ? ordenados[indice + 1] : undefined;
-
     const consumoEsCero = registro.consumoTotal === 0;
-    // Variables comentadas - solo se usaban para "Cero sospechoso"
-    // const habiaCeroAntes = totalZerosPrevios > 0;
-    // const repetidoMasDeDos = consumoEsCero && consecutivosZeros + 1 > 2;
-    // const variacionPosterior = siguiente?.variacionPorcentual;
-    // const incrementoPosterior =
-    //   consumoEsCero && typeof variacionPosterior === 'number' && variacionPosterior >= 40;
     const potenciaActual = registro.potenciaPromedio;
     const potenciaPeriodoAnterior =
       indice > 0 ? ordenados[indice - 1].potenciaPromedio : potenciaActual;
@@ -963,14 +951,6 @@ export const analizarComportamientoMensual = (
       comportamiento,
       ceroEsperado: ceroEsperadoPersistente,
     });
-
-    // Actualización de contadores eliminada - solo se usaba para "Cero sospechoso"
-    // if (consumoEsCero) {
-    //   consecutivosZeros += 1;
-    //   totalZerosPrevios += 1;
-    // } else {
-    //   consecutivosZeros = 0;
-    // }
   });
 
   // Calcular mesesConConsumo (ya tenemos mesesCero calculado antes del bucle principal)

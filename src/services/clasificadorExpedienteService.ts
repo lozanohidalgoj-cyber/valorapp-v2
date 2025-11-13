@@ -174,13 +174,6 @@ export const clasificarExpediente = (
     };
   }
 
-  // 🌈 NUEVO: Análisis basado en patrones del mapa de calor
-  // const analisisVisual = analizarPatronMapaCalor(consumosMensuales);
-
-  // Usar la clasificación del análisis visual como base
-  // let clasificacionFinal = analisisVisual.patronDetectado as any;
-  // const mostrarInicio = analisisVisual.mostrarInicioAnomalia;
-
   const detalle: string[] = [];
   let confianza = 0;
 
