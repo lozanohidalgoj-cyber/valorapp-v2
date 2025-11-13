@@ -3,7 +3,7 @@
  */
 
 import { useState, useMemo, useCallback } from 'react';
-import { ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowUp, ArrowDown, ClipboardList } from 'lucide-react';
 import type { DerivacionData } from '../../../types';
 
 interface VistaListadoProps {
@@ -68,9 +68,12 @@ export const VistaListado = ({ data, columns }: VistaListadoProps) => {
   return (
     <div className="expediente-table-wrapper expediente-table-wrapper--listado">
       <div className="listado-header">
-        <div>
-          <h3>📋 Listado Completo de Registros</h3>
-          <p className="listado-subtitle">Vista resumida de las columnas más consultadas</p>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+          <ClipboardList size={20} />
+          <div>
+            <h3 style={{ margin: 0 }}>Listado Completo de Registros</h3>
+            <p className="listado-subtitle">Vista resumida de las columnas más consultadas</p>
+          </div>
         </div>
         <span className="listado-badge" aria-label={`Total de registros: ${totalRegistros}`}>
           {totalRegistros} registros

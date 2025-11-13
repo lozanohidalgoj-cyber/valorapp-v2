@@ -5,7 +5,7 @@
 
 .expediente-container {
   min-height: 100vh;
-  height: 100vh;
+  height: auto;
   background: var(--color-primary);
   padding: 0;
   position: relative;
@@ -218,7 +218,7 @@
   overflow-x: hidden;
   gap: 1.5rem;
   min-height: 0;
-  background: white;
+  background: var(--color-primary);
 }
 
 .expediente-main-content {
@@ -1265,6 +1265,9 @@
   transition: all 0.25s ease;
   position: relative;
   box-shadow: 0 4px 10px rgba(0, 0, 208, 0.08);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
 }
 
 .expediente-tab:hover,

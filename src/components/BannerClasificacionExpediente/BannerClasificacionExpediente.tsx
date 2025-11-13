@@ -3,6 +3,15 @@
  * Muestra la clasificación global del expediente en un banner destacado
  */
 
+import {
+  AlertOctagon,
+  AlertTriangle,
+  Wrench,
+  Umbrella,
+  TrendingDown,
+  BarChart3,
+  MapPin,
+} from 'lucide-react';
 import type { ResultadoClasificacionExpediente } from '../../types';
 import './BannerClasificacionExpediente.css';
 
@@ -34,20 +43,21 @@ export const BannerClasificacionExpediente = ({
   };
 
   // Determinar ícono según clasificación
-  const obtenerIcono = (): string => {
+  const obtenerIcono = (): React.ReactNode => {
+    const iconProps = { size: 28, strokeWidth: 2 };
     switch (resultado.clasificacion) {
       case 'Descenso sostenido':
-        return '🚨';
+        return <AlertOctagon {...iconProps} />;
       case 'Anomalía indeterminada':
-        return '⚠️';
+        return <AlertTriangle {...iconProps} />;
       case 'No objetivo por cambio de potencia':
-        return '🔧';
+        return <Wrench {...iconProps} />;
       case 'No anomalía - 0 esperado':
-        return '🏖️';
+        return <Umbrella {...iconProps} />;
       case 'Consumo bajo con picos':
-        return '📉';
+        return <TrendingDown {...iconProps} />;
       default:
-        return '📊';
+        return <BarChart3 {...iconProps} />;
     }
   };
 
@@ -109,7 +119,8 @@ export const BannerClasificacionExpediente = ({
 
             {onIrInicio && (
               <button className="banner-clasificacion__btn-ir" onClick={onIrInicio}>
-                📍 Ir al inicio de la anomalía
+                <MapPin size={16} style={{ display: 'inline', marginRight: '0.25rem' }} />
+                Ir al inicio de la anomalía
               </button>
             )}
           </div>

@@ -567,6 +567,8 @@
   flex-direction: column;
   gap: 2rem;
   padding: 2rem;
+  background: #ffffff;
+  border-radius: 2rem 2rem 0 0;
   overflow: visible;
   scrollbar-width: thin;
 }

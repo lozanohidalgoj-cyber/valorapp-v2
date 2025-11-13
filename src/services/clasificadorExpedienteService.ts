@@ -307,7 +307,7 @@ export const clasificarExpediente = (
   const recuperaciones = detectarRecuperaciones(consumosMensuales, promedioBaseline);
 
   if (recuperaciones.length > 0) {
-    console.log('%c🔄 RECUPERACIONES DETECTADAS:', 'color: #00ff00; font-weight: bold');
+    console.log('%c[RECUPERACIONES] DETECTADAS:', 'color: #00ff00; font-weight: bold');
     console.table(
       recuperaciones.map((r) => ({
         descenso: r.periodoDescenso,
@@ -319,7 +319,9 @@ export const clasificarExpediente = (
     );
 
     // Agregar información de recuperaciones al detalle
-    detalle.push(`🔄 ${recuperaciones.length} periodo(s) con descenso temporal que se recuperó`);
+    detalle.push(
+      `[RECUPERACION] ${recuperaciones.length} periodo(s) con descenso temporal que se recuperó`
+    );
     recuperaciones.forEach((r) => {
       detalle.push(
         `  • ${r.periodoDescenso}: ${r.consumoDescenso.toFixed(0)} kWh → ${r.periodoRecuperacion}: ${r.consumoRecuperacion.toFixed(0)} kWh (${r.variacionDescenso.toFixed(1)}%)`
@@ -388,7 +390,7 @@ export const clasificarExpediente = (
       detalle.push(`Cambio de potencia detectado en periodo ${inicioAnomalia.periodo}`);
       detalle.push(`Variación de potencia: ${cambioPotenciaEnAnomalia.variacion.toFixed(2)} kW`);
       detalle.push('El descenso de consumo coincide con cambio de potencia contratada');
-      detalle.push('⚠️ No se considera anomalía - cambio contractual esperado');
+      detalle.push('[NOTA] No se considera anomalía - cambio contractual esperado');
       return {
         clasificacion: 'No objetivo por cambio de potencia',
         inicioPeriodoAnomalia: inicioAnomalia.periodo,
@@ -544,7 +546,7 @@ export const clasificarExpediente = (
       detalle.push(`Reducción vs. promedio global: ${variacionVsGlobal.toFixed(1)}%`);
 
       console.log(
-        '%c✅ DESCENSO SOSTENIDO DETECTADO:',
+        '%c[DESCENSO-SOSTENIDO] DETECTADO:',
         'color: #ff3184; font-weight: bold; font-size: 14px'
       );
       console.log('  Inicio periodo:', inicioPeriodoFinal);
@@ -601,7 +603,7 @@ export const clasificarExpediente = (
         detalle.push(`Cambio de potencia detectado en periodo ${inicioAnomalia.periodo}`);
         detalle.push(`Variación de potencia: ${cambioPotenciaEnAnomalia.variacion.toFixed(2)} kW`);
         detalle.push('Anomalía indeterminada coincide con cambio de potencia contratada');
-        detalle.push('⚠️ Se reclasifica como No objetivo por cambio de potencia');
+        detalle.push('[NOTA] Se reclasifica como No objetivo por cambio de potencia');
         return {
           clasificacion: 'No objetivo por cambio de potencia',
           inicioPeriodoAnomalia: inicioAnomalia.periodo,
@@ -1052,7 +1054,7 @@ function encontrarInicioAnomalia(
     return b.severidad - a.severidad;
   });
 
-  console.log('%c📋 CANDIDATOS A INICIO DE ANOMALÍA:', 'color: #00ff00; font-weight: bold');
+  console.log('%c[CANDIDATOS] A INICIO DE ANOMALÍA:', 'color: #00ff00; font-weight: bold');
   console.table(
     candidatos.map((c) => ({
       periodo: c.periodo,
@@ -1061,7 +1063,7 @@ function encontrarInicioAnomalia(
       severidad: c.severidad.toFixed(1),
     }))
   );
-  console.log('%c✅ SELECCIONADO:', 'color: #ff3184; font-weight: bold', candidatos[0].periodo);
+  console.log('%c[SELECCIONADO]:', 'color: #ff3184; font-weight: bold', candidatos[0].periodo);
 
   return {
     periodo: candidatos[0].periodo,

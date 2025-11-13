@@ -260,7 +260,7 @@ export const SaldoATR = () => {
           ? ` y ${facturasExcluidas.length - MAX_FACTURAS_DETALLE} más`
           : '';
       setCustomSuccess(
-        `✅ Se anularon ${facturasExcluidas.length} factura${
+        `[OK] Se anularon ${facturasExcluidas.length} factura${
           facturasExcluidas.length === 1 ? '' : 's'
         }${detalle ? `: ${detalle}${restante}` : ''}`
       );

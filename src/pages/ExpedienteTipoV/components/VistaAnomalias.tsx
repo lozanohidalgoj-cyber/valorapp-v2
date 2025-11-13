@@ -3,7 +3,7 @@
  */
 
 import { useMemo, useRef, useState, useCallback } from 'react';
-import { AlertTriangle, Download, ArrowUp, ArrowDown } from 'lucide-react';
+import { AlertTriangle, Download, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo, BannerClasificacionExpediente } from '../../../components';
 import {
@@ -175,13 +175,13 @@ export const VistaAnomalias = ({
     });
 
     const resultado = Array.from(tipos).sort((a, b) => a.localeCompare(b, 'es'));
-    console.log('✅ Tipos de comportamiento extraídos:', resultado);
+    console.log('[TIPOS] Tipos de comportamiento extraídos:', resultado);
     return resultado;
   }, [datos]);
 
   // Aplicar filtros a los datos ordenados
   const datosFiltrados = useMemo(() => {
-    console.log('🔍 Filtrando con tipos:', tipoComportamientoFilter);
+    console.log('[FILTER] Filtrando con tipos:', tipoComportamientoFilter);
 
     return sortedDatos.filter((registro) => {
       // Filtro por tipo de comportamiento - SIMPLIFICADO
@@ -209,12 +209,12 @@ export const VistaAnomalias = ({
 
         if (!incluido) {
           console.log(
-            `❌ ${registro.periodo}: "${tipoRegistro}" no está en [${tipoComportamientoFilter.join(', ')}]`
+            `[FILTER] ${registro.periodo}: "${tipoRegistro}" no está en [${tipoComportamientoFilter.join(', ')}]`
           );
           return false;
         }
 
-        console.log(`✅ ${registro.periodo}: "${tipoRegistro}" coincide`);
+        console.log(`[FILTER] ${registro.periodo}: "${tipoRegistro}" coincide`);
       }
 
       // Filtro por rango de fechas
@@ -598,7 +598,7 @@ export const VistaAnomalias = ({
                     gap: '0.5rem',
                   }}
                 >
-                  <span style={{ fontSize: '1.25rem' }}>🔄</span>
+                  <RefreshCw size={20} style={{ color: '#c2410c' }} />
                   Periodos con Descenso Sostenido que se Recuperaron (
                   {clasificacionExpediente.periodosConRecuperacion.length})
                 </h4>

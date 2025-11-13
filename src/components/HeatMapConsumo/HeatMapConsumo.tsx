@@ -1,5 +1,5 @@
 /**
- * 🔥 Heat Map de Consumo Mensual con métricas múltiples
+ * Heat Map de Consumo Mensual con métricas múltiples
  * Replica las cuatro tablas dinámicas de la macro de Excel:
  * - Consumo de Energía Activa
  * - Promedio de Energía Activa
@@ -8,6 +8,7 @@
  */
 
 import { memo, useMemo, useEffect, useRef, useState, Fragment } from 'react';
+import { Zap, FileText, Home, User } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../types';
 import { formatearNumero, calcularColorHeatMap } from '../../utils';
 
@@ -604,7 +605,7 @@ const HeatMapConsumoComponent = ({
                                   );
                                   if (cambioPotencia >= 0.5) {
                                     lineasBase.push(
-                                      `⚡ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
+                                      `[POTENCIA] Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
                                     );
                                   }
                                 }
@@ -651,15 +652,15 @@ const HeatMapConsumoComponent = ({
                         // Construir información de evento para tooltip
                         const infoEvento = [];
                         if (tieneFechaActa)
-                          infoEvento.push(`📝 Fecha de Acta: ${fechaActa?.fecha}`);
+                          infoEvento.push(`[ACTA] Fecha de Acta: ${fechaActa?.fecha}`);
                         if (tieneCambioTitular)
-                          infoEvento.push(`👤 Cambio de Titular: ${cambioTitular?.fecha}`);
+                          infoEvento.push(`[TITULAR] Cambio de Titular: ${cambioTitular?.fecha}`);
                         if (tieneCambioPotencia && datoAnterior) {
                           const cambioPotencia = Math.abs(
                             dato.potenciaPromedio! - datoAnterior.potenciaPromedio!
                           );
                           infoEvento.push(
-                            `⚡ Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
+                            `[POTENCIA] Cambio de potencia: ${formatearNumero(cambioPotencia, 1)} kW`
                           );
                         }
                         const textoEvento = infoEvento.join(' | ');
@@ -679,12 +680,18 @@ const HeatMapConsumoComponent = ({
                             </span>
                             {tieneCambioPotencia && (
                               <span className="evento-indicator evento-indicator--potencia">
-                                ⚡
+                                <Zap size={12} />
                               </span>
                             )}
-                            {tieneFechaActa && <span className="evento-indicator">🏠</span>}
+                            {tieneFechaActa && (
+                              <span className="evento-indicator">
+                                <Home size={12} />
+                              </span>
+                            )}
                             {tieneCambioTitular && !tieneFechaActa && (
-                              <span className="evento-indicator">👤</span>
+                              <span className="evento-indicator">
+                                <User size={12} />
+                              </span>
                             )}
                           </div>
                         );
@@ -827,12 +834,28 @@ const HeatMapConsumoComponent = ({
                     <tr style={{ backgroundColor: 'rgba(0, 0, 208, 0.1)', fontWeight: 'bold' }}>
                       <td
                         colSpan={columnasDetalle.length}
-                        style={{ textAlign: 'center', padding: '12px' }}
+                        style={{
+                          textAlign: 'center',
+                          padding: '12px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          gap: '0.5rem',
+                        }}
                       >
-                        📅 <strong>Fechas Marcadas en este Periodo:</strong>
+                        <strong>Fechas Marcadas en este Periodo:</strong>
                         {fechaActa?.fecha && fechaActa.fecha.startsWith(detalleActivo.periodo) && (
-                          <span style={{ margin: '0 10px', color: 'var(--color-primary)' }}>
-                            📝 Fecha de Acta: {fechaActa.fecha}
+                          <span
+                            style={{
+                              margin: '0 10px',
+                              color: 'var(--color-primary)',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '0.25rem',
+                            }}
+                          >
+                            <FileText size={14} />
+                            Fecha de Acta: {fechaActa.fecha}
                           </span>
                         )}
                         {cambioTitular?.fecha &&
@@ -891,9 +914,17 @@ const HeatMapConsumoComponent = ({
                           >
                             <td
                               colSpan={columnasDetalle.length}
-                              style={{ textAlign: 'center', padding: '12px' }}
+                              style={{
+                                textAlign: 'center',
+                                padding: '12px',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                gap: '0.5rem',
+                              }}
                             >
-                              ⚡ <strong>Cambio de Potencia Detectado:</strong>
+                              <Zap size={16} color="#f59e0b" />
+                              <strong>Cambio de Potencia Detectado:</strong>
                               <span style={{ margin: '0 15px', color: 'var(--color-primary)' }}>
                                 Periodo Anterior: {formatearNumero(potenciaAnterior, 2)} kW
                               </span>
