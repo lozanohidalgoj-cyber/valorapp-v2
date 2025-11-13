@@ -150,6 +150,7 @@ export const SaldoATR = () => {
   const [columnasAnalisis, setColumnasAnalisis] = useState<string[]>([]);
   const [customError, setCustomError] = useState<string | null>(null);
   const [customSuccess, setCustomSuccess] = useState<string | null>(null);
+  const [tablaColapsada, setTablaColapsada] = useState(false);
 
   // Sincronizar baseRows con rows locales
   useEffect(() => {
@@ -294,6 +295,7 @@ export const SaldoATR = () => {
       setRegistrosDerivacion(registrosConvertidos);
       setColumnasAnalisis(columnas);
       setVistaActual('anual');
+      setTablaColapsada(true); // Colapsar tabla cuando se ejecuta análisis
       setCustomError(null);
       setCustomSuccess(null);
     } catch {
@@ -403,14 +405,34 @@ export const SaldoATR = () => {
       <AlertMessages error={displayError} success={successMessage} />
 
       <div className="saldoatr-scroll-area">
-        <div className="saldoatr-card">
-          <ImportActions inputRef={inputRef} onFileChange={handleFileChange} />
+        {/* Sección de Tabla - Colapsable */}
+        {!tablaColapsada && (
+          <div className="saldoatr-card">
+            <ImportActions inputRef={inputRef} onFileChange={handleFileChange} />
 
-          {loading ? (
-            <div className="saldoatr-loading">Cargando plantilla base...</div>
-          ) : (
-            <SaldoATRTable rows={rows} headers={headers} />
-          )}
+            {loading ? (
+              <div className="saldoatr-loading">Cargando plantilla base...</div>
+            ) : (
+              <SaldoATRTable rows={rows} headers={headers} />
+            )}
+          </div>
+        )}
+
+        {/* Botón Toggle para mostrar/ocultar sección de datos */}
+        <div className="saldoatr-toggle-container">
+          <button
+            className="saldoatr-tabla-toggle"
+            onClick={() => setTablaColapsada(!tablaColapsada)}
+            aria-expanded={!tablaColapsada}
+            title={tablaColapsada ? 'Expandir sección de datos' : 'Colapsar sección de datos'}
+          >
+            <span className={`toggle-icon ${tablaColapsada ? 'collapsed' : ''}`}>
+              {tablaColapsada ? '▶' : '▼'}
+            </span>
+            <span className="toggle-label">
+              {tablaColapsada ? 'Ver' : 'Ocultar'} Datos ({rows.length} registros)
+            </span>
+          </button>
         </div>
 
         {resultadoAnalisis && (

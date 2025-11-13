@@ -42,8 +42,8 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: center;
-  gap: 0.4rem;
-  margin: 0 0 0.3rem;
+  gap: 0.5rem;
+  margin: 0 0 0.4rem;
 }
 .heatmap-title {
   font-size: 0.75rem;
@@ -59,28 +59,30 @@
 .heatmap-stats--compact {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.3rem;
+  gap: 0.4rem;
   justify-content: center;
   margin: 0;
 }
 .heatmap-chip {
   display: flex;
   align-items: center;
-  gap: 0.2rem;
+  gap: 0.3rem;
   background: #fff;
   border: 1px solid #e0e0e0;
-  padding: 0.2rem 0.35rem;
+  padding: 0.35rem 0.55rem;
   border-radius: 999px;
-  font-size: 0.45rem;
-  line-height: 1;
+  font-size: 0.65rem;
+  line-height: 1.2;
 }
 .chip-label {
   font-weight: 600;
   color: #444;
+  font-size: 0.65rem;
 }
 .chip-value {
   font-weight: 700;
   color: var(--color-primary);
+  font-size: 0.75rem;
 }
 .heatmap-chip--baseline {
   background: linear-gradient(135deg, #e3f2fd, #f3e5f5);
@@ -93,9 +95,9 @@
 .heatmap-legend {
   display: flex;
   flex-direction: column;
-  gap: 0.3rem;
+  gap: 0.4rem;
   margin: 0 0 0.35rem;
-  padding: 0.3rem 0.45rem;
+  padding: 0.4rem 0.55rem;
   background: #fff;
   border: 1px solid #e0e0e0;
   border-radius: 6px;
@@ -112,7 +114,7 @@
   border-radius: 4px;
 }
 .legend-item span {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   color: #555;
   font-weight: 500;
 }
@@ -122,17 +124,17 @@
   align-items: center;
   gap: 0.45rem;
   justify-content: center;
-  font-size: 0.5rem;
+  font-size: 0.6rem;
   color: #444;
   font-weight: 500;
-  padding: 0.15rem 0.35rem;
+  padding: 0.2rem 0.45rem;
   background: #fff;
   border: none;
   border-radius: 6px;
   width: 100%;
 }
 .heatmap-footer-info span {
-  font-size: 0.5rem;
+  font-size: 0.6rem;
 }
 .heatmap-matrix-wrapper {
   width: 100%;
