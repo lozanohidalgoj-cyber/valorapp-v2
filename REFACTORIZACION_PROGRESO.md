@@ -161,6 +161,71 @@ Aplicar principios DRY, KISS, YAGNI y SOLID para mejorar la mantenibilidad del c
 
 ---
 
+## ⏳ FASE 2.2: División de Componentes Grandes (EN PROGRESO)
+
+### Componentes Refactorizados
+
+#### 1. DeteccionAnomalia.tsx
+
+**Antes**: 214 líneas → **Después**: 141 líneas (-73, -34.1%)
+
+**Módulo creado**:
+
+- `src/components/DeteccionAnomalia/useDeteccionAnomalia.ts` (94 líneas)
+  - Hook personalizado con lógica de cálculo de baseline
+  - Clasificación de anomalías por severidad
+  - Generación de celdas con descripción detallada
+
+**Mejoras**:
+
+- Separación clara entre lógica y presentación
+- Hook reutilizable para análisis de anomalías
+- Código más testeable
+
+#### 2. BannerClasificacionExpediente.tsx
+
+**Antes**: 163 líneas → **Después**: 120 líneas (-43, -26.4%)
+
+**Módulo creado**:
+
+- `src/components/BannerClasificacionExpediente/bannerHelpers.tsx` (64 líneas)
+  - `obtenerClaseClasificacion()`: Mapeo clasificación → clase CSS
+  - `obtenerIconoClasificacion()`: Mapeo clasificación → ícono Lucide
+  - `formatearFechaClasificacion()`: Formateo fecha español
+
+**Mejoras**:
+
+- Funciones auxiliares reutilizables
+- Componente principal más limpio
+- Fácil agregar nuevas clasificaciones
+
+**Commit**: `1c0d9f3`
+
+---
+
+### Componentes Identificados (Pendientes)
+
+| Componente              | Líneas | Prioridad | Complejidad |
+| ----------------------- | ------ | --------- | ----------- |
+| **VistaAnomalias.tsx**  | 1,096  | 🔴 Alta   | Muy alta    |
+| **HeatMapConsumo.tsx**  | 912    | 🔴 Alta   | Muy alta    |
+| **SaldoATR.tsx**        | 426    | 🟡 Media  | Media       |
+| **ExpedienteTipoV.tsx** | 433    | 🟡 Media  | Media       |
+| **VistaGrafico.tsx**    | 276    | 🟢 Baja   | Baja        |
+
+### Estrategia Propuesta para VistaAnomalias.tsx
+
+**Dividir en**:
+
+1. `hooks/useAnomaliasFilters.ts` - Lógica de filtros
+2. `hooks/useAnomaliasSorting.ts` - Lógica de ordenamiento
+3. `AnomaliasTableHeader.tsx` - Header de tabla
+4. `AnomaliasTableRow.tsx` - Fila de tabla
+5. `AnomaliasFilters.tsx` - Sección filtros
+6. `VistaAnomalias.tsx` (refactorizado) - < 250 líneas
+
+---
+
 ## ⏳ FASE 2.2: División de Componentes Grandes (PENDIENTE)
 
 ### Componentes Identificados
@@ -243,16 +308,40 @@ Aplicar principios DRY, KISS, YAGNI y SOLID para mejorar la mantenibilidad del c
 | Console.log en producción        | 59         | 0         | -100%                       |
 | Debug statements                 | 4          | 0         | -100%                       |
 | Archivos >500 líneas (servicios) | 3          | 0         | -100%                       |
+| Componentes >200 líneas          | 5          | 3         | -40%                        |
 | Código comentado                 | 153 líneas | 0         | -100%                       |
-| Build time                       | ~5.4s      | ~5.65s    | +4.6% (trade-off aceptable) |
+| Build time                       | ~5.4s      | ~5.71s    | +5.7% (trade-off aceptable) |
 | Bundle size (gzip)               | 165.11 KB  | 165.11 KB | Sin cambio ✅               |
+
+---
+
+## 📊 Resumen Consolidado
+
+### Servicios (FASE 2.1)
+
+- **Refactorizados**: 3
+- **Líneas reducidas**: 1,487
+- **Módulos creados**: 6
+
+### Componentes (FASE 2.2)
+
+- **Refactorizados**: 2
+- **Líneas reducidas**: 116
+- **Módulos creados**: 2
+
+### Total General
+
+- **Archivos refactorizados**: 5 (3 servicios + 2 componentes)
+- **Líneas totales reducidas**: 1,603
+- **Módulos especializados creados**: 8
+- **Commits realizados**: 5
 
 ---
 
 ## 🚀 Próximos Pasos
 
-1. **Inmediato**: Dividir `importDerivacionService.ts` (417 líneas)
-2. **Corto plazo**: Refactorizar `VistaAnomalias.tsx` y `HeatMapConsumo.tsx`
+1. **Inmediato**: Continuar con componentes medianos (SaldoATR, ExpedienteTipoV)
+2. **Corto plazo**: Abordar componentes gigantes (VistaAnomalias.tsx 1096L, HeatMapConsumo.tsx 912L)
 3. **Medio plazo**: Implementar FASE 3 (arquitectura moderna)
 4. **Largo plazo**: Testing unitario de servicios críticos
 
