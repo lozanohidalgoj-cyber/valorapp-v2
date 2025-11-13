@@ -826,62 +826,6 @@ export const detectarInicioAnomalia = (comparativa: ConsumoMensual[]): Resultado
     ...resultadosRegla4
   );
 
-  // DEBUG: Log para consola (siempre visible)
-  console.group('🔍 DETECCIÓN DE ANOMALÍAS - DEBUG');
-  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
-  console.log('%cRegla 0 (Tendencia):', 'font-weight: bold', resultadosRegla0.length, 'resultados');
-  resultadosRegla0.forEach((r) =>
-    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
-  );
-
-  console.log(
-    '%cRegla 1 (Descenso Brusco ≥30%):',
-    'font-weight: bold',
-    resultadosRegla1.length,
-    'resultados'
-  );
-  resultadosRegla1.forEach((r) =>
-    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
-  );
-
-  console.log(
-    '%cRegla 2 (Descenso Sostenido):',
-    'font-weight: bold',
-    resultadosRegla2.length,
-    'resultados'
-  );
-  resultadosRegla2.forEach((r) =>
-    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
-  );
-
-  console.log(
-    '%cRegla 3 (Variación Histórica):',
-    'font-weight: bold',
-    resultadosRegla3.length,
-    'resultados'
-  );
-  resultadosRegla3.forEach((r) =>
-    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
-  );
-
-  console.log(
-    '%cRegla 4 (Consumo Cero):',
-    'font-weight: bold',
-    resultadosRegla4.length,
-    'resultados'
-  );
-  resultadosRegla4.forEach((r) =>
-    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
-  );
-
-  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
-  console.log(
-    '%cTOTAL ANOMALÍAS DETECTADAS:',
-    'color: #ff3184; font-weight: bold',
-    anomaliasDetectadas.length
-  );
-  console.groupEnd();
-
   // Seleccionar anomalía con mayor confianza
   if (anomaliasDetectadas.length > 0) {
     anomaliasDetectadas.sort((a, b) => {
@@ -895,15 +839,6 @@ export const detectarInicioAnomalia = (comparativa: ConsumoMensual[]): Resultado
       }
       return 0;
     });
-
-    console.log(
-      '%c✅ ANOMALÍA SELECCIONADA:',
-      'color: #00ff00; font-weight: bold; font-size: 14px'
-    );
-    console.log('  Periodo:', anomaliasDetectadas[0].periodoLegible);
-    console.log('  Tipo:', anomaliasDetectadas[0].detalles.tipo);
-    console.log('  Confianza:', anomaliasDetectadas[0].confianza);
-    console.log('  Razón:', anomaliasDetectadas[0].razon);
 
     return anomaliasDetectadas[0];
   }

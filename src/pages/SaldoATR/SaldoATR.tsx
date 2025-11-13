@@ -196,17 +196,15 @@ export const SaldoATR = () => {
   };
 
   const handleLimpiarDatos = () => {
-    if (globalThis.confirm('¿Estás seguro de que quieres limpiar todos los datos?')) {
-      setRows(baseRows);
-      setAnalisisHabilitado(false);
-      setResultadoAnalisis(null);
-      setVistaActual('anual');
-      setRegistrosDerivacion([]);
-      setColumnasAnalisis([]);
-      setCustomError(null);
-      setCustomSuccess('Datos restablecidos correctamente');
-      setTimeout(() => setCustomSuccess(null), 3000);
-    }
+    setRows(baseRows);
+    setAnalisisHabilitado(false);
+    setResultadoAnalisis(null);
+    setVistaActual('anual');
+    setRegistrosDerivacion([]);
+    setColumnasAnalisis([]);
+    setCustomError(null);
+    setCustomSuccess('✅ Datos restablecidos correctamente');
+    setTimeout(() => setCustomSuccess(null), 3000);
   };
 
   const handleAnularFC = () => {

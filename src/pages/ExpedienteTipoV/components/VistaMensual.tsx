@@ -29,7 +29,6 @@ export const VistaMensual = ({
     // Buscar la fila con el periodo
     const row = tableRef.current.querySelector(`[data-periodo="${periodo}"]`) as HTMLElement;
     if (!row) {
-      console.warn(`No se encontró fila con periodo: ${periodo}`);
       return;
     }
 

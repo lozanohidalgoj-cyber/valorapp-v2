@@ -44,7 +44,6 @@ export const VistaAnomalias = ({
     // Buscar la fila con el periodo
     const row = tableRef.current.querySelector(`[data-periodo="${periodo}"]`) as HTMLElement;
     if (!row) {
-      console.warn(`No se encontró fila con periodo: ${periodo}`);
       return;
     }
 
@@ -175,14 +174,11 @@ export const VistaAnomalias = ({
     });
 
     const resultado = Array.from(tipos).sort((a, b) => a.localeCompare(b, 'es'));
-    console.log('[TIPOS] Tipos de comportamiento extraídos:', resultado);
     return resultado;
   }, [datos]);
 
   // Aplicar filtros a los datos ordenados
   const datosFiltrados = useMemo(() => {
-    console.log('[FILTER] Filtrando con tipos:', tipoComportamientoFilter);
-
     return sortedDatos.filter((registro) => {
       // Filtro por tipo de comportamiento - SIMPLIFICADO
       if (tipoComportamientoFilter.length > 0) {
@@ -208,13 +204,8 @@ export const VistaAnomalias = ({
         const incluido = tipoComportamientoFilter.includes(tipoRegistro);
 
         if (!incluido) {
-          console.log(
-            `[FILTER] ${registro.periodo}: "${tipoRegistro}" no está en [${tipoComportamientoFilter.join(', ')}]`
-          );
           return false;
         }
-
-        console.log(`[FILTER] ${registro.periodo}: "${tipoRegistro}" coincide`);
       }
 
       // Filtro por rango de fechas

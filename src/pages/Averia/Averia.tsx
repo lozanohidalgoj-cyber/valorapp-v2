@@ -17,9 +17,8 @@ export const Averia = () => {
   const handleTipoAveriaClick = (tipo: string) => {
     if (tipo === 'WART') {
       navigate('/wart');
-    } else {
-      alert(`Proceso de valoración de ${tipo} próximamente`);
     }
+    // Otros tipos de avería estarán disponibles próximamente
   };
 
   return (
@@ -34,7 +33,12 @@ export const Averia = () => {
                      transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40"
         >
           <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M15 19l-7-7 7-7"
+            />
           </svg>
         </button>
 
@@ -59,8 +63,10 @@ export const Averia = () => {
                      overflow-hidden"
           >
             <span className="relative z-10 text-2xl font-semibold">WART</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+            />
           </button>
 
           <button
@@ -74,8 +80,10 @@ export const Averia = () => {
                      overflow-hidden"
           >
             <span className="relative z-10 text-2xl font-semibold">ERROR DE MONTAJE</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+            />
           </button>
 
           <button
@@ -89,8 +97,10 @@ export const Averia = () => {
                      overflow-hidden"
           >
             <span className="relative z-10 text-2xl font-semibold">ERROR DE AVERÍA</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+            />
           </button>
         </div>
 
@@ -105,13 +115,13 @@ export const Averia = () => {
                      focus:outline-none focus:ring-4 focus:ring-white/30
                      flex items-center justify-center gap-2 text-sm"
           >
-            <svg 
-              className="w-4 h-4" 
-              fill="none" 
-              stroke="currentColor" 
-              viewBox="0 0 24 24"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 19l-7-7 7-7"
+              />
             </svg>
             <span>Volver</span>
           </button>

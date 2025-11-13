@@ -15,7 +15,7 @@ export const Home = () => {
   };
 
   const handleFraudeClick = () => {
-    alert('Funcionalidad de Fraude próximamente');
+    // Funcionalidad de Fraude próximamente
   };
 
   const handleExpedientesClick = () => {
@@ -33,7 +33,7 @@ export const Home = () => {
           Seleccione el tipo de análisis que desea realizar
         </p>
 
-  <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mt-12">
+        <div className="flex flex-col sm:flex-row gap-8 justify-center items-center mt-12">
           <button
             onClick={handleFraudeClick}
             className="group relative w-full sm:w-72 bg-gradient-to-br from-secondary to-secondary-dark 
@@ -45,8 +45,10 @@ export const Home = () => {
                      overflow-hidden"
           >
             <span className="relative z-10 text-2xl font-bold">Fraude</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+            />
           </button>
 
           <button
@@ -60,10 +62,11 @@ export const Home = () => {
                      overflow-hidden"
           >
             <span className="relative z-10 text-2xl font-bold">Avería</span>
-            <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+            <div
+              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+            />
           </button>
-
         </div>
         {/* Botón fijo inferior derecho: Análisis de expedientes */}
         <div className="fixed right-6 bottom-6 z-50">

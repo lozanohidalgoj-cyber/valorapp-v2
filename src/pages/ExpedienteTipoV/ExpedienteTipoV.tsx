@@ -292,14 +292,12 @@ export const ExpedienteTipoV = () => {
   };
 
   const handleLimpiarDatosGuardados = () => {
-    if (confirm('¿Está seguro de eliminar todos los datos guardados?')) {
-      limpiarDatosGuardados();
-      resetData();
-      resetAnalisis();
-      mostrarVistaPrincipal();
-      setSuccessMessage(' Datos eliminados correctamente');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    }
+    limpiarDatosGuardados();
+    resetData();
+    resetAnalisis();
+    mostrarVistaPrincipal();
+    setSuccessMessage('✅ Datos eliminados correctamente');
+    setTimeout(() => setSuccessMessage(null), 3000);
   };
 
   const handleIrSaldoAtr = () => {

@@ -138,24 +138,6 @@ import type { ConsumoMensual, ResultadoClasificacionExpediente } from '../types'
 export const clasificarExpediente = (
   consumosMensuales: ConsumoMensual[]
 ): ResultadoClasificacionExpediente => {
-  console.group('🔍 CLASIFICACIÓN DE EXPEDIENTE - DEBUG');
-  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
-  console.log('Total periodos:', consumosMensuales.length);
-  console.log(
-    'Primeros 5 periodos:',
-    consumosMensuales.slice(0, 5).map((c) => ({
-      periodo: c.periodo,
-      consumo: c.consumoActivaTotal,
-    }))
-  );
-  console.log(
-    'Últimos 5 periodos:',
-    consumosMensuales.slice(-5).map((c) => ({
-      periodo: c.periodo,
-      consumo: c.consumoActivaTotal,
-    }))
-  );
-
   if (!consumosMensuales || consumosMensuales.length === 0) {
     return {
       clasificacion: 'Anomalía indeterminada',
@@ -307,17 +289,6 @@ export const clasificarExpediente = (
   const recuperaciones = detectarRecuperaciones(consumosMensuales, promedioBaseline);
 
   if (recuperaciones.length > 0) {
-    console.log('%c[RECUPERACIONES] DETECTADAS:', 'color: #00ff00; font-weight: bold');
-    console.table(
-      recuperaciones.map((r) => ({
-        descenso: r.periodoDescenso,
-        recuperacion: r.periodoRecuperacion,
-        consumoDescenso: r.consumoDescenso.toFixed(1) + ' kWh',
-        consumoRecuperacion: r.consumoRecuperacion.toFixed(1) + ' kWh',
-        variacion: r.variacionDescenso.toFixed(1) + '%',
-      }))
-    );
-
     // Agregar información de recuperaciones al detalle
     detalle.push(
       `[RECUPERACION] ${recuperaciones.length} periodo(s) con descenso temporal que se recuperó`
@@ -544,16 +515,6 @@ export const clasificarExpediente = (
       detalle.push(`Promedio global histórico: ${promedioGlobal.toFixed(0)} kWh`);
       detalle.push(`Promedio desde inicio de anomalía: ${promedioDespuesAnomalia.toFixed(0)} kWh`);
       detalle.push(`Reducción vs. promedio global: ${variacionVsGlobal.toFixed(1)}%`);
-
-      console.log(
-        '%c[DESCENSO-SOSTENIDO] DETECTADO:',
-        'color: #ff3184; font-weight: bold; font-size: 14px'
-      );
-      console.log('  Inicio periodo:', inicioPeriodoFinal);
-      console.log('  Índice inicio:', indiceInicioAnalisis);
-      console.log('  Promedio después anomalía:', promedioDespuesAnomalia.toFixed(0), 'kWh');
-      console.log('  Variación vs global:', variacionVsGlobal.toFixed(1), '%');
-      console.groupEnd();
 
       return {
         clasificacion: 'Descenso sostenido',
@@ -1053,17 +1014,6 @@ function encontrarInicioAnomalia(
     // Tercero: mayor severidad
     return b.severidad - a.severidad;
   });
-
-  console.log('%c[CANDIDATOS] A INICIO DE ANOMALÍA:', 'color: #00ff00; font-weight: bold');
-  console.table(
-    candidatos.map((c) => ({
-      periodo: c.periodo,
-      prioridad: c.prioridad,
-      consumo: c.consumo.toFixed(1) + ' kWh',
-      severidad: c.severidad.toFixed(1),
-    }))
-  );
-  console.log('%c[SELECCIONADO]:', 'color: #ff3184; font-weight: bold', candidatos[0].periodo);
 
   return {
     periodo: candidatos[0].periodo,
