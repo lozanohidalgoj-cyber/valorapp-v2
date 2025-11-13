@@ -4,3 +4,4 @@
 
 export { useAnalysis } from './useAnalysis';
 export { useFileLoader } from './useFileLoader';
+export { useExpedienteActions } from './useExpedienteActions';
