@@ -305,6 +305,14 @@ export interface ResultadoClasificacionExpediente {
   detalle: string[];
   /** Nivel de confianza de la clasificación (0-100) */
   confianza: number;
+  /** Periodos con descenso temporal que luego se recuperaron */
+  periodosConRecuperacion?: Array<{
+    periodoDescenso: string;
+    periodoRecuperacion: string;
+    consumoDescenso: number;
+    consumoRecuperacion: number;
+    variacionDescenso: number;
+  }>;
 }
 
 /**

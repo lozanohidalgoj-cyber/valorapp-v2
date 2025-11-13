@@ -138,6 +138,24 @@ import type { ConsumoMensual, ResultadoClasificacionExpediente } from '../types'
 export const clasificarExpediente = (
   consumosMensuales: ConsumoMensual[]
 ): ResultadoClasificacionExpediente => {
+  console.group('🔍 CLASIFICACIÓN DE EXPEDIENTE - DEBUG');
+  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
+  console.log('Total periodos:', consumosMensuales.length);
+  console.log(
+    'Primeros 5 periodos:',
+    consumosMensuales.slice(0, 5).map((c) => ({
+      periodo: c.periodo,
+      consumo: c.consumoActivaTotal,
+    }))
+  );
+  console.log(
+    'Últimos 5 periodos:',
+    consumosMensuales.slice(-5).map((c) => ({
+      periodo: c.periodo,
+      consumo: c.consumoActivaTotal,
+    }))
+  );
+
   if (!consumosMensuales || consumosMensuales.length === 0) {
     return {
       clasificacion: 'Anomalía indeterminada',
@@ -278,6 +296,37 @@ export const clasificarExpediente = (
     promediosPorMes
   );
 
+  // 3.5. DETECTAR RECUPERACIONES (descensos temporales que luego se recuperaron)
+  const periodoBaseline = Math.min(12, Math.floor(consumosMensuales.length * 0.3));
+  const consumosBaseline = consumosMensuales
+    .slice(0, periodoBaseline)
+    .map((c) => c.consumoActivaTotal);
+  const promedioBaseline =
+    consumosBaseline.reduce((sum, val) => sum + val, 0) / consumosBaseline.length;
+
+  const recuperaciones = detectarRecuperaciones(consumosMensuales, promedioBaseline);
+
+  if (recuperaciones.length > 0) {
+    console.log('%c🔄 RECUPERACIONES DETECTADAS:', 'color: #00ff00; font-weight: bold');
+    console.table(
+      recuperaciones.map((r) => ({
+        descenso: r.periodoDescenso,
+        recuperacion: r.periodoRecuperacion,
+        consumoDescenso: r.consumoDescenso.toFixed(1) + ' kWh',
+        consumoRecuperacion: r.consumoRecuperacion.toFixed(1) + ' kWh',
+        variacion: r.variacionDescenso.toFixed(1) + '%',
+      }))
+    );
+
+    // Agregar información de recuperaciones al detalle
+    detalle.push(`🔄 ${recuperaciones.length} periodo(s) con descenso temporal que se recuperó`);
+    recuperaciones.forEach((r) => {
+      detalle.push(
+        `  • ${r.periodoDescenso}: ${r.consumoDescenso.toFixed(0)} kWh → ${r.periodoRecuperacion}: ${r.consumoRecuperacion.toFixed(0)} kWh (${r.variacionDescenso.toFixed(1)}%)`
+      );
+    });
+  }
+
   // 4. ANÁLISIS DE TENDENCIA GLOBAL
   const tendenciaGlobal = calcularTendenciaGlobal(consumosMensuales);
 
@@ -300,6 +349,7 @@ export const clasificarExpediente = (
       periodosConCeroEsperado,
       detalle,
       confianza,
+      periodosConRecuperacion: recuperaciones,
     };
   }
 
@@ -322,6 +372,7 @@ export const clasificarExpediente = (
       periodosConCeroEsperado,
       detalle,
       confianza,
+      periodosConRecuperacion: recuperaciones,
     };
   }
 
@@ -350,6 +401,7 @@ export const clasificarExpediente = (
         periodosConCeroEsperado,
         detalle,
         confianza,
+        periodosConRecuperacion: recuperaciones,
       };
     }
   }
@@ -491,6 +543,16 @@ export const clasificarExpediente = (
       detalle.push(`Promedio desde inicio de anomalía: ${promedioDespuesAnomalia.toFixed(0)} kWh`);
       detalle.push(`Reducción vs. promedio global: ${variacionVsGlobal.toFixed(1)}%`);
 
+      console.log(
+        '%c✅ DESCENSO SOSTENIDO DETECTADO:',
+        'color: #ff3184; font-weight: bold; font-size: 14px'
+      );
+      console.log('  Inicio periodo:', inicioPeriodoFinal);
+      console.log('  Índice inicio:', indiceInicioAnalisis);
+      console.log('  Promedio después anomalía:', promedioDespuesAnomalia.toFixed(0), 'kWh');
+      console.log('  Variación vs global:', variacionVsGlobal.toFixed(1), '%');
+      console.groupEnd();
+
       return {
         clasificacion: 'Descenso sostenido',
         inicioPeriodoAnomalia: inicioPeriodoFinal,
@@ -508,6 +570,7 @@ export const clasificarExpediente = (
         periodosConCeroEsperado,
         detalle,
         confianza,
+        periodosConRecuperacion: recuperaciones,
       };
     }
   }
@@ -551,6 +614,7 @@ export const clasificarExpediente = (
           periodosConCeroEsperado,
           detalle,
           confianza,
+          periodosConRecuperacion: recuperaciones,
         };
       }
 
@@ -574,6 +638,7 @@ export const clasificarExpediente = (
         periodosConCeroEsperado,
         detalle,
         confianza,
+        periodosConRecuperacion: recuperaciones,
       };
     }
   }
@@ -638,6 +703,7 @@ export const clasificarExpediente = (
     periodosConCeroEsperado,
     detalle,
     confianza,
+    periodosConRecuperacion: recuperaciones,
   };
 };
 
@@ -674,6 +740,114 @@ function contarCambiosPotencia(consumos: ConsumoMensual[]): number {
 }
 
 /**
+ * Detecta periodos donde hubo un descenso SOSTENIDO (múltiples periodos)
+ * pero luego el consumo se recuperó a niveles normales
+ */
+function detectarRecuperaciones(
+  consumos: ConsumoMensual[],
+  promedioBaseline: number
+): Array<{
+  periodoDescenso: string;
+  periodoRecuperacion: string;
+  consumoDescenso: number;
+  consumoRecuperacion: number;
+  variacionDescenso: number;
+}> {
+  const recuperaciones: Array<{
+    periodoDescenso: string;
+    periodoRecuperacion: string;
+    consumoDescenso: number;
+    consumoRecuperacion: number;
+    variacionDescenso: number;
+  }> = [];
+
+  // Necesitamos al menos 4 periodos para detectar descenso sostenido + recuperación
+  if (consumos.length < 4) {
+    return recuperaciones;
+  }
+
+  const umbralDescenso = 0.7; // 70% del baseline
+  const umbralRecuperacion = 0.85; // 85% del baseline (recuperación)
+  const minPeriodosDescenso = 2; // Mínimo 2 periodos en descenso para ser "sostenido"
+
+  let i = 0;
+  while (i < consumos.length) {
+    // Buscar inicio de descenso
+    if (consumos[i].consumoActivaTotal >= promedioBaseline * umbralDescenso) {
+      i++;
+      continue;
+    }
+
+    // Encontramos un periodo en descenso, contar cuántos consecutivos hay
+    const inicioDescenso = i;
+    let periodosBajos = 0;
+    let consumoPromedioDescenso = 0;
+    let variacionPromedioDescenso = 0;
+
+    // Contar periodos consecutivos en descenso
+    while (
+      i < consumos.length &&
+      consumos[i].consumoActivaTotal < promedioBaseline * umbralDescenso
+    ) {
+      // Verificar que no haya cambio de potencia
+      if (i > 0) {
+        const potenciaAnterior = consumos[i - 1].potenciaPromedio;
+        const potenciaActual = consumos[i].potenciaPromedio;
+        const cambioPotencia =
+          potenciaAnterior !== null &&
+          potenciaActual !== null &&
+          Math.abs(potenciaActual - potenciaAnterior) >= 0.5;
+
+        if (cambioPotencia) {
+          // Si hay cambio de potencia, no es una recuperación válida
+          i++;
+          break;
+        }
+      }
+
+      consumoPromedioDescenso += consumos[i].consumoActivaTotal;
+      variacionPromedioDescenso += consumos[i].variacionPorcentual ?? 0;
+      periodosBajos++;
+      i++;
+    }
+
+    // Si hubo suficientes periodos en descenso, buscar recuperación
+    if (periodosBajos >= minPeriodosDescenso && i < consumos.length) {
+      const periodoRecuperacion = consumos[i];
+
+      // Verificar que no haya cambio de potencia en la recuperación
+      const potenciaAnterior = consumos[i - 1].potenciaPromedio;
+      const potenciaActual = periodoRecuperacion.potenciaPromedio;
+      const cambioPotencia =
+        potenciaAnterior !== null &&
+        potenciaActual !== null &&
+        Math.abs(potenciaActual - potenciaAnterior) >= 0.5;
+
+      if (
+        !cambioPotencia &&
+        periodoRecuperacion.consumoActivaTotal >= promedioBaseline * umbralRecuperacion
+      ) {
+        // ¡Recuperación detectada!
+        const promedioConsumoDescenso = consumoPromedioDescenso / periodosBajos;
+        const promedioVariacionDescenso = variacionPromedioDescenso / periodosBajos;
+
+        recuperaciones.push({
+          periodoDescenso: `${consumos[inicioDescenso].periodo} - ${consumos[i - 1].periodo}`,
+          periodoRecuperacion: periodoRecuperacion.periodo,
+          consumoDescenso: promedioConsumoDescenso,
+          consumoRecuperacion: periodoRecuperacion.consumoActivaTotal,
+          variacionDescenso: promedioVariacionDescenso,
+        });
+      }
+    }
+
+    i++;
+  }
+
+  return recuperaciones;
+}
+
+/**
  * Encuentra el primer periodo donde se detectó una anomalía significativa
  * Considera TODO el histórico (anterior Y posterior) para determinar si es anomalía real
  * IGNORA periodos con cambio de potencia (no son anomalías reales)
@@ -699,6 +873,17 @@ function encontrarInicioAnomalia(
 
   // IMPORTANTE: Empezar desde después del periodo de baseline
   const indiceInicio = Math.max(2, periodoBaseline);
+
+  // 🔄 CAMBIO: Recolectar TODOS los candidatos en lugar de retornar el primero
+  const candidatos: Array<{
+    periodo: string;
+    indice: number;
+    consumo: number;
+    consumoPrevio: number | null;
+    variacion: number | null;
+    prioridad: number; // Menor número = mayor prioridad
+    severidad: number; // Mayor número = más severo
+  }> = [];
 
   for (let i = indiceInicio; i < consumos.length; i++) {
     const actual = consumos[i];
@@ -730,13 +915,16 @@ function encontrarInicioAnomalia(
     // 🎯 PRIORIDAD 1: Consumo CERO o extremadamente bajo (≤ 15 kWh)
     // Este es el indicador más claro de anomalía (fraude/avería)
     if (actual.consumoActivaTotal <= 15) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 1,
+        severidad: 100 - actual.consumoActivaTotal, // Menor consumo = mayor severidad
+      });
+      continue; // Continuar evaluando otros periodos
     }
 
     // 🎯 PRIORIDAD 2: Descenso mes-a-mes fuerte (≤ -40%, relajado de -50%)
@@ -744,13 +932,15 @@ function encontrarInicioAnomalia(
       actual.variacionPorcentual !== null && actual.variacionPorcentual <= -40;
 
     if (esDescensoFuerte) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 2,
+        severidad: Math.abs(actual.variacionPorcentual!),
+      });
     }
 
     // 🎯 PRIORIDAD 2.5: Consumo muy bajo vs baseline (≤ 60% del promedio histórico)
@@ -758,13 +948,15 @@ function encontrarInicioAnomalia(
     const esConsumoMuyBajoVsBaseline = actual.consumoActivaTotal <= promedioBaseline * 0.6;
 
     if (esConsumoMuyBajoVsBaseline) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 2.5,
+        severidad: (1 - actual.consumoActivaTotal / promedioBaseline) * 100,
+      });
     }
 
     // 🎯 PRIORIDAD 2.7: Descenso significativo vs baseline (< 70% Y descenso mes-a-mes)
@@ -775,13 +967,15 @@ function encontrarInicioAnomalia(
       actual.variacionPorcentual < -15;
 
     if (esConsumoBajoConDescenso) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 2.7,
+        severidad: Math.abs(actual.variacionPorcentual!),
+      });
     }
 
     // 🎯 PRIORIDAD 2.8: Descenso significativo vs promedio histórico del mes (< -50%)
@@ -790,13 +984,15 @@ function encontrarInicioAnomalia(
       variacionVsHistoricoMes !== null && variacionVsHistoricoMes <= -50;
 
     if (esDescensoVsHistoricoMes && promedioMes && promedioMes > 0) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 2.8,
+        severidad: Math.abs(variacionVsHistoricoMes!),
+      });
     }
 
     // 🎯 PRIORIDAD 3: Z-Score muy bajo (< -2.5) + consumo bajo vs baseline (< 40%)
@@ -804,13 +1000,15 @@ function encontrarInicioAnomalia(
     const esConsumoBajoVsBaseline = actual.consumoActivaTotal < promedioBaseline * 0.4;
 
     if (esZScoreMuyBajo && esConsumoBajoVsBaseline) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 3,
+        severidad: Math.abs(zScoreGlobal) * 10,
+      });
     }
 
     // 🎯 PRIORIDAD 4: Descenso fuerte + muy por debajo del histórico del mes (< -70%)
@@ -820,17 +1018,58 @@ function encontrarInicioAnomalia(
       variacionVsHistoricoMes !== null && variacionVsHistoricoMes < -70;
 
     if (esDescensoFuerteVsHistorico && esMuyBajoVsHistoricoMes) {
-      return {
+      candidatos.push({
         periodo: actual.periodo,
         indice: i,
         consumo: actual.consumoActivaTotal,
         consumoPrevio: anterior.consumoActivaTotal,
         variacion: actual.variacionPorcentual,
-      };
+        prioridad: 4,
+        severidad: Math.abs(variacionVsHistoricoMes!),
+      });
     }
   }
 
-  return null;
+  // Si no hay candidatos, retornar null
+  if (candidatos.length === 0) {
+    return null;
+  }
+
+  // Seleccionar el mejor candidato:
+  // 1. Priorizar por menor prioridad (1 es más importante que 4)
+  // 2. Si hay empate, seleccionar el MÁS RECIENTE (mayor índice)
+  // 3. Si aún empata, seleccionar por mayor severidad
+  candidatos.sort((a, b) => {
+    // Primero: menor prioridad
+    if (a.prioridad !== b.prioridad) {
+      return a.prioridad - b.prioridad;
+    }
+    // Segundo: más reciente (mayor índice)
+    if (b.indice !== a.indice) {
+      return b.indice - a.indice;
+    }
+    // Tercero: mayor severidad
+    return b.severidad - a.severidad;
+  });
+
+  console.log('%c📋 CANDIDATOS A INICIO DE ANOMALÍA:', 'color: #00ff00; font-weight: bold');
+  console.table(
+    candidatos.map((c) => ({
+      periodo: c.periodo,
+      prioridad: c.prioridad,
+      consumo: c.consumo.toFixed(1) + ' kWh',
+      severidad: c.severidad.toFixed(1),
+    }))
+  );
+  console.log('%c✅ SELECCIONADO:', 'color: #ff3184; font-weight: bold', candidatos[0].periodo);
+
+  return {
+    periodo: candidatos[0].periodo,
+    indice: candidatos[0].indice,
+    consumo: candidatos[0].consumo,
+    consumoPrevio: candidatos[0].consumoPrevio,
+    variacion: candidatos[0].variacion,
+  };
 }
 
 /**

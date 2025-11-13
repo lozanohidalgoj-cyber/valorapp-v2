@@ -173,7 +173,23 @@ const esCeroEsperado = (comparativa: ConsumoMensual[], mes: number, año: number
     (c) => c.mes === mes && c.año !== año && c.consumoActivaTotal === 0
   );
 
-  return cerosEnMes.length > 0; // Si hay precedente, es esperado
+  // Solo es "esperado" si hay precedente Y además los últimos 2-3 meses antes también fueron cero
+  // Esto evita reportar consumos cero como anomalía cuando siempre fueron cero
+  if (cerosEnMes.length === 0) return false; // No hay precedente histórico → es sospechoso
+
+  // Verificar si hay cambio reciente de consumo a cero (últimos 6 meses)
+  const ordenada = [...comparativa].sort((a, b) => (a.año - b.año) * 12 + (a.mes - b.mes));
+  const indiceActual = ordenada.findIndex((c) => c.mes === mes && c.año === año);
+
+  if (indiceActual <= 0) return true; // Sin datos previos
+
+  // Revisar los últimos 2-3 meses previos
+  const mesesPrevios = ordenada.slice(Math.max(0, indiceActual - 3), indiceActual);
+
+  // Si había consumo antes y ahora es cero = cambio reciente = sospechoso
+  const hayConsumoPrevio = mesesPrevios.some((c) => c.consumoActivaTotal > 0);
+
+  return !hayConsumoPrevio; // Si había consumo previo, es sospechoso
 };
 
 /**
@@ -190,7 +206,7 @@ const esCeroEsperado = (comparativa: ConsumoMensual[], mes: number, año: number
  */
 const detectarDescensoSostenidoSinRecuperacion = (
   comparativa: ConsumoMensual[]
-): {
+): Array<{
   detectado: boolean;
   indiceInicio: number;
   indiceFin: number;
@@ -202,27 +218,29 @@ const detectarDescensoSostenidoSinRecuperacion = (
   variacionInicioBaseline: number;
   variacionMinimaBaseline: number;
   umbralRecuperacion: number;
-} => {
+}> => {
   const UMBRAL_DESCENSO = 10; // %
   const MESES_REQUERIDOS = 3;
   const MESES_BASELINE_MAX = 3;
   const MESES_BASELINE_MIN = 2;
   const FACTOR_RECUPERACION = 1.15;
 
+  const resultados: Array<{
+    detectado: boolean;
+    indiceInicio: number;
+    indiceFin: number;
+    duracionMeses: number;
+    huboRecuperacion: boolean;
+    promedioBaseline: number;
+    consumoNormalizadoInicio: number;
+    consumoMinimoNormalizado: number;
+    variacionInicioBaseline: number;
+    variacionMinimaBaseline: number;
+    umbralRecuperacion: number;
+  }> = [];
+
   if (comparativa.length < MESES_REQUERIDOS) {
-    return {
-      detectado: false,
-      indiceInicio: -1,
-      indiceFin: -1,
-      duracionMeses: 0,
-      huboRecuperacion: false,
-      promedioBaseline: 0,
-      consumoNormalizadoInicio: 0,
-      consumoMinimoNormalizado: 0,
-      variacionInicioBaseline: 0,
-      variacionMinimaBaseline: 0,
-      umbralRecuperacion: 0,
-    };
+    return resultados;
   }
 
   const normalizados = comparativa.map(obtenerConsumoNormalizadoMensual);
@@ -295,7 +313,7 @@ const detectarDescensoSostenidoSinRecuperacion = (
       const variacionInicioBaseline = ((consumoActual - baseline) / baseline) * 100;
       const variacionMinimaBaseline = ((consumoMinimo - baseline) / baseline) * 100;
 
-      return {
+      resultados.push({
         detectado: true,
         indiceInicio: i,
         indiceFin,
@@ -307,25 +325,13 @@ const detectarDescensoSostenidoSinRecuperacion = (
         variacionInicioBaseline,
         variacionMinimaBaseline,
         umbralRecuperacion,
-      };
+      });
     }
 
     i = indiceFin;
   }
 
-  return {
-    detectado: false,
-    indiceInicio: -1,
-    indiceFin: -1,
-    duracionMeses: 0,
-    huboRecuperacion: false,
-    promedioBaseline: 0,
-    consumoNormalizadoInicio: 0,
-    consumoMinimoNormalizado: 0,
-    variacionInicioBaseline: 0,
-    variacionMinimaBaseline: 0,
-    umbralRecuperacion: 0,
-  };
+  return resultados;
 };
 
 /**
@@ -497,7 +503,255 @@ const analizarTendencias = (comparativa: ConsumoMensual[]) => {
 };
 
 // ============================================================================
-// 🔍 DETECTOR PRINCIPAL
+// � FUNCIONES AUXILIARES PARA EVALUAR CADA REGLA
+// ============================================================================
+
+/**
+ * Evalúa REGLA 0: Tendencia descendente sostenida
+ */
+const evaluarReglaTendencia = (
+  comparativaOrdenada: ConsumoMensual[]
+): ResultadoDeteccionInicio[] => {
+  const resultados: ResultadoDeteccionInicio[] = [];
+  const tendencia = analizarTendencias(comparativaOrdenada);
+
+  if (tendencia.tieneBloqueDescenso && !tendencia.recuperacionConfirmada) {
+    const periodoInicio = tendencia.periodoInicioBloque;
+    const [anioInicio, mesInicio] = periodoInicio.split('-').map(Number);
+
+    resultados.push({
+      clasificacion: 'anomalia_detectada',
+      mensaje: `Determinación del descenso en ${getNombreMes(mesInicio)} ${anioInicio}`,
+      periodoInicio,
+      periodoLegible: `${getNombreMes(mesInicio)} ${anioInicio}`,
+      razon:
+        'Tendencia descendente sostenida: ≥ 3 descensos consecutivos (variación mes a mes < 0)',
+      confianza: 70,
+      detalles: {
+        tipo: 'tendencia_descendente_sostenida',
+        inicioBloqueIndice: tendencia.inicioBloqueDescenso,
+        finBloqueIndice: tendencia.finBloqueDescenso,
+        longitudBloque: tendencia.longitudBloque,
+        inicioRecuperacionIndice: tendencia.indiceInicioRecuperacion,
+        recuperacionConfirmada: tendencia.recuperacionConfirmada,
+      },
+    });
+  }
+
+  return resultados;
+};
+
+/**
+ * Evalúa REGLA 1: Descenso brusco mes a mes (≥30%)
+ */
+const evaluarReglaDescensoBrusco = (
+  comparativaOrdenada: ConsumoMensual[]
+): ResultadoDeteccionInicio[] => {
+  const resultados: ResultadoDeteccionInicio[] = [];
+  const consumosNormalizados = comparativaOrdenada.map(obtenerConsumoNormalizadoMensual);
+
+  for (let i = 1; i < comparativaOrdenada.length; i++) {
+    const actual = comparativaOrdenada[i];
+    const anterior = comparativaOrdenada[i - 1];
+    const consumoAnteriorNormalizado = consumosNormalizados[i - 1];
+    const consumoActualNormalizado = consumosNormalizados[i];
+
+    if (
+      !Number.isFinite(consumoAnteriorNormalizado) ||
+      consumoAnteriorNormalizado <= 0 ||
+      !Number.isFinite(consumoActualNormalizado) ||
+      consumoActualNormalizado <= 0 ||
+      !hayDescensobrusCo(consumoActualNormalizado, consumoAnteriorNormalizado)
+    ) {
+      continue;
+    }
+
+    const MESES_BASELINE_DESCENSO_BRUSCO_MIN = 3;
+    const MESES_BASELINE_DESCENSO_BRUSCO_MAX = 6;
+    const baseline = calcularBaselineNormalizado(
+      consumosNormalizados,
+      i,
+      MESES_BASELINE_DESCENSO_BRUSCO_MIN,
+      MESES_BASELINE_DESCENSO_BRUSCO_MAX
+    );
+
+    if (baseline === null || baseline <= 0) {
+      continue;
+    }
+
+    const variacion =
+      ((consumoActualNormalizado - consumoAnteriorNormalizado) / consumoAnteriorNormalizado) * 100;
+    const variacionVsBaseline = ((consumoActualNormalizado - baseline) / baseline) * 100;
+    const ciclo = detectarCicloFacturacion(actual.dias);
+
+    resultados.push({
+      clasificacion: 'anomalia_detectada',
+      mensaje: `Determinación del descenso en ${getNombreMes(actual.mes)} ${actual.año}`,
+      periodoInicio: actual.periodo,
+      periodoLegible: `${getNombreMes(actual.mes)} ${actual.año}`,
+      razon: `Descenso brusco >= 30% respecto mes anterior (normalizado por días facturados: ${variacion.toFixed(1)}%)`,
+      confianza: 95,
+      detalles: {
+        tipo: 'descenso_brusco_mes_a_mes',
+        variacionDetectada: variacion,
+        variacionVsBaseline,
+        umbral: -30,
+        cicloFacturacion: ciclo,
+        consumoAnteriorNormalizado,
+        consumoActualNormalizado,
+        baselineHistorial: baseline,
+        diasAnterior: anterior.dias,
+        diasActual: actual.dias,
+      },
+    });
+  }
+
+  return resultados;
+};
+
+/**
+ * Evalúa REGLA 2: Descenso sostenido sin recuperación
+ */
+const evaluarReglaDescensoSostenido = (
+  comparativaOrdenada: ConsumoMensual[]
+): ResultadoDeteccionInicio[] => {
+  const resultados: ResultadoDeteccionInicio[] = [];
+  const descensosSostenidos = detectarDescensoSostenidoSinRecuperacion(comparativaOrdenada);
+
+  // Procesar TODOS los descensos sostenidos encontrados
+  for (const descensoSostenido of descensosSostenidos) {
+    const {
+      indiceInicio,
+      duracionMeses,
+      promedioBaseline,
+      consumoNormalizadoInicio,
+      consumoMinimoNormalizado,
+      variacionInicioBaseline,
+      variacionMinimaBaseline,
+      umbralRecuperacion,
+    } = descensoSostenido;
+
+    const periodoInicio = comparativaOrdenada[indiceInicio];
+    const promedioAnterior = calcularPromedioAnual(comparativaOrdenada, periodoInicio.año - 1);
+    const variacionPromedio =
+      promedioAnterior > 0
+        ? ((consumoNormalizadoInicio - promedioAnterior) / promedioAnterior) * 100
+        : variacionInicioBaseline;
+
+    resultados.push({
+      clasificacion: 'anomalia_detectada',
+      mensaje: `Determinación del descenso en ${getNombreMes(periodoInicio.mes)} ${periodoInicio.año} (descenso sostenido ${duracionMeses} meses sin recuperación)`,
+      periodoInicio: periodoInicio.periodo,
+      periodoLegible: `${getNombreMes(periodoInicio.mes)} ${periodoInicio.año}`,
+      razon: `Descenso sostenido > 10% durante ${duracionMeses} meses consecutivos SIN recuperación posterior`,
+      confianza: 85,
+      detalles: {
+        tipo: 'descenso_sostenido_sin_recuperacion',
+        variacionDetectada: variacionPromedio,
+        umbral: -10,
+        duracionMeses,
+        huboRecuperacion: false,
+        indiceInicio,
+        umbralRecuperacion,
+        consumoMinimoNormalizado,
+        promedioBaseline,
+        variacionInicioBaseline,
+        variacionMinimaBaseline,
+        consumoNormalizadoInicio,
+      },
+    });
+  }
+
+  return resultados;
+};
+
+/**
+ * Evalúa REGLA 3: Variación anómala vs histórico
+ */
+const evaluarReglaVariacionHistorica = (
+  comparativaOrdenada: ConsumoMensual[]
+): ResultadoDeteccionInicio[] => {
+  const resultados: ResultadoDeteccionInicio[] = [];
+  const añoActual = Math.max(...comparativaOrdenada.map((c) => c.año));
+
+  for (const registro of comparativaOrdenada.filter((c) => c.año === añoActual)) {
+    const promedioHistorico = calcularPromedioHistoricoMes(
+      comparativaOrdenada,
+      registro.mes,
+      añoActual
+    );
+
+    if (promedioHistorico === 0) continue;
+
+    const consumoActualNormalizado = obtenerConsumoNormalizadoMensual(registro);
+    const variacion = ((consumoActualNormalizado - promedioHistorico) / promedioHistorico) * 100;
+
+    if (Math.abs(variacion) > 20) {
+      const tipo = variacion < 0 ? 'Descenso' : 'Aumento';
+      const ciclo = detectarCicloFacturacion(registro.dias);
+
+      resultados.push({
+        clasificacion: 'anomalia_detectada',
+        mensaje: `Determinación del descenso en ${getNombreMes(registro.mes)} ${registro.año}`,
+        periodoInicio: registro.periodo,
+        periodoLegible: `${getNombreMes(registro.mes)} ${registro.año}`,
+        razon: `${tipo} > 20% respecto al promedio histórico de ${getNombreMes(registro.mes)}`,
+        confianza: 80,
+        detalles: {
+          tipo: 'variacion_historio_anual',
+          variacionDetectada: variacion,
+          historicoPromedio: promedioHistorico,
+          umbral: 20,
+          cicloFacturacion: ciclo,
+          consumoActualNormalizado,
+        },
+      });
+    }
+  }
+
+  return resultados;
+};
+
+/**
+ * Evalúa REGLA 4: Consumo cero sospechoso
+ */
+const evaluarReglaConsumoCero = (
+  comparativaOrdenada: ConsumoMensual[]
+): ResultadoDeteccionInicio[] => {
+  const resultados: ResultadoDeteccionInicio[] = [];
+
+  for (const registro of comparativaOrdenada) {
+    if (registro.consumoActivaTotal !== 0 || registro.registros <= 0) {
+      continue;
+    }
+
+    const esEsperado = esCeroEsperado(comparativaOrdenada, registro.mes, registro.año);
+    if (esEsperado) {
+      continue;
+    }
+
+    const ciclo = detectarCicloFacturacion(registro.dias);
+
+    resultados.push({
+      clasificacion: 'anomalia_detectada',
+      mensaje: `Determinación del descenso en ${getNombreMes(registro.mes)} ${registro.año} (consumo cero sospechoso)`,
+      periodoInicio: registro.periodo,
+      periodoLegible: `${getNombreMes(registro.mes)} ${registro.año}`,
+      razon: 'Consumo cero registrado en mes donde nunca antes ocurrió',
+      confianza: 90,
+      detalles: {
+        tipo: 'consumo_cero_sospechoso',
+        cicloFacturacion: ciclo,
+        registrosEnPeriodo: registro.registros,
+      },
+    });
+  }
+
+  return resultados;
+};
+
+// ============================================================================
+// �🔍 DETECTOR PRINCIPAL (REFACTORIZADO)
 // ============================================================================
 
 /**
@@ -514,6 +768,24 @@ const analizarTendencias = (comparativa: ConsumoMensual[]) => {
  * //   mensaje: 'Determinación del descenso en marzo 2024',
  * //   periodoInicio: '2024-03',
  * //   periodoLegible: 'marzo 2024',
+ * //   razon: 'Descenso brusco >= 30% respecto mes anterior',
+ * //   confianza: 95
+ * // }
+ */
+/**
+ * Detecta el INICIO de anomalía en los datos evaluando TODAS las reglas
+ * Retorna la anomalía con MAYOR confianza (prioridad por fiabilidad)
+ *
+ * @param comparativa - Array de datos mensuales ordenados cronológicamente
+ * @returns Resultado con clasificación y periodo de inicio (de mayor confianza)
+ *
+ * @example
+ * const resultado = detectarInicioAnomalia(comparativaMensual);
+ * // {
+ * //   clasificacion: 'anomalia_detectada',
+ * //   mensaje: 'Determinación del descenso en enero 2024',
+ * //   periodoInicio: '2024-01',
+ * //   periodoLegible: 'enero 2024',
  * //   razon: 'Descenso brusco >= 30% respecto mes anterior',
  * //   confianza: 95
  * // }
@@ -536,235 +808,104 @@ export const detectarInicioAnomalia = (comparativa: ConsumoMensual[]): Resultado
     return a.mes - b.mes;
   });
 
-  // REGLA 0: INTERPRETACIÓN DE TENDENCIA
-  // =====================================
-  // ≥ 3 descensos consecutivos → inicio de anomalía en el primer mes del bloque
-  // Cambio de signo negativo→positivo → inicio de recuperación
-  // ≥ 2 aumentos consecutivos tras descensos → recuperación confirmada
-  const tendencia = analizarTendencias(comparativaOrdenada);
-  if (tendencia.tieneBloqueDescenso) {
-    const periodoInicio = tendencia.periodoInicioBloque!;
-    const [anioInicio, mesInicio] = periodoInicio.split('-').map(Number);
+  // Array para almacenar TODAS las anomalías detectadas
+  const anomaliasDetectadas: ResultadoDeteccionInicio[] = [];
 
-    // Si hay recuperación confirmada posteriormente, NO declarar anomalía por tendencia
-    // (se permite que otras reglas determinen si hubo anomalía puntual)
-    if (!tendencia.recuperacionConfirmada) {
-      return {
-        clasificacion: 'anomalia_detectada',
-        mensaje: `Determinación del descenso en ${getNombreMes(mesInicio)} ${anioInicio}`,
-        periodoInicio,
-        periodoLegible: `${getNombreMes(mesInicio)} ${anioInicio}`,
-        razon:
-          'Tendencia descendente sostenida: ≥ 3 descensos consecutivos (variación mes a mes < 0)',
-        confianza: 88,
-        detalles: {
-          tipo: 'tendencia_descendente_sostenida',
-          inicioBloqueIndice: tendencia.inicioBloqueDescenso,
-          finBloqueIndice: tendencia.finBloqueDescenso,
-          longitudBloque: tendencia.longitudBloque,
-          inicioRecuperacionIndice: tendencia.indiceInicioRecuperacion,
-          recuperacionConfirmada: tendencia.recuperacionConfirmada,
-        },
-      };
-    }
-    // Si hubo recuperación confirmada, seguimos con el resto de reglas sin marcar inicio por tendencia
-  }
+  // Evaluar todas las reglas y recolectar anomalías
+  const resultadosRegla0 = evaluarReglaTendencia(comparativaOrdenada);
+  const resultadosRegla1 = evaluarReglaDescensoBrusco(comparativaOrdenada);
+  const resultadosRegla2 = evaluarReglaDescensoSostenido(comparativaOrdenada);
+  const resultadosRegla3 = evaluarReglaVariacionHistorica(comparativaOrdenada);
+  const resultadosRegla4 = evaluarReglaConsumoCero(comparativaOrdenada);
 
-  // REGLA 1: DESCENSO BRUSCO (mes a mes, ≥30%)
-  // ============================================
-  const consumosNormalizados = comparativaOrdenada.map(obtenerConsumoNormalizadoMensual);
+  anomaliasDetectadas.push(
+    ...resultadosRegla0,
+    ...resultadosRegla1,
+    ...resultadosRegla2,
+    ...resultadosRegla3,
+    ...resultadosRegla4
+  );
 
-  let descensoBruscoSinHistorial = false;
+  // DEBUG: Log para consola (siempre visible)
+  console.group('🔍 DETECCIÓN DE ANOMALÍAS - DEBUG');
+  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
+  console.log('%cRegla 0 (Tendencia):', 'font-weight: bold', resultadosRegla0.length, 'resultados');
+  resultadosRegla0.forEach((r) =>
+    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
+  );
 
-  for (let i = 1; i < comparativaOrdenada.length; i++) {
-    const actual = comparativaOrdenada[i];
-    const anterior = comparativaOrdenada[i - 1];
+  console.log(
+    '%cRegla 1 (Descenso Brusco ≥30%):',
+    'font-weight: bold',
+    resultadosRegla1.length,
+    'resultados'
+  );
+  resultadosRegla1.forEach((r) =>
+    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
+  );
 
-    const consumoAnteriorNormalizado = consumosNormalizados[i - 1];
-    const consumoActualNormalizado = consumosNormalizados[i];
+  console.log(
+    '%cRegla 2 (Descenso Sostenido):',
+    'font-weight: bold',
+    resultadosRegla2.length,
+    'resultados'
+  );
+  resultadosRegla2.forEach((r) =>
+    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
+  );
 
-    if (
-      !Number.isFinite(consumoAnteriorNormalizado) ||
-      consumoAnteriorNormalizado <= 0 ||
-      !Number.isFinite(consumoActualNormalizado) ||
-      consumoActualNormalizado <= 0
-    ) {
-      continue;
-    }
+  console.log(
+    '%cRegla 3 (Variación Histórica):',
+    'font-weight: bold',
+    resultadosRegla3.length,
+    'resultados'
+  );
+  resultadosRegla3.forEach((r) =>
+    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
+  );
 
-    if (!hayDescensobrusCo(consumoActualNormalizado, consumoAnteriorNormalizado)) {
-      continue;
-    }
+  console.log(
+    '%cRegla 4 (Consumo Cero):',
+    'font-weight: bold',
+    resultadosRegla4.length,
+    'resultados'
+  );
+  resultadosRegla4.forEach((r) =>
+    console.log('  →', r.periodoLegible, '- Confianza:', r.confianza)
+  );
 
-    const MESES_BASELINE_DESCENSO_BRUSCO_MIN = 3;
-    const MESES_BASELINE_DESCENSO_BRUSCO_MAX = 6;
-    const baseline = calcularBaselineNormalizado(
-      consumosNormalizados,
-      i,
-      MESES_BASELINE_DESCENSO_BRUSCO_MIN,
-      MESES_BASELINE_DESCENSO_BRUSCO_MAX
-    );
+  console.log('%c═══════════════════════════════════════', 'color: #0000d0; font-weight: bold');
+  console.log(
+    '%cTOTAL ANOMALÍAS DETECTADAS:',
+    'color: #ff3184; font-weight: bold',
+    anomaliasDetectadas.length
+  );
+  console.groupEnd();
 
-    if (baseline === null || baseline <= 0) {
-      descensoBruscoSinHistorial = true;
-      continue;
-    }
-
-    const variacion =
-      ((consumoActualNormalizado - consumoAnteriorNormalizado) / consumoAnteriorNormalizado) * 100;
-    const variacionVsBaseline = ((consumoActualNormalizado - baseline) / baseline) * 100;
-
-    const ciclo = detectarCicloFacturacion(actual.dias);
-
-    return {
-      clasificacion: 'anomalia_detectada',
-      mensaje: `Determinación del descenso en ${getNombreMes(actual.mes)} ${actual.año}`,
-      periodoInicio: actual.periodo,
-      periodoLegible: `${getNombreMes(actual.mes)} ${actual.año}`,
-      razon: `Descenso brusco >= 30% respecto mes anterior (normalizado por días facturados: ${variacion.toFixed(1)}%)`,
-      confianza: 95,
-      detalles: {
-        tipo: 'descenso_brusco_mes_a_mes',
-        variacionDetectada: variacion,
-        variacionVsBaseline,
-        umbral: -30,
-        cicloFacturacion: ciclo,
-        consumoAnteriorNormalizado,
-        consumoActualNormalizado,
-        baselineHistorial: baseline,
-        diasAnterior: anterior.dias,
-        diasActual: actual.dias,
-      },
-    };
-  }
-
-  if (descensoBruscoSinHistorial) {
-    return {
-      clasificacion: 'periodo_indeterminado',
-      mensaje:
-        'Se detectó un descenso brusco, pero solo hay 1-2 facturas previas. Requiere validar manualmente con más historial.',
-      razon: 'Descenso brusco sin suficiente historial previo para confirmar anomalía',
-      confianza: 40,
-      detalles: {
-        tipo: 'descenso_brusco_sin_historial',
-        minimoFacturasRequeridas: 3,
-      },
-    };
-  }
-
-  // REGLA 2: DESCENSO SOSTENIDO SIN RECUPERACIÓN (>10% durante 3+ meses)
-  // =====================================================================
-  const descensoSostenido = detectarDescensoSostenidoSinRecuperacion(comparativaOrdenada);
-
-  if (descensoSostenido.detectado && descensoSostenido.indiceInicio >= 0) {
-    const {
-      indiceInicio,
-      duracionMeses,
-      promedioBaseline,
-      consumoNormalizadoInicio,
-      consumoMinimoNormalizado,
-      variacionInicioBaseline,
-      variacionMinimaBaseline,
-      umbralRecuperacion,
-    } = descensoSostenido;
-
-    const periodoInicio = comparativaOrdenada[indiceInicio];
-    const promedioAnterior = calcularPromedioAnual(comparativaOrdenada, periodoInicio.año - 1);
-    const variacionPromedio =
-      promedioAnterior > 0
-        ? ((consumoNormalizadoInicio - promedioAnterior) / promedioAnterior) * 100
-        : variacionInicioBaseline;
-
-    return {
-      clasificacion: 'anomalia_detectada',
-      mensaje: `Determinación del descenso en ${getNombreMes(periodoInicio.mes)} ${periodoInicio.año} (descenso sostenido ${duracionMeses} meses sin recuperación)`,
-      periodoInicio: periodoInicio.periodo,
-      periodoLegible: `${getNombreMes(periodoInicio.mes)} ${periodoInicio.año}`,
-      razon: `Descenso sostenido > 10% durante ${duracionMeses} meses consecutivos SIN recuperación posterior (normalizado por días facturados)`,
-      confianza: 85,
-      detalles: {
-        tipo: 'descenso_sostenido_sin_recuperacion',
-        variacionDetectada: variacionPromedio,
-        umbral: -10,
-        duracionMeses,
-        huboRecuperacion: false,
-        indiceInicio,
-        umbralRecuperacion,
-        consumoMinimoNormalizado,
-        promedioBaseline,
-        variacionInicioBaseline,
-        variacionMinimaBaseline,
-        consumoNormalizadoInicio,
-      },
-    };
-  }
-
-  // REGLA 3: VARIACIÓN ANÓMALA (>20% vs histórico del mismo mes)
-  // ============================================================
-  const añoActual = Math.max(...comparativaOrdenada.map((c) => c.año));
-
-  for (const registro of comparativaOrdenada.filter((c) => c.año === añoActual)) {
-    const promedioHistorico = calcularPromedioHistoricoMes(
-      comparativaOrdenada,
-      registro.mes,
-      añoActual
-    );
-
-    if (promedioHistorico === 0) continue; // Sin histórico
-
-    const consumoActualNormalizado = obtenerConsumoNormalizadoMensual(registro);
-
-    const variacion = ((consumoActualNormalizado - promedioHistorico) / promedioHistorico) * 100;
-
-    if (Math.abs(variacion) > 20) {
-      const tipo = variacion < 0 ? 'Descenso' : 'Aumento';
-      const ciclo = detectarCicloFacturacion(registro.dias);
-
-      return {
-        clasificacion: 'anomalia_detectada',
-        mensaje: `Determinación del descenso en ${getNombreMes(registro.mes)} ${registro.año}`,
-        periodoInicio: registro.periodo,
-        periodoLegible: `${getNombreMes(registro.mes)} ${registro.año}`,
-        razon: `${tipo} > 20% respecto al promedio histórico de ${getNombreMes(registro.mes)}`,
-        confianza: 80,
-        detalles: {
-          tipo: 'variacion_historio_anual',
-          variacionDetectada: variacion,
-          historicoPromedio: promedioHistorico,
-          umbral: 20,
-          cicloFacturacion: ciclo,
-          consumoActualNormalizado,
-        },
-      };
-    }
-  }
-
-  // REGLA 4: CONSUMO CERO (sospechoso vs esperado)
-  // ==============================================
-  for (let i = 0; i < comparativaOrdenada.length; i++) {
-    const registro = comparativaOrdenada[i];
-
-    if (registro.consumoActivaTotal === 0 && registro.registros > 0) {
-      const esEsperado = esCeroEsperado(comparativaOrdenada, registro.mes, registro.año);
-      const ciclo = detectarCicloFacturacion(registro.dias);
-
-      if (!esEsperado) {
-        // Cero sospechoso
-        return {
-          clasificacion: 'anomalia_detectada',
-          mensaje: `Determinación del descenso en ${getNombreMes(registro.mes)} ${registro.año} (consumo cero sospechoso)`,
-          periodoInicio: registro.periodo,
-          periodoLegible: `${getNombreMes(registro.mes)} ${registro.año}`,
-          razon: 'Consumo cero registrado en mes donde nunca antes ocurrió',
-          confianza: 70,
-          detalles: {
-            tipo: 'consumo_cero_sospechoso',
-            cicloFacturacion: ciclo,
-            registrosEnPeriodo: registro.registros,
-          },
-        };
+  // Seleccionar anomalía con mayor confianza
+  if (anomaliasDetectadas.length > 0) {
+    anomaliasDetectadas.sort((a, b) => {
+      // Primero por confianza (descendente)
+      if (b.confianza !== a.confianza) {
+        return b.confianza - a.confianza;
       }
-    }
+      // Si confianza igual, preferir más reciente (año descendente)
+      if (a.periodoInicio && b.periodoInicio) {
+        return b.periodoInicio.localeCompare(a.periodoInicio);
+      }
+      return 0;
+    });
+
+    console.log(
+      '%c✅ ANOMALÍA SELECCIONADA:',
+      'color: #00ff00; font-weight: bold; font-size: 14px'
+    );
+    console.log('  Periodo:', anomaliasDetectadas[0].periodoLegible);
+    console.log('  Tipo:', anomaliasDetectadas[0].detalles.tipo);
+    console.log('  Confianza:', anomaliasDetectadas[0].confianza);
+    console.log('  Razón:', anomaliasDetectadas[0].razon);
+
+    return anomaliasDetectadas[0];
   }
 
   // NINGUNA ANOMALÍA DETECTADA

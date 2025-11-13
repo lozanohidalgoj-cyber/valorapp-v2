@@ -1,11 +1,18 @@
 /**
- * Tabla de visualización de datos SaldoATR (46 columnas) con paginación avanzada
- * Permite navegar por páginas y cambiar cantidad de items mostrados
+ * Tabla de visualización de datos SaldoATR (46 columnas) con paginación y ordenamiento
+ * Permite navegar por páginas, cambiar cantidad de items mostrados y ordenar por columnas
  * Memoizado para evitar re-renders innecesarios con grandes datasets
  */
 
 import { memo, useState, useMemo, useCallback } from 'react';
-import { ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from 'lucide-react';
+import {
+  ChevronLeft,
+  ChevronRight,
+  ChevronsLeft,
+  ChevronsRight,
+  ArrowUp,
+  ArrowDown,
+} from 'lucide-react';
 
 import type { SaldoATRRow } from '../../../types';
 import { COLUMN_LETTERS, COLUMNS_TO_EMPTY } from '../utils/constants';
@@ -59,12 +66,64 @@ const generarNumerosPagina = (currentPage: number, totalPages: number): (number 
 const SaldoATRTableComponent = ({ rows, headers }: SaldoATRTableProps) => {
   const [currentPage, setCurrentPage] = useState(1);
   const [itemsPerPage, setItemsPerPage] = useState(15);
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  const totalPages = Math.ceil(rows.length / itemsPerPage);
+  // Función para ordenar filas
+  const sortedRows = useMemo(() => {
+    if (!sortColumn) return rows;
+
+    const sorted = [...rows].sort((a, b) => {
+      const aRow = a as Record<string, string>;
+      const bRow = b as Record<string, string>;
+
+      const aValue = aRow[sortColumn] ?? '';
+      const bValue = bRow[sortColumn] ?? '';
+
+      // Intentar convertir a número para comparación numérica
+      const aNum = Number(aValue);
+      const bNum = Number(bValue);
+
+      let comparison = 0;
+      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
+        // Comparación numérica
+        comparison = aNum - bNum;
+      } else {
+        // Comparación de texto
+        comparison = aValue.localeCompare(bValue, 'es', { numeric: true });
+      }
+
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+
+    return sorted;
+  }, [rows, sortColumn, sortDirection]);
+
+  // Manejar click en encabezado para ordenar
+  const handleColumnSort = useCallback(
+    (column: string) => {
+      if (sortColumn === column) {
+        // Si ya estaba ordenado por esta columna, invertir dirección
+        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+      } else {
+        // Nueva columna, ordenar ascendente
+        setSortColumn(column);
+        setSortDirection('asc');
+      }
+      // Volver a página 1 cuando se ordena
+      setCurrentPage(1);
+    },
+    [sortColumn, sortDirection]
+  );
+
+  const totalPages = Math.ceil(sortedRows.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
 
-  const currentRows = useMemo(() => rows.slice(startIndex, endIndex), [rows, startIndex, endIndex]);
+  const currentRows = useMemo(
+    () => sortedRows.slice(startIndex, endIndex),
+    [sortedRows, startIndex, endIndex]
+  );
 
   const pageNumbers = useMemo(
     () => generarNumerosPagina(currentPage, totalPages),
@@ -92,10 +151,40 @@ const SaldoATRTableComponent = ({ rows, headers }: SaldoATRTableProps) => {
               {COLUMN_LETTERS.map((col, idx) => {
                 const title = headers[idx] ?? `Columna ${col}`;
                 const empty = COLUMNS_TO_EMPTY.has(col);
+                const isSort = sortColumn === col;
                 return (
-                  <th key={col} className={empty ? 'th-empty-col' : ''}>
-                    <div className="col-letter">{col}</div>
-                    <div className="col-title">{title}</div>
+                  <th
+                    key={col}
+                    className={`${empty ? 'th-empty-col' : ''} ${isSort ? 'th-sorted' : ''}`}
+                    onClick={() => !empty && handleColumnSort(col)}
+                    role={empty ? undefined : 'button'}
+                    tabIndex={empty ? undefined : 0}
+                    onKeyDown={
+                      empty
+                        ? undefined
+                        : (e) => {
+                            if (e.key === 'Enter' || e.key === ' ') {
+                              e.preventDefault();
+                              handleColumnSort(col);
+                            }
+                          }
+                    }
+                  >
+                    <div className="col-header">
+                      <div>
+                        <div className="col-letter">{col}</div>
+                        <div className="col-title">{title}</div>
+                      </div>
+                      {!empty && sortColumn === col && (
+                        <span className="sort-icon">
+                          {sortDirection === 'asc' ? (
+                            <ArrowUp size={16} />
+                          ) : (
+                            <ArrowDown size={16} />
+                          )}
+                        </span>
+                      )}
+                    </div>
                   </th>
                 );
               })}
@@ -129,7 +218,7 @@ const SaldoATRTableComponent = ({ rows, headers }: SaldoATRTableProps) => {
         </table>
       </div>
 
-      {totalPages > 0 && rows.length > 0 && (
+      {totalPages > 0 && sortedRows.length > 0 && (
         <div className="saldoatr-pagination-container">
           <div className="saldoatr-pagination-selector">
             <label htmlFor="saldoatr-items-per-page">Filas:</label>
@@ -207,7 +296,7 @@ const SaldoATRTableComponent = ({ rows, headers }: SaldoATRTableProps) => {
           </div>
 
           <div className="saldoatr-pagination-info">
-            {startIndex + 1}-{Math.min(endIndex, rows.length)} de {rows.length}
+            {startIndex + 1}-{Math.min(endIndex, sortedRows.length)} de {sortedRows.length}
           </div>
         </div>
       )}

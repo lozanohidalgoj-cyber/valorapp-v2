@@ -2,8 +2,8 @@
  * Vista de anomalías detectadas en la comparativa mensual
  */
 
-import { useMemo, useRef } from 'react';
-import { AlertTriangle, Download } from 'lucide-react';
+import { useMemo, useRef, useState, useCallback } from 'react';
+import { AlertTriangle, Download, ArrowUp, ArrowDown } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo, BannerClasificacionExpediente } from '../../../components';
 import {
@@ -27,6 +27,16 @@ export const VistaAnomalias = ({
   onIrADerivacionPorFactura,
 }: VistaAnomaliasProps) => {
   const tableRef = useRef<HTMLTableElement>(null);
+
+  // Estado para ordenamiento de columnas
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
+
+  // Estado para filtros
+  const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>('');
+  const [fechaHastaFilter, setFechaHastaFilter] = useState<string>('');
+  const [tipoComportamientoFilter, setTipoComportamientoFilter] = useState<string[]>([]);
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
   const handleScrollToPeriodo = (periodo: string) => {
     if (!tableRef.current) return;
@@ -69,6 +79,212 @@ export const VistaAnomalias = ({
     }
     return a.año - b.año;
   };
+
+  // Función para manejar clic en encabezado de columna
+  const handleColumnSort = useCallback(
+    (column: string) => {
+      setSortDirection((prev) => {
+        if (sortColumn === column) {
+          return prev === 'asc' ? 'desc' : 'asc';
+        }
+        return 'asc';
+      });
+      setSortColumn(column);
+    },
+    [sortColumn]
+  );
+
+  // Ordenar datos según la columna seleccionada
+  const sortedDatos = useMemo(() => {
+    if (!sortColumn) return datos;
+
+    return [...datos].sort((a, b) => {
+      let aValue: unknown;
+      let bValue: unknown;
+
+      // Obtener valores según la columna
+      switch (sortColumn) {
+        case 'periodo':
+          aValue = a.periodo;
+          bValue = b.periodo;
+          break;
+        case 'consumo':
+          aValue = a.consumoActivaTotal;
+          bValue = b.consumoActivaTotal;
+          break;
+        case 'dias':
+          aValue = a.dias;
+          bValue = b.dias;
+          break;
+        case 'promedioDiario':
+          aValue = a.consumoPromedioDiario;
+          bValue = b.consumoPromedioDiario;
+          break;
+        case 'potencia':
+          aValue = a.potenciaPromedio ?? 0;
+          bValue = b.potenciaPromedio ?? 0;
+          break;
+        case 'variacion':
+          aValue = a.variacionPorcentual ?? 0;
+          bValue = b.variacionPorcentual ?? 0;
+          break;
+        default:
+          return 0;
+      }
+
+      // Determinar si es numérico o texto
+      const isNumeric = typeof aValue === 'number' && typeof bValue === 'number';
+
+      if (isNumeric) {
+        const numA = aValue as number;
+        const numB = bValue as number;
+        return sortDirection === 'asc' ? numA - numB : numB - numA;
+      }
+
+      // Comparación de texto
+      const strA = String(aValue ?? '');
+      const strB = String(bValue ?? '');
+      const comparison = strA.localeCompare(strB, 'es', { numeric: true });
+      return sortDirection === 'asc' ? comparison : -comparison;
+    });
+  }, [datos, sortColumn, sortDirection]);
+
+  // Extraer tipos de comportamiento únicos para el filtro
+  const tiposComportamientoUnicos = useMemo(() => {
+    const tipos = new Set<string>();
+
+    // Estrategia: Clasificar todos los datos por variación
+    datos.forEach((registro) => {
+      const variacion = registro.variacionPorcentual ?? 0;
+
+      if (variacion < -25) {
+        tipos.add('Descenso crítico');
+      } else if (variacion < -10) {
+        tipos.add('Descenso moderado');
+      } else if (variacion < -5) {
+        tipos.add('Descenso leve');
+      } else if (variacion > 25) {
+        tipos.add('Aumento significativo');
+      } else if (variacion > 10) {
+        tipos.add('Aumento moderado');
+      } else if (Math.abs(variacion) <= 5) {
+        tipos.add('Normal');
+      } else {
+        tipos.add('Sin cambio');
+      }
+    });
+
+    const resultado = Array.from(tipos).sort((a, b) => a.localeCompare(b, 'es'));
+    console.log('✅ Tipos de comportamiento extraídos:', resultado);
+    return resultado;
+  }, [datos]);
+
+  // Aplicar filtros a los datos ordenados
+  const datosFiltrados = useMemo(() => {
+    console.log('🔍 Filtrando con tipos:', tipoComportamientoFilter);
+
+    return sortedDatos.filter((registro) => {
+      // Filtro por tipo de comportamiento - SIMPLIFICADO
+      if (tipoComportamientoFilter.length > 0) {
+        const variacion = registro.variacionPorcentual ?? 0;
+        let tipoRegistro = '';
+
+        if (variacion < -25) {
+          tipoRegistro = 'Descenso crítico';
+        } else if (variacion < -10) {
+          tipoRegistro = 'Descenso moderado';
+        } else if (variacion < -5) {
+          tipoRegistro = 'Descenso leve';
+        } else if (variacion > 25) {
+          tipoRegistro = 'Aumento significativo';
+        } else if (variacion > 10) {
+          tipoRegistro = 'Aumento moderado';
+        } else if (Math.abs(variacion) <= 5) {
+          tipoRegistro = 'Normal';
+        } else {
+          tipoRegistro = 'Sin cambio';
+        }
+
+        const incluido = tipoComportamientoFilter.includes(tipoRegistro);
+
+        if (!incluido) {
+          console.log(
+            `❌ ${registro.periodo}: "${tipoRegistro}" no está en [${tipoComportamientoFilter.join(', ')}]`
+          );
+          return false;
+        }
+
+        console.log(`✅ ${registro.periodo}: "${tipoRegistro}" coincide`);
+      }
+
+      // Filtro por rango de fechas
+      if (fechaDesdeFilter || fechaHastaFilter) {
+        const periodoRegistros = detallesPorPeriodo[registro.periodo] || [];
+        if (periodoRegistros.length === 0) return true; // Sin detalles, no filtrar por fecha
+
+        const fechasDesde = periodoRegistros
+          .map((r) => {
+            const val = (r as unknown as Record<string, unknown>)['Fecha desde'];
+            return typeof val === 'string' ? val.trim() : '';
+          })
+          .filter(Boolean);
+
+        const fechasHasta = periodoRegistros
+          .map((r) => {
+            const val = (r as unknown as Record<string, unknown>)['Fecha hasta'];
+            return typeof val === 'string' ? val.trim() : '';
+          })
+          .filter(Boolean);
+
+        // Parsear fechas (formato dd/mm/yyyy)
+        const parseFecha = (fechaStr: string): number => {
+          const partes = fechaStr.split('/');
+          if (partes.length !== 3) return 0;
+          const [dia, mes, anio] = partes.map(Number);
+          return new Date(anio, mes - 1, dia).getTime();
+        };
+
+        // Obtener fecha mínima "desde" y fecha máxima "hasta" del periodo
+        let minDesde = Number.MAX_SAFE_INTEGER;
+        let maxHasta = Number.MIN_SAFE_INTEGER;
+
+        fechasDesde.forEach((f) => {
+          const t = parseFecha(f);
+          if (t > 0 && t < minDesde) minDesde = t;
+        });
+
+        fechasHasta.forEach((f) => {
+          const t = parseFecha(f);
+          if (t > 0 && t > maxHasta) maxHasta = t;
+        });
+
+        // Si el filtro de fecha desde está activo
+        if (fechaDesdeFilter) {
+          const filterDesdeTime = new Date(fechaDesdeFilter).getTime();
+          if (minDesde === Number.MAX_SAFE_INTEGER || minDesde < filterDesdeTime) {
+            return false;
+          }
+        }
+
+        // Si el filtro de fecha hasta está activo
+        if (fechaHastaFilter) {
+          const filterHastaTime = new Date(fechaHastaFilter).getTime();
+          if (maxHasta === Number.MIN_SAFE_INTEGER || maxHasta > filterHastaTime) {
+            return false;
+          }
+        }
+      }
+
+      return true;
+    });
+  }, [
+    sortedDatos,
+    tipoComportamientoFilter,
+    fechaDesdeFilter,
+    fechaHastaFilter,
+    detallesPorPeriodo,
+  ]);
+
   const coloresPorAnio = useMemo(() => {
     const palette = [
       { background: 'rgba(0, 0, 208, 0.12)', text: 'var(--color-primary)' },
@@ -359,6 +575,300 @@ export const VistaAnomalias = ({
             </div>
           )}
 
+          {/* Mostrar recuperaciones detectadas */}
+          {clasificacionExpediente?.periodosConRecuperacion &&
+            clasificacionExpediente.periodosConRecuperacion.length > 0 && (
+              <div
+                style={{
+                  padding: '1rem',
+                  marginBottom: '1rem',
+                  backgroundColor: 'rgba(251, 146, 60, 0.1)',
+                  border: '2px solid rgba(251, 146, 60, 0.4)',
+                  borderRadius: '8px',
+                }}
+              >
+                <h4
+                  style={{
+                    margin: '0 0 0.75rem 0',
+                    color: '#c2410c',
+                    fontSize: '1rem',
+                    fontWeight: '600',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                  }}
+                >
+                  <span style={{ fontSize: '1.25rem' }}>🔄</span>
+                  Periodos con Descenso Sostenido que se Recuperaron (
+                  {clasificacionExpediente.periodosConRecuperacion.length})
+                </h4>
+                <div
+                  style={{
+                    display: 'grid',
+                    gap: '0.5rem',
+                    gridTemplateColumns: 'repeat(auto-fill, minmax(400px, 1fr))',
+                  }}
+                >
+                  {clasificacionExpediente.periodosConRecuperacion.map((rec, idx) => (
+                    <div
+                      key={idx}
+                      style={{
+                        padding: '0.75rem',
+                        backgroundColor: 'white',
+                        borderRadius: '6px',
+                        border: '1px solid rgba(251, 146, 60, 0.3)',
+                        fontSize: '0.875rem',
+                      }}
+                    >
+                      <div style={{ fontWeight: '600', color: '#c2410c', marginBottom: '0.25rem' }}>
+                        {rec.periodoDescenso} → {rec.periodoRecuperacion}
+                      </div>
+                      <div style={{ color: '#374151' }}>
+                        Descenso promedio: {rec.consumoDescenso.toFixed(1)} kWh
+                        <span
+                          style={{
+                            color: '#dc2626',
+                            fontWeight: '600',
+                            marginLeft: '0.5rem',
+                          }}
+                        >
+                          ({rec.variacionDescenso.toFixed(1)}%)
+                        </span>
+                      </div>
+                      <div style={{ color: '#374151' }}>
+                        Recuperación: {rec.consumoRecuperacion.toFixed(1)} kWh
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+          {/* Controles de filtrado */}
+          <div
+            className="expediente-filtros"
+            style={{
+              display: 'flex',
+              gap: '1rem',
+              marginBottom: '1rem',
+              padding: '1rem',
+              backgroundColor: 'rgba(0, 0, 208, 0.05)',
+              borderRadius: '8px',
+              flexWrap: 'wrap',
+              alignItems: 'flex-start',
+            }}
+          >
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}
+            >
+              <label
+                htmlFor="fechaDesde"
+                style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}
+              >
+                Fecha desde:
+              </label>
+              <input
+                id="fechaDesde"
+                type="date"
+                value={fechaDesdeFilter}
+                onChange={(e) => setFechaDesdeFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '0.875rem',
+                  color: '#1f2937',
+                }}
+              />
+            </div>
+
+            <div
+              style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', minWidth: '200px' }}
+            >
+              <label
+                htmlFor="fechaHasta"
+                style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}
+              >
+                Fecha hasta:
+              </label>
+              <input
+                id="fechaHasta"
+                type="date"
+                value={fechaHastaFilter}
+                onChange={(e) => setFechaHastaFilter(e.target.value)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db',
+                  fontSize: '0.875rem',
+                  color: '#1f2937',
+                }}
+              />
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                minWidth: '300px',
+                flex: 1,
+                position: 'relative',
+              }}
+            >
+              <label style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
+                Tipos de comportamiento:
+              </label>
+              <button
+                onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                style={{
+                  padding: '0.5rem',
+                  borderRadius: '4px',
+                  border: '1px solid #d1d5db',
+                  backgroundColor: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '500',
+                  color: '#1f2937',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  minWidth: '300px',
+                }}
+              >
+                <span>
+                  {tipoComportamientoFilter.length === 0
+                    ? 'Seleccionar tipos...'
+                    : `${tipoComportamientoFilter.length} seleccionados`}
+                </span>
+                <span style={{ fontSize: '0.75rem', transition: 'transform 0.2s' }}>
+                  {isDropdownOpen ? '▼' : '▶'}
+                </span>
+              </button>
+
+              {isDropdownOpen && (
+                <div
+                  style={{
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.25rem',
+                    padding: '0.5rem',
+                    backgroundColor: 'white',
+                    borderRadius: '4px',
+                    border: '1px solid #d1d5db',
+                    maxHeight: '250px',
+                    overflow: 'auto',
+                    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.1)',
+                  }}
+                >
+                  <label
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.5rem',
+                      cursor: 'pointer',
+                    }}
+                  >
+                    <input
+                      type="checkbox"
+                      checked={tipoComportamientoFilter.length === tiposComportamientoUnicos.length}
+                      onChange={(e) => {
+                        if (e.target.checked) {
+                          setTipoComportamientoFilter([...tiposComportamientoUnicos]);
+                        } else {
+                          setTipoComportamientoFilter([]);
+                        }
+                      }}
+                    />
+                    <span style={{ fontSize: '0.875rem', fontWeight: '600', color: '#1f2937' }}>
+                      Todos ({tiposComportamientoUnicos.length})
+                    </span>
+                  </label>
+                  <hr
+                    style={{ margin: '0.25rem 0', border: 'none', borderTop: '1px solid #e5e7eb' }}
+                  />
+                  {tiposComportamientoUnicos.map((tipo) => (
+                    <label
+                      key={tipo}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '0.5rem',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={tipoComportamientoFilter.includes(tipo)}
+                        onChange={(e) => {
+                          if (e.target.checked) {
+                            setTipoComportamientoFilter([...tipoComportamientoFilter, tipo]);
+                          } else {
+                            setTipoComportamientoFilter(
+                              tipoComportamientoFilter.filter((t) => t !== tipo)
+                            );
+                          }
+                        }}
+                      />
+                      <span style={{ fontSize: '0.875rem', color: '#374151' }}>{tipo}</span>
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
+              <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'transparent' }}>
+                &nbsp;
+              </label>
+              <button
+                onClick={() => {
+                  setFechaDesdeFilter('');
+                  setFechaHastaFilter('');
+                  setTipoComportamientoFilter([]);
+                }}
+                style={{
+                  padding: '0.5rem 1rem',
+                  borderRadius: '4px',
+                  border: 'none',
+                  backgroundColor: 'var(--color-secondary)',
+                  color: 'white',
+                  fontSize: '0.875rem',
+                  fontWeight: '600',
+                  cursor: 'pointer',
+                  whiteSpace: 'nowrap',
+                }}
+                title="Limpiar todos los filtros"
+              >
+                Limpiar filtros
+              </button>
+            </div>
+
+            <div
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                gap: '0.5rem',
+                marginLeft: 'auto',
+              }}
+            >
+              <label style={{ fontSize: '0.875rem', fontWeight: '600', color: 'transparent' }}>
+                &nbsp;
+              </label>
+              <div
+                style={{
+                  fontSize: '0.875rem',
+                  color: '#1f2937',
+                  fontWeight: '600',
+                  alignSelf: 'center',
+                  whiteSpace: 'nowrap',
+                }}
+              >
+                Mostrando {datosFiltrados.length} de {datos.length} periodos
+              </div>
+            </div>
+          </div>
+
           <div className="expediente-anomalias__table-wrapper">
             <table className="expediente-table expediente-table-analisis" ref={tableRef}>
               <thead>
@@ -366,19 +876,61 @@ export const VistaAnomalias = ({
                   <th>Número Fiscal</th>
                   <th>Fecha desde</th>
                   <th>Fecha hasta</th>
-                  <th>Periodo</th>
-                  <th>Consumo (kWh)</th>
-                  <th>Días</th>
-                  <th>Consumo Promedio Diario (kWh)</th>
+                  <th
+                    onClick={() => handleColumnSort('periodo')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Periodo{' '}
+                    {sortColumn === 'periodo' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('consumo')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Consumo (kWh){' '}
+                    {sortColumn === 'consumo' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('dias')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Días{' '}
+                    {sortColumn === 'dias' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
+                  <th
+                    onClick={() => handleColumnSort('promedioDiario')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Consumo Promedio Diario (kWh){' '}
+                    {sortColumn === 'promedioDiario' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
                   <th>Tipo de comportamiento detectado</th>
-                  <th>Potencia (kW)</th>
+                  <th
+                    onClick={() => handleColumnSort('potencia')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Potencia (kW){' '}
+                    {sortColumn === 'potencia' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
                   <th>Promedio Histórico (mismo mes)</th>
                   <th>Variación Histórica (%)</th>
-                  <th>Variación %</th>
+                  <th
+                    onClick={() => handleColumnSort('variacion')}
+                    style={{ cursor: 'pointer', userSelect: 'none' }}
+                  >
+                    Variación %{' '}
+                    {sortColumn === 'variacion' &&
+                      (sortDirection === 'asc' ? <ArrowUp size={14} /> : <ArrowDown size={14} />)}
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                {datos.map((registro) => {
+                {datosFiltrados.map((registro) => {
                   // Usar el campo ya calculado en el servicio
                   const consumoPromedioDiario = registro.consumoPromedioDiario;
                   const potenciaPromedio = registro.potenciaPromedio;
