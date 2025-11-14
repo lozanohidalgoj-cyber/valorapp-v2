@@ -6,6 +6,9 @@
  */
 
 import { useNavigate } from 'react-router-dom';
+import { AveriaButton } from './AveriaButton';
+import { BackIcon } from './BackIcon';
+import { TIPOS_AVERIA } from './averiaConfig';
 
 export const Averia = () => {
   const navigate = useNavigate();
@@ -14,11 +17,11 @@ export const Averia = () => {
     navigate('/');
   };
 
-  const handleTipoAveriaClick = (tipo: string) => {
-    if (tipo === 'WART') {
-      navigate('/wart');
+  const handleTipoAveriaClick = (tipoId: string) => {
+    const tipo = TIPOS_AVERIA.find((t) => t.id === tipoId);
+    if (tipo?.habilitado && tipo.ruta) {
+      navigate(tipo.ruta);
     }
-    // Otros tipos de avería estarán disponibles próximamente
   };
 
   return (
@@ -32,14 +35,7 @@ export const Averia = () => {
                      hover:ring-2 hover:ring-white/50
                      transition-all duration-300 focus:outline-none focus:ring-4 focus:ring-white/40"
         >
-          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M15 19l-7-7 7-7"
-            />
-          </svg>
+          <BackIcon />
         </button>
 
         <div className="text-center mb-12 mt-12">
@@ -52,56 +48,13 @@ export const Averia = () => {
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <button
-            onClick={() => handleTipoAveriaClick('WART')}
-            className="group relative w-full bg-gradient-to-br from-secondary to-secondary-dark 
-                     text-white font-semibold text-lg
-                     py-16 px-6 rounded-2xl shadow-pink-glow 
-                     hover:shadow-pink-glow-lg hover:scale-105
-                     transform transition-all duration-300 ease-out
-                     focus:outline-none focus:ring-4 focus:ring-white/30
-                     overflow-hidden"
-          >
-            <span className="relative z-10 text-2xl font-semibold">WART</span>
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+          {TIPOS_AVERIA.map((tipo) => (
+            <AveriaButton
+              key={tipo.id}
+              nombre={tipo.nombre}
+              onClick={() => handleTipoAveriaClick(tipo.id)}
             />
-          </button>
-
-          <button
-            onClick={() => handleTipoAveriaClick('ERROR DE MONTAJE')}
-            className="group relative w-full bg-gradient-to-br from-secondary to-secondary-dark 
-                     text-white font-semibold text-lg
-                     py-16 px-6 rounded-2xl shadow-pink-glow 
-                     hover:shadow-pink-glow-lg hover:scale-105
-                     transform transition-all duration-300 ease-out
-                     focus:outline-none focus:ring-4 focus:ring-white/30
-                     overflow-hidden"
-          >
-            <span className="relative z-10 text-2xl font-semibold">ERROR DE MONTAJE</span>
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
-            />
-          </button>
-
-          <button
-            onClick={() => handleTipoAveriaClick('ERROR DE AVERÍA')}
-            className="group relative w-full bg-gradient-to-br from-secondary to-secondary-dark 
-                     text-white font-semibold text-lg
-                     py-16 px-6 rounded-2xl shadow-pink-glow 
-                     hover:shadow-pink-glow-lg hover:scale-105
-                     transform transition-all duration-300 ease-out
-                     focus:outline-none focus:ring-4 focus:ring-white/30
-                     overflow-hidden"
-          >
-            <span className="relative z-10 text-2xl font-semibold">ERROR DE AVERÍA</span>
-            <div
-              className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                          translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
-            />
-          </button>
+          ))}
         </div>
 
         <div className="mt-8 flex justify-center">
@@ -115,14 +68,7 @@ export const Averia = () => {
                      focus:outline-none focus:ring-4 focus:ring-white/30
                      flex items-center justify-center gap-2 text-sm"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15 19l-7-7 7-7"
-              />
-            </svg>
+            <BackIcon className="w-4 h-4" />
             <span>Volver</span>
           </button>
         </div>
