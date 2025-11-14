@@ -574,7 +574,7 @@ Todos los componentes medianos y grandes han sido refactorizados exitosamente.
 
 ---
 
-## ✅ FASE 3: Arquitectura Moderna (EN PROGRESO)
+## ✅ FASE 3: Arquitectura Moderna (COMPLETADA)
 
 ### FASE 3.1: Path Aliases + Prettier (COMPLETADA) ✅
 
@@ -595,12 +595,43 @@ Todos los componentes medianos y grandes han sido refactorizados exitosamente.
 
 **Commit**: `b341259`
 
-### Tareas Pendientes FASE 3
+---
 
-- [ ] **Documentación JSDoc**: Completar funciones públicas en servicios y hooks
-- [ ] **Optimización chunks**: Configurar code-splitting (warning >500KB)
-- [ ] **README actualizado**: Documentar path aliases y scripts
-- [ ] **VSCode settings**: Recommended extensions y settings
+### FASE 3.2: Code Splitting + Documentación (COMPLETADA) ✅
+
+**Code Splitting Optimizado**:
+
+- ✅ `vite.config.ts`: manualChunks configurado
+- ✅ Vendor chunks separados (react, charts, icons, xlsx)
+- ✅ Feature chunks por página (expediente, saldo-atr)
+- ✅ Services chunks (analisis, data)
+- ✅ chunkSizeWarningLimit: 600KB
+- ✅ **Warning >500KB eliminado**
+- ✅ Build optimizado: 17 chunks, mayor 425KB
+
+**Documentación Actualizada**:
+
+- ✅ README.md actualizado con:
+  - Sección Path Aliases
+  - Comandos npm completos
+  - Ejemplos de uso
+- ✅ `.vscode/settings.json`: formatOnSave, ESLint, Prettier
+- ✅ `.vscode/extensions.json`: 8 extensiones recomendadas
+
+**Commit**: `53f18eb`
+
+---
+
+## 📊 Resumen FASE 3
+
+| Métrica            | Resultado                   |
+| ------------------ | --------------------------- |
+| **Path Aliases**   | 10 configurados ✅          |
+| **Prettier**       | Instalado y funcionando ✅  |
+| **Code Splitting** | 7 chunks optimizados ✅     |
+| **Build Warning**  | Eliminado ✅                |
+| **Documentación**  | README + VSCode settings ✅ |
+| **Commits**        | 3                           |
 
 ---
 
@@ -608,16 +639,22 @@ Todos los componentes medianos y grandes han sido refactorizados exitosamente.
 
 ### Tareas Planificadas
 
-- [x] **Path aliases**: Configurar `@/` para imports ✅
-- [x] **Prettier**: Formateo automático consistente ✅
-- [ ] **Barrel exports**: Verificar index.ts en todas las carpetas
-- [ ] **Husky hooks**: Optimizar pre-commit hooks
-- [ ] **Documentación JSDoc**: Completar funciones públicas
-- [ ] **Tests unitarios**: Servicios críticos
+- [ ] **Vitest**: Instalar y configurar framework de testing
+- [ ] **React Testing Library**: Tests de componentes
+- [ ] **Tests unitarios**: Servicios críticos (anomaliaService, dataService)
+- [ ] **Tests hooks**: Hooks personalizados (useProcesarDatos, useAnomaliasFilters)
+- [ ] **Coverage mínimo**: 60% de cobertura
 
 ---
 
-## 📋 FASE 4: Testing (PENDIENTE)
+## 📋 Tareas Adicionales Opcionales
+
+- [ ] **Barrel exports**: Verificar index.ts en todas las carpetas
+- [ ] **Husky hooks**: Optimizar pre-commit hooks
+- [ ] **Documentación JSDoc**: Completar funciones públicas en servicios
+- [ ] **Storybook**: Documentación interactiva de componentes
+
+---
 
 ## 🎯 Principios Aplicados
 
@@ -689,23 +726,21 @@ Todos los componentes medianos y grandes han sido refactorizados exitosamente.
 - **Archivos refactorizados**: 16 (3 servicios + 4 componentes FASE 2.2 + 9 componentes FASE 2.3)
 - **Líneas totales reducidas**: 2,603 (-1,487 servicios, -362 FASE 2.2, -754 FASE 2.3)
 - **Módulos especializados creados**: 31 (11 FASE 2.1/2.2 + 20 FASE 2.3)
-- **Commits realizados**: 21 (18 refactorización + 3 FASE 3)
+- **Arquitectura moderna**: Path aliases + Prettier + Code splitting
+- **Commits realizados**: 24 (18 refactorización + 3 FASE 3 + 3 fixes/docs)
 
 ---
 
 ## 🚀 Próximos Pasos
 
-1. **Inmediato**: Pasar a FASE 3 - Arquitectura Moderna
-   - Path aliases (`@/` imports)
-   - Prettier + formateo automático
-   - Documentación JSDoc completa
-   - Husky hooks optimizados
-2. **Corto plazo**: FASE 4 - Testing
-   - Tests unitarios servicios críticos
-   - Tests hooks personalizados
+1. **Inmediato**: FASE 4 - Testing
+   - Instalar Vitest + React Testing Library
+   - Tests unitarios en servicios críticos
+   - Tests de hooks personalizados
    - Coverage mínimo 60%
-3. **Medio plazo**: Optimizaciones de rendimiento
-4. **Largo plazo**: Monitoreo y mejora continua
+2. **Corto plazo**: Documentación JSDoc completa
+3. **Medio plazo**: Storybook para componentes
+4. **Largo plazo**: Optimizaciones de rendimiento adicionales
 
 ---
 
