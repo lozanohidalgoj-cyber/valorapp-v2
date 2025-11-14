@@ -4,11 +4,7 @@
  * Importación y exportación de datos desde/a archivos CSV y JSON.
  */
 
-import type {
-  ConsumoEnergetico,
-  ResultadoImportacion,
-  OpcionesImportacion,
-} from '../types';
+import type { ConsumoEnergetico, ResultadoImportacion, OpcionesImportacion } from '../types';
 import { generarId, esFechaValida, esNumeroValido } from '../utils';
 
 /**
@@ -31,9 +27,7 @@ export const importarCSV = async (
       return { exito: false, registrosImportados: 0, errores, datos };
     }
 
-    const encabezados = lineas[0]
-      .split(delimitador)
-      .map((h) => h.trim().toLowerCase());
+    const encabezados = lineas[0].split(delimitador).map((h) => h.trim().toLowerCase());
 
     const encabezadosRequeridos = ['fecha', 'consumo', 'numerocontador'];
     const faltantes = encabezadosRequeridos.filter((h) => !encabezados.includes(h));
@@ -60,9 +54,7 @@ export const importarCSV = async (
         datos.push(consumo);
       } catch (error) {
         advertencias.push(
-          `Fila ${i + 1}: ${
-            error instanceof Error ? error.message : 'Error desconocido'
-          }`
+          `Fila ${i + 1}: ${error instanceof Error ? error.message : 'Error desconocido'}`
         );
       }
     }

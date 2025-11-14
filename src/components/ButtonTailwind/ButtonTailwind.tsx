@@ -56,7 +56,9 @@ export const ButtonTailwind = ({
   };
 
   const widthClass = fullWidth ? 'w-full' : '';
-  const disabledClasses = disabled ? 'opacity-40 cursor-not-allowed transform-none' : 'cursor-pointer';
+  const disabledClasses = disabled
+    ? 'opacity-40 cursor-not-allowed transform-none'
+    : 'cursor-pointer';
 
   const finalClasses = `
     ${baseClasses}
@@ -77,8 +79,10 @@ export const ButtonTailwind = ({
         {iconRight && <span>{iconRight}</span>}
       </span>
       {!disabled && variant !== 'ghost' && (
-        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
-                      translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700" />
+        <div
+          className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent 
+                      translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-700"
+        />
       )}
     </button>
   );

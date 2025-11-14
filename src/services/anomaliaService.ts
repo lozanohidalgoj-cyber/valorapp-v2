@@ -59,41 +59,20 @@ export const detectarAnomalias = (consumosPorPeriodo: ConsumoPeriodo[]): Anomali
 
     if (periodo.consumoTotal <= UMBRALES.CONSUMO_CERO) {
       anomalias.push(
-        crearAnomalia(
-          'consumo_cero',
-          periodo,
-          promedio,
-          periodo.consumoTotal,
-          -100,
-          'critica'
-        )
+        crearAnomalia('consumo_cero', periodo, promedio, periodo.consumoTotal, -100, 'critica')
       );
     }
 
     if (periodo.consumoTotal < 0) {
       anomalias.push(
-        crearAnomalia(
-          'consumo_negativo',
-          periodo,
-          promedio,
-          periodo.consumoTotal,
-          -100,
-          'critica'
-        )
+        crearAnomalia('consumo_negativo', periodo, promedio, periodo.consumoTotal, -100, 'critica')
       );
     }
 
     const umbralSuperior = promedio + desviacionEstandar * UMBRALES.FACTOR_DESVIACION;
     if (periodo.consumoTotal > umbralSuperior) {
       anomalias.push(
-        crearAnomalia(
-          'pico_anomalo',
-          periodo,
-          promedio,
-          periodo.consumoTotal,
-          variacion,
-          'media'
-        )
+        crearAnomalia('pico_anomalo', periodo, promedio, periodo.consumoTotal, variacion, 'media')
       );
     }
   });
@@ -152,7 +131,10 @@ const marcarPrimerasOcurrencias = (anomalias: Anomalia[]): void => {
 /**
  * Filtra anomalías por nivel de severidad
  */
-export const filtrarPorSeveridad = (anomalias: Anomalia[], severidad: NivelSeveridad): Anomalia[] => {
+export const filtrarPorSeveridad = (
+  anomalias: Anomalia[],
+  severidad: NivelSeveridad
+): Anomalia[] => {
   const niveles: Record<NivelSeveridad, number> = {
     baja: 1,
     media: 2,

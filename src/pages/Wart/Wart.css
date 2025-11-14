@@ -5,7 +5,7 @@
 
 .wart-container {
   min-height: 100vh;
-  background: #0000D0;
+  background: #0000d0;
   padding: 2rem 1.5rem;
   position: relative;
   overflow: hidden;
@@ -36,7 +36,8 @@
 }
 
 @keyframes float {
-  0%, 100% {
+  0%,
+  100% {
     transform: translate(0, 0) scale(1);
   }
   50% {
@@ -80,8 +81,8 @@
   background: #ffffff;
   backdrop-filter: blur(20px);
   border-radius: 1.5rem;
-  box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.3), 
+  box-shadow:
+    0 25px 50px rgba(0, 0, 0, 0.3),
     0 10px 25px rgba(0, 0, 0, 0.2);
   padding: 3rem;
   border: 2px solid rgba(255, 255, 255, 0.2);
@@ -90,8 +91,8 @@
 }
 
 .wart-card:hover {
-  box-shadow: 
-    0 30px 60px rgba(0, 0, 0, 0.4), 
+  box-shadow:
+    0 30px 60px rgba(0, 0, 0, 0.4),
     0 15px 30px rgba(0, 0, 0, 0.3);
   border-color: rgba(255, 255, 255, 0.3);
 }
@@ -116,7 +117,7 @@
   top: 0;
   width: 4px;
   height: 100%;
-  background: #FF3184;
+  background: #ff3184;
   transform: scaleY(0);
   transition: transform 0.3s ease;
 }
@@ -131,34 +132,35 @@
   box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
 }
 
-.wart-check-item input[type="checkbox"] {
+.wart-check-item input[type='checkbox'] {
   margin-top: 0.25rem;
   width: 2rem;
   height: 2rem;
   border-radius: 0.625rem;
-  border: 3px solid #0000D0;
+  border: 3px solid #0000d0;
   cursor: pointer;
-  accent-color: #FF3184;
+  accent-color: #ff3184;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   flex-shrink: 0;
   position: relative;
   background: rgba(0, 0, 0, 0.05);
 }
 
-.wart-check-item input[type="checkbox"]:hover {
-  border-color: #FF3184;
+.wart-check-item input[type='checkbox']:hover {
+  border-color: #ff3184;
   transform: scale(1.15) rotate(5deg);
   box-shadow: 0 4px 12px rgba(255, 49, 132, 0.3);
 }
 
-.wart-check-item input[type="checkbox"]:checked {
-  background: #FF3184;
-  border-color: #FF3184;
+.wart-check-item input[type='checkbox']:checked {
+  background: #ff3184;
+  border-color: #ff3184;
   animation: check-bounce 0.4s ease;
 }
 
 @keyframes check-bounce {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -204,7 +206,7 @@
   transform: translate(-50%, -50%);
   background: #ffffff;
   padding: 0 1rem;
-  color: #FF3184;
+  color: #ff3184;
   font-size: 1.25rem;
 }
 
@@ -221,11 +223,11 @@
   align-items: center;
   gap: 0.75rem;
   padding: 1rem 1.75rem;
-  background: #FF3184;
+  background: #ff3184;
   color: #ffffff;
   font-weight: 700;
   border-radius: 1rem;
-  border: 2px solid #FF3184;
+  border: 2px solid #ff3184;
   cursor: pointer;
   box-shadow: 0 4px 8px rgba(255, 49, 132, 0.3);
   position: relative;
@@ -257,7 +259,7 @@
 }
 
 .wart-continue-btn:enabled {
-  background: #FF3184;
+  background: #ff3184;
   color: white;
   box-shadow: 0 4px 8px rgba(255, 49, 132, 0.3);
   cursor: pointer;
@@ -291,33 +293,33 @@
   .wart-title {
     font-size: 2rem;
   }
-  
+
   .wart-subtitle {
     font-size: 1rem;
   }
-  
+
   .wart-card {
     padding: 1.5rem;
   }
-  
+
   .wart-check-item {
     padding: 1rem;
     gap: 1rem;
   }
-  
+
   .wart-check-title {
     font-size: 1rem;
   }
-  
+
   .wart-check-description {
     font-size: 0.875rem;
   }
-  
+
   .wart-footer {
     flex-direction: column-reverse;
     gap: 1rem;
   }
-  
+
   .wart-back-btn,
   .wart-continue-btn {
     width: 100%;

@@ -91,9 +91,10 @@ export const calcularMediana = (valores: number[]): number => {
 export const calcularDesviacionEstandar = (valores: number[]): number => {
   if (valores.length === 0) return 0;
   const promedio = calcularPromedio(valores);
-  const varianza = valores.reduce((acc, val) => {
-    return acc + Math.pow(val - promedio, 2);
-  }, 0) / valores.length;
+  const varianza =
+    valores.reduce((acc, val) => {
+      return acc + Math.pow(val - promedio, 2);
+    }, 0) / valores.length;
   return Math.sqrt(varianza);
 };
 
@@ -123,9 +124,7 @@ export const esPeriodoValido = (periodo: string): boolean => {
 /**
  * Obtiene el color según el nivel de severidad
  */
-export const obtenerColorSeveridad = (
-  severidad: 'baja' | 'media' | 'alta' | 'critica'
-): string => {
+export const obtenerColorSeveridad = (severidad: 'baja' | 'media' | 'alta' | 'critica'): string => {
   const colores = {
     baja: '#4CAF50',
     media: '#FF9800',
@@ -138,9 +137,7 @@ export const obtenerColorSeveridad = (
 /**
  * Obtiene el color para tendencia
  */
-export const obtenerColorTendencia = (
-  tendencia: 'aumento' | 'descenso' | 'estable'
-): string => {
+export const obtenerColorTendencia = (tendencia: 'aumento' | 'descenso' | 'estable'): string => {
   const colores = {
     aumento: '#4CAF50',
     descenso: '#F44336',
@@ -195,10 +192,10 @@ export const descargarArchivo = (
 export const convertirNumeroEspañol = (valor: string | number | undefined): number => {
   if (typeof valor === 'number') return valor;
   if (!valor || valor === '-') return 0;
-  
+
   const numeroStr = String(valor).replace(',', '.');
   const numero = parseFloat(numeroStr);
-  
+
   return isNaN(numero) ? 0 : numero;
 };
 
@@ -238,16 +235,16 @@ export const extraerMesDeFormato = (fecha: string): number => {
  */
 export const calcularDiasEntreFechas = (fechaDesde: string, fechaHasta: string): number => {
   if (!fechaDesde || !fechaHasta) return 0;
-  
+
   const parsearFecha = (fecha: string): Date => {
     const [dia, mes, año] = fecha.split('/').map(Number);
     return new Date(año, mes - 1, dia);
   };
-  
+
   const desde = parsearFecha(fechaDesde);
   const hasta = parsearFecha(fechaHasta);
   const dias = Math.ceil((hasta.getTime() - desde.getTime()) / (1000 * 60 * 60 * 24));
-  
+
   return dias > 0 ? dias : 0;
 };
 
@@ -261,12 +258,12 @@ export const calcularDiasEntreFechas = (fechaDesde: string, fechaHasta: string):
  */
 export const calcularColorHeatMap = (valor: number, min: number, max: number): string => {
   if (max === min) return 'rgb(255, 255, 0)'; // Amarillo por defecto
-  
+
   // Normalizar el valor entre 0 y 1
   const normalizado = (valor - min) / (max - min);
-  
+
   let r, g, b;
-  
+
   if (normalizado < 0.5) {
     // Rojo → Amarillo (0 a 0.5)
     const t = normalizado * 2; // 0 a 1
@@ -280,7 +277,7 @@ export const calcularColorHeatMap = (valor: number, min: number, max: number): s
     g = 255;
     b = 0;
   }
-  
+
   return `rgb(${r}, ${g}, ${b})`;
 };
 
@@ -293,14 +290,14 @@ export const calcularColorTexto = (colorFondo: string): string => {
   // Extraer valores RGB
   const match = colorFondo.match(/rgb\((\d+),\s*(\d+),\s*(\d+)\)/);
   if (!match) return '#000000';
-  
+
   const r = parseInt(match[1]);
   const g = parseInt(match[2]);
   const b = parseInt(match[3]);
-  
+
   // Calcular luminancia
   const luminancia = (0.299 * r + 0.587 * g + 0.114 * b) / 255;
-  
+
   // Retornar negro o blanco según luminancia
   return luminancia > 0.5 ? '#000000' : '#ffffff';
 };
