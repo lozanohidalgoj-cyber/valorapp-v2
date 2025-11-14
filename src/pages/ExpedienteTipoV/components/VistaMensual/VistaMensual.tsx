@@ -2,11 +2,12 @@
  * 📅 Vista Mensual - HeatMap de consumo mensual
  */
 
-import { useRef } from 'react';
 import { Download } from 'lucide-react';
-import type { ConsumoMensual, DerivacionData } from '../../../types';
-import { HeatMapConsumo } from '../../../components';
-import { formatearNumero } from '../../../services/analisisConsumoService';
+import type { ConsumoMensual, DerivacionData } from '../../../../types';
+import { HeatMapConsumo } from '../../../../components';
+import { formatearNumero } from '../../../../services/analisisConsumoService';
+import { useScrollToPeriodo } from './useScrollToPeriodo';
+import { ordenarConsumosCronologicamente } from './vistaMensualHelpers';
 
 interface VistaMensualProps {
   datos: ConsumoMensual[];
@@ -21,45 +22,8 @@ export const VistaMensual = ({
   onExportarComparativa,
   onExportarCompleto,
 }: VistaMensualProps) => {
-  const tableRef = useRef<HTMLTableElement>(null);
-
-  const handleScrollToPeriodo = (periodo: string) => {
-    if (!tableRef.current) return;
-
-    // Buscar la fila con el periodo
-    const row = tableRef.current.querySelector(`[data-periodo="${periodo}"]`) as HTMLElement;
-    if (!row) {
-      return;
-    }
-
-    // Hacer scroll del elemento dentro de su contenedor padre más cercano scrolleable
-    const tableWrapper = tableRef.current.closest(
-      '.expediente-mensual__table-wrapper'
-    ) as HTMLElement;
-    if (tableWrapper) {
-      const rowTop = row.offsetTop;
-      const rowHeight = row.offsetHeight;
-      const containerHeight = tableWrapper.clientHeight;
-
-      // Calcular posición para centrar la fila
-      const scrollTo = rowTop - containerHeight / 2 + rowHeight / 2;
-      tableWrapper.scrollTo({ top: scrollTo, behavior: 'smooth' });
-    }
-
-    // También hacer scroll del viewport
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    // Highlight temporal
-    row.classList.add('expediente-mensual__row--highlighted');
-    setTimeout(() => {
-      row.classList.remove('expediente-mensual__row--highlighted');
-    }, 3000);
-  };
-
-  const ordenados = [...datos].sort((a, b) => {
-    if (a.año === b.año) return a.mes - b.mes;
-    return a.año - b.año;
-  });
+  const { tableRef, handleScrollToPeriodo } = useScrollToPeriodo();
+  const ordenados = ordenarConsumosCronologicamente(datos);
 
   return (
     <div className="expediente-heatmap-section">
@@ -106,7 +70,6 @@ export const VistaMensual = ({
           </thead>
           <tbody>
             {ordenados.map((registro) => {
-              // Usar el campo ya calculado en el servicio
               const consumoPromedioDiario = registro.consumoPromedioDiario;
 
               return (
