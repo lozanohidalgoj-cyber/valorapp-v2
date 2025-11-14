@@ -9,213 +9,25 @@
 
 import { memo, useMemo, useEffect, useRef, useState, Fragment } from 'react';
 import { Zap, FileText, Home, User } from 'lucide-react';
-import type { ConsumoMensual, DerivacionData } from '../../types';
+import type { ConsumoMensual } from '../../types';
 import { formatearNumero, calcularColorHeatMap } from '../../utils';
-
-/**
- * Calcula el color para la métrica de detección de anomalías
- * Usa la misma paleta que calcularColorHeatMap: Rojo → Amarillo → Verde
- * Incluye detección de cambios de potencia
- */
-const calcularColorAnomalia = (consumoPromedioDiario: number, baseline: number): string => {
-  if (consumoPromedioDiario === 0 || baseline === 0) {
-    return 'rgb(255, 0, 0)'; // Rojo para cero consumo
-  }
-
-  const porcentajeVsBaseline = (consumoPromedioDiario / baseline) * 100;
-
-  // Mapear porcentaje a rango 0-1 para usar la misma lógica que calcularColorHeatMap
-  // 0% = 0 (rojo), 100% = 0.5 (amarillo), 200% = 1 (verde)
-  let normalizado: number;
-
-  if (porcentajeVsBaseline <= 100) {
-    // 0-100%: mapear a 0-0.5 (rojo a amarillo)
-    normalizado = (porcentajeVsBaseline / 100) * 0.5;
-  } else {
-    // 100-200%: mapear a 0.5-1 (amarillo a verde)
-    const exceso = Math.min(porcentajeVsBaseline - 100, 100); // máximo 100% exceso
-    normalizado = 0.5 + (exceso / 100) * 0.5;
-  }
-
-  // Misma lógica que calcularColorHeatMap
-  let r, g, b;
-
-  if (normalizado < 0.5) {
-    // Rojo → Amarillo (0 a 0.5)
-    const t = normalizado * 2; // 0 a 1
-    r = 255;
-    g = Math.round(255 * t);
-    b = 0;
-  } else {
-    // Amarillo → Verde (0.5 a 1)
-    const t = (normalizado - 0.5) * 2; // 0 a 1
-    r = Math.round(255 * (1 - t));
-    g = 255;
-    b = 0;
-  }
-
-  return `rgb(${r}, ${g}, ${b})`;
-};
+import type {
+  HeatMapConsumoProps,
+  HeatmapMetricId,
+  DetalleActivo,
+  CambioTitular,
+  FechaActa,
+} from './types';
 import {
-  extraerConsumoActiva,
-  extraerPromedioActiva,
-  extraerMaximetro,
-  extraerEnergiaReconstruida,
-} from '../../services/extractorMetricasService';
+  calcularColorAnomalia,
+  METRICAS,
+  CAMPOS_DETALLE,
+  LABELS_DETALLE,
+  NOMBRES_MESES_CORTO,
+  NOMBRES_MESES_LARGO,
+} from './utils';
+import { useHeatMapCalculations } from './hooks';
 import './HeatMapConsumo.css';
-
-interface HeatMapConsumoProps {
-  datos: ConsumoMensual[];
-  detallesPorPeriodo?: Record<string, DerivacionData[]>;
-  onCellClick?: (periodo: string) => void;
-}
-
-type HeatmapMetricId =
-  | 'consumoActiva'
-  | 'promedioActiva'
-  | 'maximetro'
-  | 'energiaReconstruida'
-  | 'deteccionAnomalias';
-
-interface HeatmapMetricConfig {
-  id: HeatmapMetricId;
-  titulo: string;
-  descripcion: string;
-  unidad: string;
-  motivoClave?: string;
-  decimales?: number;
-  extractor: (dato: ConsumoMensual) => number;
-}
-
-interface DetalleActivo {
-  periodo: string;
-  año: number;
-  mes: number;
-  registros: DerivacionData[];
-  valor: number;
-  metrica: HeatmapMetricConfig;
-}
-
-// Interfaces para eventos
-interface CambioTitular {
-  fecha: string;
-  activo: boolean;
-}
-
-interface FechaActa {
-  fecha: string;
-  activo: boolean;
-}
-
-// ✅ USAR EXTRACTORES VALIDADOS DEL SERVICIO
-const METRICAS: HeatmapMetricConfig[] = [
-  {
-    id: 'deteccionAnomalias',
-    titulo: '🎯 Detección de Anomalías',
-    descripcion: 'Análisis de anomalías basado en consumo promedio diario',
-    unidad: 'kWh/día',
-    motivoClave: 'variacion_consumo_activa',
-    decimales: 1,
-    extractor: (dato: ConsumoMensual) => dato.consumoPromedioDiario,
-  },
-  {
-    id: 'consumoActiva',
-    titulo: 'Consumo de E. Activa',
-    descripcion: 'Suma del consumo activo (P1+P2+P3) en kWh',
-    unidad: 'kWh',
-    motivoClave: 'variacion_consumo_activa',
-    decimales: 0,
-    extractor: extraerConsumoActiva,
-  },
-  {
-    id: 'promedioActiva',
-    titulo: 'Promedio de E. Activa',
-    descripcion: 'Consumo diario promedio en kWh/día',
-    unidad: 'kWh/día',
-    motivoClave: 'variacion_promedio_activa',
-    decimales: 2,
-    extractor: extraerPromedioActiva,
-  },
-  {
-    id: 'maximetro',
-    titulo: 'Maxímetro',
-    descripcion: 'Máxima demanda instantánea en kW',
-    unidad: 'kW',
-    motivoClave: 'variacion_maximetro',
-    decimales: 2,
-    extractor: extraerMaximetro,
-  },
-  {
-    id: 'energiaReconstruida',
-    titulo: 'E. Activa reconstruida',
-    descripcion: 'Energía reconstruida (A+B+C) en kWh',
-    unidad: 'kWh',
-    motivoClave: 'variacion_energia_reconstruida',
-    decimales: 0,
-    extractor: extraerEnergiaReconstruida,
-  },
-];
-
-const CAMPOS_DETALLE = [
-  'Contrato',
-  'Secuencial factura',
-  'Fecha Inicio',
-  'Fecha fin',
-  'Consumo Activa',
-  'Potencia',
-  'Promedio Activa',
-  'Consumo Reactiva',
-  'Promedio Reactiva',
-  'Cargo abono total',
-  'Pérdidas Total',
-  'Maxímetro',
-  'Lectura',
-  'Fuente',
-  'Año',
-  'Mes',
-  'Energía Total Reconstruida',
-  'Días',
-  'Consumo promedio ciclo',
-  'Promedio ER',
-  'AB - A',
-  'P1',
-  'P2',
-  'P3',
-  'P4',
-  'P5',
-  'P6',
-  'AB - C',
-  'A + B + C',
-] as const;
-
-const NOMBRES_MESES_CORTO = [
-  'Ene',
-  'Feb',
-  'Mar',
-  'Abr',
-  'May',
-  'Jun',
-  'Jul',
-  'Ago',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dic',
-];
-const NOMBRES_MESES_LARGO = [
-  'enero',
-  'febrero',
-  'marzo',
-  'abril',
-  'mayo',
-  'junio',
-  'julio',
-  'agosto',
-  'septiembre',
-  'octubre',
-  'noviembre',
-  'diciembre',
-];
 
 const HeatMapConsumoComponent = ({
   datos,
@@ -280,53 +92,9 @@ const HeatMapConsumoComponent = ({
     }
   }, [detalleActivo]);
 
-  const metricaActual = useMemo(
-    () => METRICAS.find((metrica) => metrica.id === metricaSeleccionada) ?? METRICAS[0],
-    [metricaSeleccionada]
-  );
-
-  const años = useMemo(() => {
-    return Array.from(new Set(datos.map((d) => d.año))).sort((a, b) => a - b);
-  }, [datos]);
-
-  const mapaPorPeriodo = useMemo(() => {
-    const m = new Map<string, ConsumoMensual>();
-    datos.forEach((d) => m.set(`${d.año}-${d.mes}`, d));
-    return m;
-  }, [datos]);
-
-  const resumenMetricas = useMemo(() => {
-    const valores = datos
-      .map((dato) => metricaActual.extractor(dato))
-      .filter((valor) => Number.isFinite(valor));
-
-    if (valores.length === 0) {
-      return { minimo: 0, maximo: 0, promedio: 0 };
-    }
-
-    return {
-      minimo: Math.min(...valores),
-      maximo: Math.max(...valores),
-      promedio: valores.reduce((acc, val) => acc + val, 0) / valores.length,
-    };
-  }, [datos, metricaActual]);
-
-  // Calcular baseline para detección de anomalías
-  const baselineAnomalias = useMemo(() => {
-    if (metricaSeleccionada !== 'deteccionAnomalias' || datos.length < 3) {
-      return 0;
-    }
-
-    const periodoBaseline = Math.min(12, Math.floor(datos.length * 0.3));
-    const datosBaseline = datos.slice(0, periodoBaseline);
-    const promediosBaseline = datosBaseline
-      .map((d) => d.consumoPromedioDiario)
-      .filter((p) => p > 0);
-
-    if (promediosBaseline.length === 0) return 0;
-
-    return promediosBaseline.reduce((sum, val) => sum + val, 0) / promediosBaseline.length;
-  }, [datos, metricaSeleccionada]);
+  // Hook centralizado para cálculos del HeatMap
+  const { metricaActual, años, mapaPorPeriodo, resumenMetricas, baselineAnomalias } =
+    useHeatMapCalculations({ datos, metricaSeleccionada });
 
   const detallesMap = detallesPorPeriodo ?? {};
 
@@ -824,7 +592,7 @@ const HeatMapConsumoComponent = ({
                 <thead>
                   <tr>
                     {columnasDetalle.map((columna) => (
-                      <th key={columna}>{columna}</th>
+                      <th key={columna}>{LABELS_DETALLE[columna] || columna}</th>
                     ))}
                   </tr>
                 </thead>
