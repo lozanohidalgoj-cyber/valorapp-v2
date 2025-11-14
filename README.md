@@ -61,14 +61,14 @@ src/
 
 Los colores oficiales del proyecto deben respetarse en toda la interfaz:
 
-| Color                    | Código HEX | Uso                                                      |
-|--------------------------|------------|----------------------------------------------------------|
-| **Azul Corporativo**     | `#0000D0`  | Encabezados, botones principales, enlaces activos, énfasis |
-| **Rosa Vibrante**        | `#FF3184`  | Acentos, resaltes, elementos interactivos, hover         |
-| **Blanco**               | `#FFFFFF`  | Fondos, tarjetas, contenedores                           |
-| **Gris Claro**           | `#F5F5F5`  | Fondo general de la aplicación                           |
-| **Gris Medio**           | `#D9D9D9`  | Bordes, separadores                                      |
-| **Gris Oscuro**          | `#333333`  | Texto principal                                          |
+| Color                | Código HEX | Uso                                                        |
+| -------------------- | ---------- | ---------------------------------------------------------- |
+| **Azul Corporativo** | `#0000D0`  | Encabezados, botones principales, enlaces activos, énfasis |
+| **Rosa Vibrante**    | `#FF3184`  | Acentos, resaltes, elementos interactivos, hover           |
+| **Blanco**           | `#FFFFFF`  | Fondos, tarjetas, contenedores                             |
+| **Gris Claro**       | `#F5F5F5`  | Fondo general de la aplicación                             |
+| **Gris Medio**       | `#D9D9D9`  | Bordes, separadores                                        |
+| **Gris Oscuro**      | `#333333`  | Texto principal                                            |
 
 ---
 
@@ -86,7 +86,7 @@ Los colores oficiales del proyecto deben respetarse en toda la interfaz:
 
 ### Prerrequisitos
 
-- **Node.js** versión 18+ 
+- **Node.js** versión 18+
 - **npm** o **yarn**
 
 ### Instalación
@@ -116,31 +116,79 @@ npm run preview
 
 # Ejecutar linter
 npm run lint
+
+# Corregir errores de linter automáticamente
+npm run lint:fix
+
+# Formatear código con Prettier
+npm run format
+
+# Verificar formato sin modificar archivos
+npm run format:check
+
+# Type checking sin compilar
+npm run type-check
+
+# Validación completa (type-check + lint + format)
+npm run validate
 ```
+
+---
+
+## 🎯 Path Aliases Configurados
+
+Para mejorar la legibilidad y mantenibilidad del código, el proyecto usa **path aliases**:
+
+```typescript
+import { Button } from '@components/Button';
+import { useAppContext } from '@context';
+import { detectarAnomalias } from '@services/anomaliaService';
+import type { ConsumoEnergetico } from '@types';
+```
+
+**Aliases disponibles**:
+
+- `@/*` → `src/*`
+- `@components/*` → `src/components/*`
+- `@pages/*` → `src/pages/*`
+- `@services/*` → `src/services/*`
+- `@utils/*` → `src/utils/*`
+- `@hooks/*` → `src/hooks/*`
+- `@types` → `src/types/index.ts`
+- `@constants/*` → `src/constants/*`
+- `@context/*` → `src/context/*`
+- `@styles/*` → `src/styles/*`
 
 ---
 
 ## 📂 Módulos Implementados
 
 ### 🔹 Componentes (`/components`)
+
 Componentes reutilizables como botones, tarjetas, gráficos y tablas.
 
 ### 🔹 Páginas (`/pages`)
+
 Vistas completas de la aplicación (ej: Dashboard, Vista ATR, Comparativa Mensual).
 
 ### 🔹 Hooks (`/hooks`)
+
 Lógica personalizada y reutilizable para manejo de estado y efectos.
 
 ### 🔹 Utilidades (`/utils`)
+
 Funciones auxiliares para cálculos matemáticos, formateo de datos, validaciones.
 
 ### 🔹 Servicios (`/services`)
+
 Procesamiento y limpieza de datos importados (CSV/JSON).
 
 ### 🔹 Contextos (`/context`)
+
 Gestión global del estado de la aplicación mediante React Context.
 
 ### 🔹 Datos (`/data`)
+
 Archivos de ejemplo o plantillas para carga de datos.
 
 ---
@@ -168,6 +216,7 @@ Archivos de ejemplo o plantillas para carga de datos.
 ## 🧪 Testing (Próximamente)
 
 Se recomienda integrar:
+
 - **Vitest** para pruebas unitarias
 - **React Testing Library** para pruebas de componentes
 
@@ -203,8 +252,8 @@ You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-re
 
 ```js
 // eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+import reactX from 'eslint-plugin-react-x';
+import reactDom from 'eslint-plugin-react-dom';
 
 export default defineConfig([
   globalIgnores(['dist']),
@@ -225,5 +274,5 @@ export default defineConfig([
       // other options...
     },
   },
-])
+]);
 ```

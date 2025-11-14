@@ -19,4 +19,39 @@ export default defineConfig({
       '@styles': path.resolve(__dirname, './src/styles'),
     },
   },
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          // Vendor chunks - librerías externas
+          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
+          'chart-vendor': ['recharts'],
+          'icons-vendor': ['lucide-react'],
+          'utils-vendor': ['xlsx'],
+
+          // Feature chunks - páginas grandes
+          expediente: [
+            './src/pages/ExpedienteTipoV/ExpedienteTipoV.tsx',
+            './src/pages/ExpedienteTipoV/components/VistaAnomalias.tsx',
+            './src/pages/ExpedienteTipoV/components/VistaGrafico.tsx',
+          ],
+          'saldo-atr': ['./src/pages/SaldoATR/SaldoATR.tsx'],
+
+          // Services chunks - lógica de negocio
+          'services-analisis': [
+            './src/services/analisisConsumoService.ts',
+            './src/services/clasificadorExpedienteService.ts',
+            './src/services/detectarInicioAnomaliaService.ts',
+          ],
+          'services-data': [
+            './src/services/importService.ts',
+            './src/services/exportacionService.ts',
+            './src/services/dataService.ts',
+          ],
+        },
+      },
+    },
+    // Aumentar límite de advertencia a 600KB (desde 500KB)
+    chunkSizeWarningLimit: 600,
+  },
 });
