@@ -2,9 +2,9 @@
  * Vista de listado completo de datos con ordenamiento por columnas
  */
 
-import { useState, useMemo, useCallback } from 'react';
 import { ArrowUp, ArrowDown, ClipboardList } from 'lucide-react';
-import type { DerivacionData } from '../../../types';
+import type { DerivacionData } from '../../../../types';
+import { useListadoOrdenamiento } from './useListadoOrdenamiento';
 
 interface VistaListadoProps {
   data: DerivacionData[];
@@ -16,54 +16,9 @@ export const VistaListado = ({ data, columns }: VistaListadoProps) => {
   const totalRegistros = data.length;
   const totalColumnas = columns.length;
 
-  // Estados para ordenamiento
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  // Función para ordenar filas
-  const sortedData = useMemo(() => {
-    if (!sortColumn) return data;
-
-    const sorted = [...data].sort((a, b) => {
-      const aRow = a as unknown as Record<string, unknown>;
-      const bRow = b as unknown as Record<string, unknown>;
-
-      const aValue = String(aRow[sortColumn] ?? '');
-      const bValue = String(bRow[sortColumn] ?? '');
-
-      // Intentar convertir a número para comparación numérica
-      const aNum = Number(aValue);
-      const bNum = Number(bValue);
-
-      let comparison = 0;
-      if (!Number.isNaN(aNum) && !Number.isNaN(bNum)) {
-        // Comparación numérica
-        comparison = aNum - bNum;
-      } else {
-        // Comparación de texto
-        comparison = aValue.localeCompare(bValue, 'es', { numeric: true });
-      }
-
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-
-    return sorted;
-  }, [data, sortColumn, sortDirection]);
-
-  // Manejar click en encabezado para ordenar
-  const handleColumnSort = useCallback(
-    (column: string) => {
-      if (sortColumn === column) {
-        // Si ya estaba ordenado por esta columna, invertir dirección
-        setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
-      } else {
-        // Nueva columna, ordenar ascendente
-        setSortColumn(column);
-        setSortDirection('asc');
-      }
-    },
-    [sortColumn, sortDirection]
-  );
+  // Hook de ordenamiento
+  const { itemsOrdenados, columnaOrden, direccionOrden, handleOrdenarColumna } =
+    useListadoOrdenamiento({ items: data });
 
   return (
     <div className="expediente-table-wrapper expediente-table-wrapper--listado">
@@ -83,19 +38,19 @@ export const VistaListado = ({ data, columns }: VistaListadoProps) => {
         <thead>
           <tr>
             {columnasVisibles.map((column) => {
-              const isSort = sortColumn === column;
+              const isSort = columnaOrden === column;
               return (
                 <th
                   key={column}
                   className={`${isSort ? 'th-sorted' : ''}`}
                   scope="col"
-                  onClick={() => handleColumnSort(column)}
+                  onClick={() => handleOrdenarColumna(column)}
                   role="button"
                   tabIndex={0}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter' || e.key === ' ') {
                       e.preventDefault();
-                      handleColumnSort(column);
+                      handleOrdenarColumna(column);
                     }
                   }}
                   style={{ cursor: 'pointer', userSelect: 'none' }}
@@ -104,7 +59,7 @@ export const VistaListado = ({ data, columns }: VistaListadoProps) => {
                     <span>{column}</span>
                     {isSort && (
                       <span className="sort-icon-listado">
-                        {sortDirection === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
+                        {direccionOrden === 'asc' ? <ArrowUp size={16} /> : <ArrowDown size={16} />}
                       </span>
                     )}
                   </div>
@@ -114,7 +69,7 @@ export const VistaListado = ({ data, columns }: VistaListadoProps) => {
           </tr>
         </thead>
         <tbody>
-          {sortedData.map((row) => {
+          {itemsOrdenados.map((row: DerivacionData) => {
             // Crear una clave única basada en los primeros valores disponibles del registro
             const keyValue = columnasVisibles
               .map((col) =>
