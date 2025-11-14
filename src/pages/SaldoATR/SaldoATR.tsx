@@ -9,20 +9,9 @@ import { useEffect, useRef, useState } from 'react';
 import type { ChangeEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { AlertMessages, ImportActions, SaldoATRHeader, SaldoATRTable } from './components';
-import { useSaldoATRBase, useFileImport } from './hooks';
+import { useSaldoATRBase, useFileImport, useSaldoATRActions } from './hooks';
 import { analizarConsumoCompleto } from '../../services/analisisConsumoService';
-import {
-  exportarAnalisisCompleto,
-  exportarComparativaMensualExcel,
-  exportarVistaAnualExcel,
-} from '../../services/exportacionService';
-import type {
-  ConsumoMensual,
-  DerivacionData,
-  ResultadoAnalisis,
-  SaldoATRColumna,
-  SaldoATRRow,
-} from '../../types';
+import type { DerivacionData, ResultadoAnalisis, SaldoATRRow } from '../../types';
 import type { VistaAnalisis } from '../ExpedienteTipoV/types';
 import {
   ResumenAnalisis,
@@ -33,102 +22,16 @@ import {
   VistaListado,
   VistaMensual,
 } from '../ExpedienteTipoV/components';
-import { COLUMN_LETTERS, DEFAULT_HEADERS } from './utils';
+import {
+  PALABRAS_CLAVE_ANULACION,
+  COLUMNAS_REVISION_ANULACION,
+  MAX_FACTURAS_DETALLE,
+  obtenerIdentificadorSaldoAtr,
+  obtenerTimestampDesdeFecha,
+  convertirSaldoAtrADerivacion,
+} from './utils';
 import '../ExpedienteTipoV/ExpedienteTipoV.css';
 import './SaldoATR.css';
-
-const PALABRAS_CLAVE_ANULACION = [
-  'ANULADA',
-  'ANULADOR',
-  'COMPLEMENTARIA',
-  'SUSTITUIDA',
-  'SUSTITUYENTE',
-] as const;
-const COLUMNAS_REVISION_ANULACION: readonly SaldoATRColumna[] = ['E', 'F', 'K', 'L'];
-const MAX_FACTURAS_DETALLE = 5;
-
-const obtenerIdentificadorSaldoAtr = (fila: SaldoATRRow): string => {
-  const numeroFiscal = fila['A']?.trim();
-  if (numeroFiscal) {
-    return `Factura ${numeroFiscal}`;
-  }
-
-  const secuencial = fila['D']?.trim();
-  if (secuencial) {
-    return `Secuencial ${secuencial}`;
-  }
-
-  const contrato = fila['C']?.trim();
-  if (contrato) {
-    return `Contrato ${contrato}`;
-  }
-
-  return 'Registro sin identificador';
-};
-
-const obtenerTimestampDesdeFecha = (valor: string): number => {
-  if (!valor) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const partes = valor.split('/');
-  if (partes.length !== 3) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const [dia, mes, anio] = partes.map((fragmento) => Number(fragmento));
-  if (Number.isNaN(dia) || Number.isNaN(mes) || Number.isNaN(anio)) {
-    return Number.MAX_SAFE_INTEGER;
-  }
-
-  const fecha = new Date(anio, mes - 1, dia);
-  const timestamp = fecha.getTime();
-  return Number.isNaN(timestamp) ? Number.MAX_SAFE_INTEGER : timestamp;
-};
-
-const convertirSaldoAtrADerivacion = (
-  registros: SaldoATRRow[],
-  headers: string[]
-): { registros: DerivacionData[]; columnas: string[] } => {
-  const fallbackHeaders = COLUMN_LETTERS.map((columna) => DEFAULT_HEADERS[columna] ?? '');
-  const normalizarNombreColumna = (nombre: string): string => {
-    if (!nombre) return '';
-    const limpio = nombre.trim();
-    if (limpio.toLowerCase() === 'código de empresa distribuidora') {
-      return 'Potencia';
-    }
-    return limpio;
-  };
-
-  const nombresColumnas = (
-    headers.length === COLUMN_LETTERS.length && headers.some((nombre) => nombre)
-      ? headers
-      : fallbackHeaders
-  ).map(normalizarNombreColumna);
-
-  const registrosDerivacion = registros
-    .map((fila) => {
-      const registro: Record<string, string | number> = {};
-
-      COLUMN_LETTERS.forEach((columna, indice) => {
-        const nombreCampo = nombresColumnas[indice];
-        if (nombreCampo) {
-          registro[nombreCampo] = fila[columna] ?? '';
-        }
-      });
-
-      return registro as unknown as DerivacionData;
-    })
-    .filter((registro) => {
-      const fecha = ((registro['Fecha desde'] as string) || '').trim();
-      return fecha.length > 0;
-    });
-
-  return {
-    registros: registrosDerivacion,
-    columnas: nombresColumnas,
-  };
-};
 
 export const SaldoATR = () => {
   const navigate = useNavigate();
@@ -152,15 +55,53 @@ export const SaldoATR = () => {
   const [customSuccess, setCustomSuccess] = useState<string | null>(null);
   const [tablaColapsada, setTablaColapsada] = useState(false);
 
+  // Funciones auxiliares de reset
+  const resetAnalisisState = () => {
+    setResultadoAnalisis(null);
+    setVistaActual('anual');
+    setRegistrosDerivacion([]);
+    setColumnasAnalisis([]);
+  };
+
+  const resetData = () => {
+    setRows(baseRows);
+    setAnalisisHabilitado(false);
+    resetAnalisisState();
+  };
+
+  const resetAnalisis = () => {
+    resetAnalisisState();
+  };
+
+  // Hook de acciones de exportación
+  const {
+    handleLimpiarDatos: limpiarDatosBase,
+    handleExportarVistaAnual,
+    handleExportarComparativaMensual,
+    handleExportarAnalisisCompleto,
+    handleExportarAnomalias,
+  } = useSaldoATRActions({
+    vistaAnual: resultadoAnalisis?.vistaAnual ?? null,
+    comparativaMensual: resultadoAnalisis?.comparativaMensual ?? null,
+    derivacionData: registrosDerivacion,
+    resetData,
+    resetAnalisis,
+    onSuccess: (msg) => {
+      setCustomSuccess(msg);
+      setTimeout(() => setCustomSuccess(null), 3000);
+    },
+    onError: (err) => {
+      setCustomError(err);
+      setTimeout(() => setCustomError(null), 3000);
+    },
+  });
+
   // Sincronizar baseRows con rows locales
   useEffect(() => {
     if (!loading && baseRows.length > 0) {
       setRows(baseRows);
       setAnalisisHabilitado(false);
-      setResultadoAnalisis(null);
-      setVistaActual('anual');
-      setRegistrosDerivacion([]);
-      setColumnasAnalisis([]);
+      resetAnalisisState();
       setCustomError(null);
       setCustomSuccess(null);
     }
@@ -184,10 +125,7 @@ export const SaldoATR = () => {
       const updatedRows = await handleFileImport(file, rows);
       setRows(updatedRows);
       setAnalisisHabilitado(false);
-      setResultadoAnalisis(null);
-      setVistaActual('anual');
-      setRegistrosDerivacion([]);
-      setColumnasAnalisis([]);
+      resetAnalisisState();
       setCustomError(null);
       setCustomSuccess(null);
     } catch {
@@ -196,15 +134,8 @@ export const SaldoATR = () => {
   };
 
   const handleLimpiarDatos = () => {
-    setRows(baseRows);
-    setAnalisisHabilitado(false);
-    setResultadoAnalisis(null);
-    setVistaActual('anual');
-    setRegistrosDerivacion([]);
-    setColumnasAnalisis([]);
+    limpiarDatosBase();
     setCustomError(null);
-    setCustomSuccess('✅ Datos restablecidos correctamente');
-    setTimeout(() => setCustomSuccess(null), 3000);
   };
 
   const handleAnularFC = () => {
@@ -299,87 +230,6 @@ export const SaldoATR = () => {
     } catch {
       setCustomError('Error al ejecutar el análisis de consumo');
       setTimeout(() => setCustomError(null), 5000);
-    }
-  };
-
-  const handleExportarVistaAnual = () => {
-    if (!resultadoAnalisis) {
-      setCustomError('No hay resultados para exportar. Ejecuta el análisis primero.');
-      setTimeout(() => setCustomError(null), 4000);
-      return;
-    }
-
-    try {
-      exportarVistaAnualExcel(resultadoAnalisis.vistaAnual);
-      setCustomSuccess('Vista por años exportada correctamente');
-      setTimeout(() => setCustomSuccess(null), 4000);
-    } catch {
-      setCustomError('Error al exportar la vista por años');
-      setTimeout(() => setCustomError(null), 4000);
-    }
-  };
-
-  const handleExportarComparativaMensual = () => {
-    if (!resultadoAnalisis) {
-      setCustomError('No hay resultados para exportar. Ejecuta el análisis primero.');
-      setTimeout(() => setCustomError(null), 4000);
-      return;
-    }
-
-    try {
-      exportarComparativaMensualExcel(resultadoAnalisis.comparativaMensual);
-      setCustomSuccess('Comparativa mensual exportada correctamente');
-      setTimeout(() => setCustomSuccess(null), 4000);
-    } catch {
-      setCustomError('Error al exportar la comparativa mensual');
-      setTimeout(() => setCustomError(null), 4000);
-    }
-  };
-
-  const handleExportarAnalisisCompleto = () => {
-    if (!resultadoAnalisis || registrosDerivacion.length === 0) {
-      setCustomError('Ejecuta el análisis antes de exportar el resultado completo.');
-      setTimeout(() => setCustomError(null), 4000);
-      return;
-    }
-
-    try {
-      exportarAnalisisCompleto(
-        resultadoAnalisis.vistaAnual,
-        resultadoAnalisis.comparativaMensual,
-        registrosDerivacion
-      );
-      setCustomSuccess('Análisis completo exportado correctamente');
-      setTimeout(() => setCustomSuccess(null), 4000);
-    } catch {
-      setCustomError('Error al exportar el análisis completo');
-      setTimeout(() => setCustomError(null), 4000);
-    }
-  };
-
-  const handleExportarAnomalias = (filas?: ConsumoMensual[]) => {
-    if (!resultadoAnalisis && !filas) {
-      setCustomError('No hay datos disponibles. Ejecuta el análisis primero.');
-      setTimeout(() => setCustomError(null), 4000);
-      return;
-    }
-
-    const datosTabla =
-      filas ?? (resultadoAnalisis?.comparativaMensual as ConsumoMensual[] | undefined);
-
-    if (!datosTabla || datosTabla.length === 0) {
-      setCustomError('No se encontraron periodos para exportar.');
-      setTimeout(() => setCustomError(null), 4000);
-      return;
-    }
-
-    try {
-      exportarComparativaMensualExcel(datosTabla, 'anomalias_saldo_atr.xlsx');
-      setCustomSuccess('Tabla de anomalías exportada correctamente');
-      setTimeout(() => setCustomSuccess(null), 4000);
-    } catch {
-      setCustomError('Error al exportar las anomalías');
-      setTimeout(() => setCustomError(null), 4000);
     }
   };
 
