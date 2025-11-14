@@ -6,18 +6,11 @@
 
 import { useEffect, useState } from 'react';
 import type { ChangeEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
-import {
-  exportarVistaAnualExcel,
-  exportarComparativaMensualExcel,
-  exportarAnalisisCompleto,
-} from '../../services/exportacionService';
 import {
   guardarDerivacionData,
   recuperarDerivacionData,
   hayDatosGuardados,
-  limpiarDatosGuardados,
 } from '../../services/persistenciaService';
 import {
   AlertMessages,
@@ -30,15 +23,13 @@ import {
   VistaAnomalias,
   VistaMensual,
 } from './components';
-import { useFileLoader, useAnalysis } from './hooks';
+import { useFileLoader, useAnalysis, useExpedienteActions } from './hooks';
 import type { DerivacionData, ConsumoAnual, ConsumoMensual } from '../../types';
 import './ExpedienteTipoV.css';
 
 type VistaModuloExpediente = 'principal' | 'derivacion' | 'analisis';
 
 export const ExpedienteTipoV = () => {
-  const navigate = useNavigate();
-
   // Hooks personalizados para manejo de estado
   const {
     data: derivacionData,
@@ -68,6 +59,44 @@ export const ExpedienteTipoV = () => {
   // Estado local para mensajes
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  // Funciones de navegación entre vistas
+  const mostrarDerivacion = () => {
+    setMostrandoAnalisis(false);
+    setVistaActual('anual');
+    setModoVista('derivacion');
+  };
+
+  const mostrarVistaPrincipal = () => {
+    setMostrandoAnalisis(false);
+    setVistaActual('anual');
+    setModoVista('principal');
+  };
+
+  // Hook de acciones de exportación y navegación
+  const {
+    handleExportarVistaAnual,
+    handleExportarComparativaMensual,
+    handleExportarAnalisisCompleto,
+    handleExportarAnomalias,
+    handleLimpiarDatosGuardados,
+    handleIrSaldoAtr,
+    handleVolver: volverBase,
+  } = useExpedienteActions({
+    vistaAnual: resultadoAnalisis?.vistaAnual ?? null,
+    comparativaMensual: resultadoAnalisis?.comparativaMensual ?? null,
+    derivacionData,
+    resetData,
+    resetAnalysis: resetAnalisis,
+    onSuccess: (msg) => {
+      setSuccessMessage(msg);
+      setTimeout(() => setSuccessMessage(null), 3000);
+    },
+    onError: (err) => {
+      setError(err);
+      setTimeout(() => setError(null), 3000);
+    },
+  });
 
   // Recuperar datos guardados al montar
   useEffect(() => {
@@ -213,95 +242,9 @@ export const ExpedienteTipoV = () => {
     }
   };
 
-  const mostrarDerivacion = () => {
-    setMostrandoAnalisis(false);
-    setVistaActual('anual');
-    setModoVista('derivacion');
-  };
-
   const irADerivacionPorFactura = (numeroFiscal: string) => {
     setFiltroFactura(numeroFiscal);
     setModoVista('derivacion');
-  };
-
-  const mostrarVistaPrincipal = () => {
-    setMostrandoAnalisis(false);
-    setVistaActual('anual');
-    setModoVista('principal');
-  };
-
-  const handleExportarVistaAnual = () => {
-    if (!resultadoAnalisis) return;
-    try {
-      exportarVistaAnualExcel(resultadoAnalisis.vistaAnual as ConsumoAnual[]);
-      setSuccessMessage(' Vista por Años exportada exitosamente');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch {
-      setError('Error al exportar Vista por Años');
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleExportarComparativaMensual = () => {
-    if (!resultadoAnalisis) return;
-    try {
-      exportarComparativaMensualExcel(resultadoAnalisis.comparativaMensual as ConsumoMensual[]);
-      setSuccessMessage(' Comparativa Mensual exportada exitosamente');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch {
-      setError('Error al exportar Comparativa Mensual');
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleExportarAnalisisCompleto = () => {
-    if (!resultadoAnalisis) return;
-    try {
-      exportarAnalisisCompleto(
-        resultadoAnalisis.vistaAnual as ConsumoAnual[],
-        resultadoAnalisis.comparativaMensual as ConsumoMensual[],
-        derivacionData
-      );
-      setSuccessMessage(' Análisis completo exportado exitosamente (3 hojas)');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch {
-      setError('Error al exportar análisis completo');
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleExportarAnomalias = (filas?: ConsumoMensual[]) => {
-    if (!resultadoAnalisis && !filas) return;
-    const datosTabla =
-      filas ?? (resultadoAnalisis?.comparativaMensual as ConsumoMensual[] | undefined);
-
-    if (!datosTabla || datosTabla.length === 0) {
-      setError('No hay datos disponibles para exportar');
-      setTimeout(() => setError(null), 3000);
-      return;
-    }
-
-    try {
-      exportarComparativaMensualExcel(datosTabla, 'anomalias_detectadas.xlsx');
-      setSuccessMessage(' Tabla de anomalías exportada correctamente');
-      setTimeout(() => setSuccessMessage(null), 3000);
-    } catch {
-      setError('Error al exportar anomalías');
-      setTimeout(() => setError(null), 3000);
-    }
-  };
-
-  const handleLimpiarDatosGuardados = () => {
-    limpiarDatosGuardados();
-    resetData();
-    resetAnalisis();
-    mostrarVistaPrincipal();
-    setSuccessMessage('✅ Datos eliminados correctamente');
-    setTimeout(() => setSuccessMessage(null), 3000);
-  };
-
-  const handleIrSaldoAtr = () => {
-    navigate('/saldo-atr');
   };
 
   const handleVolver = () => {
@@ -315,7 +258,7 @@ export const ExpedienteTipoV = () => {
       return;
     }
 
-    navigate('/wart');
+    volverBase();
   };
 
   // Error combinado de hook y local
