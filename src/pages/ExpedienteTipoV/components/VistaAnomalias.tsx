@@ -2,7 +2,7 @@
  * Vista de anomalías detectadas en la comparativa mensual
  */
 
-import { useMemo, useRef, useState, useCallback } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import { AlertTriangle, Download, ArrowUp, ArrowDown, RefreshCw } from 'lucide-react';
 import type { ConsumoMensual, DerivacionData } from '../../../types';
 import { HeatMapConsumo, BannerClasificacionExpediente } from '../../../components';
@@ -12,6 +12,7 @@ import {
   esComportamientoAnomalo,
 } from '../../../services/analisisConsumoService';
 import { clasificarExpediente } from '../../../services/clasificadorExpedienteService';
+import { useAnomaliasSorting, useAnomaliasFilters, scrollToPeriodo } from './VistaAnomalias/index';
 
 interface VistaAnomaliasProps {
   datos: ConsumoMensual[];
@@ -27,254 +28,29 @@ export const VistaAnomalias = ({
   onIrADerivacionPorFactura,
 }: VistaAnomaliasProps) => {
   const tableRef = useRef<HTMLTableElement>(null);
-
-  // Estado para ordenamiento de columnas
-  const [sortColumn, setSortColumn] = useState<string | null>(null);
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
-
-  // Estado para filtros
-  const [fechaDesdeFilter, setFechaDesdeFilter] = useState<string>('');
-  const [fechaHastaFilter, setFechaHastaFilter] = useState<string>('');
-  const [tipoComportamientoFilter, setTipoComportamientoFilter] = useState<string[]>([]);
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
-  const handleScrollToPeriodo = (periodo: string) => {
-    if (!tableRef.current) return;
+  // Usar hooks personalizados para ordenamiento y filtrado
+  const { sortColumn, sortDirection, sortedDatos, handleColumnSort } = useAnomaliasSorting(datos);
 
-    // Buscar la fila con el periodo
-    const row = tableRef.current.querySelector(`[data-periodo="${periodo}"]`) as HTMLElement;
-    if (!row) {
-      return;
-    }
-
-    // Hacer scroll del elemento dentro de su contenedor padre más cercano scrolleable
-    // Primero, scroll en el contenedor de la tabla
-    const tableWrapper = tableRef.current.closest(
-      '.expediente-anomalias__table-wrapper'
-    ) as HTMLElement;
-    if (tableWrapper) {
-      const rowTop = row.offsetTop;
-      const rowHeight = row.offsetHeight;
-      const containerHeight = tableWrapper.clientHeight;
-
-      // Calcular posición para centrar la fila
-      const scrollTo = rowTop - containerHeight / 2 + rowHeight / 2;
-      tableWrapper.scrollTo({ top: scrollTo, behavior: 'smooth' });
-    }
-
-    // También hacer scroll del viewport en caso de que no esté visible
-    row.scrollIntoView({ behavior: 'smooth', block: 'center' });
-
-    // Highlight temporal
-    row.classList.add('expediente-anomalias__row--highlighted');
-    setTimeout(() => {
-      row.classList.remove('expediente-anomalias__row--highlighted');
-    }, 3000);
-  };
-
-  const compararPorPeriodo = (a: ConsumoMensual, b: ConsumoMensual) => {
-    if (a.año === b.año) {
-      return a.mes - b.mes;
-    }
-    return a.año - b.año;
-  };
-
-  // Función para manejar clic en encabezado de columna
-  const handleColumnSort = useCallback(
-    (column: string) => {
-      setSortDirection((prev) => {
-        if (sortColumn === column) {
-          return prev === 'asc' ? 'desc' : 'asc';
-        }
-        return 'asc';
-      });
-      setSortColumn(column);
-    },
-    [sortColumn]
-  );
-
-  // Ordenar datos según la columna seleccionada
-  const sortedDatos = useMemo(() => {
-    if (!sortColumn) return datos;
-
-    return [...datos].sort((a, b) => {
-      let aValue: unknown;
-      let bValue: unknown;
-
-      // Obtener valores según la columna
-      switch (sortColumn) {
-        case 'periodo':
-          aValue = a.periodo;
-          bValue = b.periodo;
-          break;
-        case 'consumo':
-          aValue = a.consumoActivaTotal;
-          bValue = b.consumoActivaTotal;
-          break;
-        case 'dias':
-          aValue = a.dias;
-          bValue = b.dias;
-          break;
-        case 'promedioDiario':
-          aValue = a.consumoPromedioDiario;
-          bValue = b.consumoPromedioDiario;
-          break;
-        case 'potencia':
-          aValue = a.potenciaPromedio ?? 0;
-          bValue = b.potenciaPromedio ?? 0;
-          break;
-        case 'variacion':
-          aValue = a.variacionPorcentual ?? 0;
-          bValue = b.variacionPorcentual ?? 0;
-          break;
-        default:
-          return 0;
-      }
-
-      // Determinar si es numérico o texto
-      const isNumeric = typeof aValue === 'number' && typeof bValue === 'number';
-
-      if (isNumeric) {
-        const numA = aValue as number;
-        const numB = bValue as number;
-        return sortDirection === 'asc' ? numA - numB : numB - numA;
-      }
-
-      // Comparación de texto
-      const strA = String(aValue ?? '');
-      const strB = String(bValue ?? '');
-      const comparison = strA.localeCompare(strB, 'es', { numeric: true });
-      return sortDirection === 'asc' ? comparison : -comparison;
-    });
-  }, [datos, sortColumn, sortDirection]);
-
-  // Extraer tipos de comportamiento únicos para el filtro
-  const tiposComportamientoUnicos = useMemo(() => {
-    const tipos = new Set<string>();
-
-    // Estrategia: Clasificar todos los datos por variación
-    datos.forEach((registro) => {
-      const variacion = registro.variacionPorcentual ?? 0;
-
-      if (variacion < -25) {
-        tipos.add('Descenso crítico');
-      } else if (variacion < -10) {
-        tipos.add('Descenso moderado');
-      } else if (variacion < -5) {
-        tipos.add('Descenso leve');
-      } else if (variacion > 25) {
-        tipos.add('Aumento significativo');
-      } else if (variacion > 10) {
-        tipos.add('Aumento moderado');
-      } else if (Math.abs(variacion) <= 5) {
-        tipos.add('Normal');
-      } else {
-        tipos.add('Sin cambio');
-      }
-    });
-
-    const resultado = Array.from(tipos).sort((a, b) => a.localeCompare(b, 'es'));
-    return resultado;
-  }, [datos]);
-
-  // Aplicar filtros a los datos ordenados
-  const datosFiltrados = useMemo(() => {
-    return sortedDatos.filter((registro) => {
-      // Filtro por tipo de comportamiento - SIMPLIFICADO
-      if (tipoComportamientoFilter.length > 0) {
-        const variacion = registro.variacionPorcentual ?? 0;
-        let tipoRegistro = '';
-
-        if (variacion < -25) {
-          tipoRegistro = 'Descenso crítico';
-        } else if (variacion < -10) {
-          tipoRegistro = 'Descenso moderado';
-        } else if (variacion < -5) {
-          tipoRegistro = 'Descenso leve';
-        } else if (variacion > 25) {
-          tipoRegistro = 'Aumento significativo';
-        } else if (variacion > 10) {
-          tipoRegistro = 'Aumento moderado';
-        } else if (Math.abs(variacion) <= 5) {
-          tipoRegistro = 'Normal';
-        } else {
-          tipoRegistro = 'Sin cambio';
-        }
-
-        const incluido = tipoComportamientoFilter.includes(tipoRegistro);
-
-        if (!incluido) {
-          return false;
-        }
-      }
-
-      // Filtro por rango de fechas
-      if (fechaDesdeFilter || fechaHastaFilter) {
-        const periodoRegistros = detallesPorPeriodo[registro.periodo] || [];
-        if (periodoRegistros.length === 0) return true; // Sin detalles, no filtrar por fecha
-
-        const fechasDesde = periodoRegistros
-          .map((r) => {
-            const val = (r as unknown as Record<string, unknown>)['Fecha desde'];
-            return typeof val === 'string' ? val.trim() : '';
-          })
-          .filter(Boolean);
-
-        const fechasHasta = periodoRegistros
-          .map((r) => {
-            const val = (r as unknown as Record<string, unknown>)['Fecha hasta'];
-            return typeof val === 'string' ? val.trim() : '';
-          })
-          .filter(Boolean);
-
-        // Parsear fechas (formato dd/mm/yyyy)
-        const parseFecha = (fechaStr: string): number => {
-          const partes = fechaStr.split('/');
-          if (partes.length !== 3) return 0;
-          const [dia, mes, anio] = partes.map(Number);
-          return new Date(anio, mes - 1, dia).getTime();
-        };
-
-        // Obtener fecha mínima "desde" y fecha máxima "hasta" del periodo
-        let minDesde = Number.MAX_SAFE_INTEGER;
-        let maxHasta = Number.MIN_SAFE_INTEGER;
-
-        fechasDesde.forEach((f) => {
-          const t = parseFecha(f);
-          if (t > 0 && t < minDesde) minDesde = t;
-        });
-
-        fechasHasta.forEach((f) => {
-          const t = parseFecha(f);
-          if (t > 0 && t > maxHasta) maxHasta = t;
-        });
-
-        // Si el filtro de fecha desde está activo
-        if (fechaDesdeFilter) {
-          const filterDesdeTime = new Date(fechaDesdeFilter).getTime();
-          if (minDesde === Number.MAX_SAFE_INTEGER || minDesde < filterDesdeTime) {
-            return false;
-          }
-        }
-
-        // Si el filtro de fecha hasta está activo
-        if (fechaHastaFilter) {
-          const filterHastaTime = new Date(fechaHastaFilter).getTime();
-          if (maxHasta === Number.MIN_SAFE_INTEGER || maxHasta > filterHastaTime) {
-            return false;
-          }
-        }
-      }
-
-      return true;
-    });
-  }, [
-    sortedDatos,
-    tipoComportamientoFilter,
+  const {
     fechaDesdeFilter,
     fechaHastaFilter,
-    detallesPorPeriodo,
-  ]);
+    tipoComportamientoFilter,
+    tiposComportamientoUnicos,
+    setFechaDesdeFilter,
+    setFechaHastaFilter,
+    setTipoComportamientoFilter,
+    aplicarFiltros,
+  } = useAnomaliasFilters({ datos: sortedDatos, detallesPorPeriodo });
+
+  // Aplicar filtros a los datos ordenados
+  const datosFiltrados = aplicarFiltros(sortedDatos);
+
+  // Wrapper para scrollToPeriodo que usa la referencia de la tabla
+  const handleScrollToPeriodo = (periodo: string) => {
+    scrollToPeriodo(tableRef, periodo);
+  };
 
   const coloresPorAnio = useMemo(() => {
     const palette = [
@@ -377,7 +153,10 @@ export const VistaAnomalias = ({
       return null;
     }
 
-    const ordenados = [...datos].sort(compararPorPeriodo);
+    const ordenados = [...datos].sort((a, b) => {
+      if (a.año === b.año) return a.mes - b.mes;
+      return a.año - b.año;
+    });
     if (ordenados.length === 0) {
       return null;
     }
