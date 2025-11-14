@@ -16,7 +16,7 @@ import {
 
 import type { SaldoATRRow } from '../../../types';
 import { COLUMN_LETTERS, COLUMNS_TO_EMPTY } from '../utils/constants';
-import { usePaginacion, useOrdenamiento, generarNumerosPagina } from './SaldoATRTable/';
+import { usePaginacion, useOrdenamiento, generarNumerosPagina } from './SaldoATRTable/index';
 
 /**
  * Props del componente SaldoATRTable

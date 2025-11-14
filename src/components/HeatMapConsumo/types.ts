@@ -1,7 +1,7 @@
 /**
  * Tipos TypeScript para HeatMapConsumo
  */
-import type { ConsumoMensual, DerivacionData } from '../../../types';
+import type { ConsumoMensual, DerivacionData } from '../../types';
 
 export interface HeatMapConsumoProps {
   datos: ConsumoMensual[];
