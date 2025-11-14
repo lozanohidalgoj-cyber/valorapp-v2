@@ -4,11 +4,16 @@
  * con mayor precisión que el consumo total mensual
  */
 
-import { memo, useMemo } from 'react';
+import { memo, useMemo, useCallback } from 'react';
 import type { ConsumoMensual } from '../../types';
 import { formatearNumero } from '../../utils';
 import { useDeteccionAnomalia } from './useDeteccionAnomalia';
 import type { CeldaAnomalia } from './useDeteccionAnomalia';
+import {
+  NOMBRES_MESES,
+  organizarDatosPorAñoMes,
+  calcularEstadisticasAnomalias,
+} from './deteccionHelpers';
 import './DeteccionAnomalia.css';
 
 interface DeteccionAnomaliaProps {
@@ -20,42 +25,22 @@ const DeteccionAnomaliaComponent = ({ datos, onCellClick }: DeteccionAnomaliaPro
   const { baseline, celdas, años } = useDeteccionAnomalia(datos);
 
   // Organizar datos por año y mes
-  const datosPorAñoMes = useMemo(() => {
-    const matriz: Record<number, Record<number, CeldaAnomalia | null>> = {};
+  const datosPorAñoMes = useMemo(() => organizarDatosPorAñoMes(celdas, años), [celdas, años]);
 
-    años.forEach((año) => {
-      matriz[año] = {};
-      for (let mes = 1; mes <= 12; mes++) {
-        matriz[año][mes] = celdas.find((c) => c.año === año && c.mes === mes) || null;
+  // Estadísticas de anomalías
+  const { conteoAnomalias, porcentajeAnomalias } = useMemo(
+    () => calcularEstadisticasAnomalias(celdas),
+    [celdas]
+  );
+
+  const handleCellClick = useCallback(
+    (celda: CeldaAnomalia) => {
+      if (onCellClick) {
+        onCellClick(celda.periodo);
       }
-    });
-
-    return matriz;
-  }, [celdas, años]);
-
-  const meses = [
-    'Ene',
-    'Feb',
-    'Mar',
-    'Abr',
-    'May',
-    'Jun',
-    'Jul',
-    'Ago',
-    'Sep',
-    'Oct',
-    'Nov',
-    'Dic',
-  ];
-
-  const handleCellClick = (celda: CeldaAnomalia) => {
-    if (onCellClick) {
-      onCellClick(celda.periodo);
-    }
-  };
-
-  const conteoAnomalias = celdas.filter((c) => c.esAnomalia).length;
-  const porcentajeAnomalias = celdas.length > 0 ? (conteoAnomalias / celdas.length) * 100 : 0;
+    },
+    [onCellClick]
+  );
 
   return (
     <div className="deteccion-anomalia">
@@ -101,9 +86,9 @@ const DeteccionAnomaliaComponent = ({ datos, onCellClick }: DeteccionAnomaliaPro
             <thead>
               <tr>
                 <th className="año-header">Año</th>
-                {meses.map((_, mesIndex) => (
+                {NOMBRES_MESES.map((nombreMes, mesIndex) => (
                   <th key={mesIndex} className="mes-header">
-                    {meses[mesIndex]}
+                    {nombreMes}
                   </th>
                 ))}
               </tr>
@@ -112,7 +97,7 @@ const DeteccionAnomaliaComponent = ({ datos, onCellClick }: DeteccionAnomaliaPro
               {años.map((año) => (
                 <tr key={año}>
                   <td className="año-cell">{año}</td>
-                  {meses.map((_, mesIndex) => {
+                  {Array.from({ length: 12 }, (_, mesIndex) => {
                     const mesNumero = mesIndex + 1;
                     const celda = datosPorAñoMes[año][mesNumero];
 
