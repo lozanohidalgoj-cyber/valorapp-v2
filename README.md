@@ -807,7 +807,7 @@ Este proyecto es propietario. Todos los derechos reservados.
 
 ## Contacto
 
-**Desarrollador Principal**: Jorge Lozano Hidalgo  
+**Desarrollador Principal**: Jullieth Lozano Hidalgo  
 **Repositorio**: [https://github.com/lozanohidalgoj-cyber/valorapp-v2](https://github.com/lozanohidalgoj-cyber/valorapp-v2)
 
 ---
