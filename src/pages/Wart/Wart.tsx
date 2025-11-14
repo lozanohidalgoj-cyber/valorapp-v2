@@ -9,28 +9,26 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft } from 'lucide-react';
+import { WartCheckItem } from './WartCheckItem';
+import { WART_CHECKS } from './wartConfig';
 import './Wart.css';
 
-interface WartState {
-  check1: boolean;
-  check2: boolean;
-}
+type WartState = Record<string, boolean>;
 
 export const Wart = () => {
   const navigate = useNavigate();
-  const [checks, setChecks] = useState<WartState>({
-    check1: false,
-    check2: false,
-  });
+  const [checks, setChecks] = useState<WartState>(
+    WART_CHECKS.reduce((acc, check) => ({ ...acc, [check.id]: false }), {})
+  );
 
-  const handleCheckChange = (checkId: keyof WartState) => {
+  const handleCheckChange = (checkId: string) => {
     setChecks((prev) => ({
       ...prev,
       [checkId]: !prev[checkId],
     }));
   };
 
-  const ambosChequeos = checks.check1 && checks.check2;
+  const ambosChequeos = WART_CHECKS.every((check) => checks[check.id]);
 
   const handleVolver = () => {
     navigate('/averia');
@@ -51,43 +49,18 @@ export const Wart = () => {
         </div>
 
         <div className="wart-card">
-          <div className="wart-check-item">
-            <input
-              type="checkbox"
-              id="check1"
-              checked={checks.check1}
-              onChange={() => handleCheckChange('check1')}
-            />
-            <label htmlFor="check1" className="wart-check-label">
-              <p className="wart-check-title">
-                La diferencia de tiempo entre carga y WART es menor o igual a un
-                minuto
-              </p>
-              <p className="wart-check-description">
-                Verifica que el tiempo transcurrido sea ≤ 60 segundos
-              </p>
-            </label>
-          </div>
-
-          <div className="wart-separator"></div>
-
-          <div className="wart-check-item">
-            <input
-              type="checkbox"
-              id="check2"
-              checked={checks.check2}
-              onChange={() => handleCheckChange('check2')}
-            />
-            <div className="wart-check-label">
-              <p className="wart-check-title">
-                La resta de la carga real en acometida y la carga real en
-                contador es mayor a 0,5
-              </p>
-              <p className="wart-check-description">
-                (Carga Acometida - Carga Contador) &gt; 0.5 kW
-              </p>
+          {WART_CHECKS.map((check, index) => (
+            <div key={check.id}>
+              <WartCheckItem
+                id={check.id}
+                titulo={check.titulo}
+                descripcion={check.descripcion}
+                checked={checks[check.id]}
+                onChange={() => handleCheckChange(check.id)}
+              />
+              {index < WART_CHECKS.length - 1 && <div className="wart-separator"></div>}
             </div>
-          </div>
+          ))}
         </div>
 
         <div className="wart-footer">
@@ -100,11 +73,7 @@ export const Wart = () => {
             <span>Volver</span>
           </button>
 
-          <button
-            onClick={handleContinuar}
-            disabled={!ambosChequeos}
-            className="wart-continue-btn"
-          >
+          <button onClick={handleContinuar} disabled={!ambosChequeos} className="wart-continue-btn">
             Continuar
           </button>
         </div>
