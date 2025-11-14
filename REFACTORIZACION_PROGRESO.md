@@ -161,7 +161,7 @@ Aplicar principios DRY, KISS, YAGNI y SOLID para mejorar la mantenibilidad del c
 
 ---
 
-## ⏳ FASE 2.2: División de Componentes Grandes (EN PROGRESO)
+## ✅ FASE 2.2: División de Componentes Medianos (COMPLETADA)
 
 ### Componentes Refactorizados
 
@@ -201,42 +201,84 @@ Aplicar principios DRY, KISS, YAGNI y SOLID para mejorar la mantenibilidad del c
 
 **Commit**: `1c0d9f3`
 
+#### 3. ExpedienteTipoV.tsx
+
+**Antes**: 490 líneas → **Después**: 435 líneas (-55, -11.2%)
+
+**Módulo integrado**:
+
+- `src/pages/ExpedienteTipoV/hooks/useExpedienteActions.ts` (107 líneas)
+  - Hook centralizado para acciones de exportación y navegación
+  - 7 handlers optimizados con useCallback
+  - Gestión de mensajes éxito/error centralizada
+
+**Mejoras**:
+
+- Eliminados 7 handlers duplicados del componente principal
+- Lógica de acciones reutilizable y testeable
+- Código más mantenible y organizado
+
+**Commit**: `20f602e`
+
+#### 4. SaldoATR.tsx
+
+**Antes**: 492 líneas → **Después**: 301 líneas (-191, -38.8%)
+
+**Módulos creados**:
+
+- `src/pages/SaldoATR/hooks/useSaldoATRActions.ts` (98 líneas)
+  - Hook centralizado para acciones de exportación
+  - 5 handlers optimizados con useCallback
+  - Validaciones centralizadas
+
+- `src/pages/SaldoATR/utils/saldoATRHelpers.ts` (127 líneas)
+  - `PALABRAS_CLAVE_ANULACION`: Constantes de anulación
+  - `obtenerIdentificadorSaldoAtr()`: Identificador legible de filas
+  - `obtenerTimestampDesdeFecha()`: Conversión fecha → timestamp
+  - `convertirSaldoAtrADerivacion()`: Conversión de formatos
+
+**Mejoras**:
+
+- Reducción masiva de líneas (-38.8%, mayor de todos los componentes)
+- Lógica auxiliar extraída y documentada
+- Funciones reutilizables en otros contextos
+
+**Commit**: `77e0bc9`
+
 ---
 
-### Componentes Identificados (Pendientes)
+## 📊 Resumen Estadístico FASE 2.2
 
-| Componente              | Líneas | Prioridad | Complejidad |
-| ----------------------- | ------ | --------- | ----------- |
-| **VistaAnomalias.tsx**  | 1,096  | 🔴 Alta   | Muy alta    |
-| **HeatMapConsumo.tsx**  | 912    | 🔴 Alta   | Muy alta    |
-| **SaldoATR.tsx**        | 426    | 🟡 Media  | Media       |
-| **ExpedienteTipoV.tsx** | 433    | 🟡 Media  | Media       |
-| **VistaGrafico.tsx**    | 276    | 🟢 Baja   | Baja        |
+| Métrica                        | Valor  |
+| ------------------------------ | ------ |
+| **Componentes refactorizados** | 4      |
+| **Líneas totales reducidas**   | -362   |
+| **Reducción promedio**         | -27.5% |
+| **Hooks creados**              | 3      |
+| **Helpers creados**            | 2      |
+| **Commits realizados**         | 3      |
 
-### Estrategia Propuesta para VistaAnomalias.tsx
+### Detalle por Componente
 
-**Dividir en**:
-
-1. `hooks/useAnomaliasFilters.ts` - Lógica de filtros
-2. `hooks/useAnomaliasSorting.ts` - Lógica de ordenamiento
-3. `AnomaliasTableHeader.tsx` - Header de tabla
-4. `AnomaliasTableRow.tsx` - Fila de tabla
-5. `AnomaliasFilters.tsx` - Sección filtros
-6. `VistaAnomalias.tsx` (refactorizado) - < 250 líneas
+| Componente                        | Antes | Después | Reducción | Porcentaje |
+| --------------------------------- | ----- | ------- | --------- | ---------- |
+| DeteccionAnomalia.tsx             | 214   | 141     | -73       | -34.1%     |
+| BannerClasificacionExpediente.tsx | 163   | 120     | -43       | -26.4%     |
+| ExpedienteTipoV.tsx               | 490   | 435     | -55       | -11.2%     |
+| SaldoATR.tsx                      | 492   | 301     | -191      | -38.8%     |
+| **TOTAL**                         | 1,359 | 997     | -362      | -27.5%     |
 
 ---
 
-## ⏳ FASE 2.2: División de Componentes Grandes (PENDIENTE)
+## ⏳ FASE 2.3: División de Componentes Grandes (PENDIENTE)
 
-### Componentes Identificados
+### Componentes Identificados para FASE 2.3
 
-| Componente              | Líneas | Prioridad | Complejidad |
-| ----------------------- | ------ | --------- | ----------- |
-| **VistaAnomalias.tsx**  | 1,096  | 🔴 Alta   | Muy alta    |
-| **HeatMapConsumo.tsx**  | 912    | 🔴 Alta   | Muy alta    |
-| **SaldoATR.tsx**        | 426    | 🟡 Media  | Media       |
-| **ExpedienteTipoV.tsx** | 433    | 🟡 Media  | Media       |
-| **VistaGrafico.tsx**    | 276    | 🟢 Baja   | Baja        |
+| Componente             | Líneas | Prioridad | Complejidad |
+| ---------------------- | ------ | --------- | ----------- |
+| **VistaAnomalias.tsx** | 1,096  | 🔴 Alta   | Muy alta    |
+| **HeatMapConsumo.tsx** | 912    | 🔴 Alta   | Muy alta    |
+| **VistaGrafico.tsx**   | 276    | 🟢 Baja   | Baja        |
 
 ### Estrategia Propuesta para VistaAnomalias.tsx
 
@@ -325,25 +367,25 @@ Aplicar principios DRY, KISS, YAGNI y SOLID para mejorar la mantenibilidad del c
 
 ### Componentes (FASE 2.2)
 
-- **Refactorizados**: 2
-- **Líneas reducidas**: 116
-- **Módulos creados**: 2
+- **Refactorizados**: 4
+- **Líneas reducidas**: 362
+- **Módulos creados**: 5 (3 hooks + 2 helpers)
 
 ### Total General
 
-- **Archivos refactorizados**: 5 (3 servicios + 2 componentes)
-- **Líneas totales reducidas**: 1,603
-- **Módulos especializados creados**: 8
-- **Commits realizados**: 5
+- **Archivos refactorizados**: 7 (3 servicios + 4 componentes)
+- **Líneas totales reducidas**: 1,849
+- **Módulos especializados creados**: 11
+- **Commits realizados**: 8
 
 ---
 
 ## 🚀 Próximos Pasos
 
-1. **Inmediato**: Continuar con componentes medianos (SaldoATR, ExpedienteTipoV)
-2. **Corto plazo**: Abordar componentes gigantes (VistaAnomalias.tsx 1096L, HeatMapConsumo.tsx 912L)
-3. **Medio plazo**: Implementar FASE 3 (arquitectura moderna)
-4. **Largo plazo**: Testing unitario de servicios críticos
+1. **Inmediato**: Abordar componentes gigantes (VistaAnomalias.tsx 1,096L, HeatMapConsumo.tsx 912L)
+2. **Corto plazo**: Refactorizar componentes pequeños restantes (VistaGrafico.tsx 276L)
+3. **Medio plazo**: Implementar FASE 3 (arquitectura moderna - path aliases, prettier, tests)
+4. **Largo plazo**: Testing unitario de servicios críticos y hooks personalizados
 
 ---
 
